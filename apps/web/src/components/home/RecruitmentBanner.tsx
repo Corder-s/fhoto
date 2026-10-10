@@ -19,12 +19,12 @@ export const RecruitmentBanner: React.FC = () => {
             </span>
 
             <h2 className="text-2xl sm:text-4xl lg:text-[42px] font-black text-[#1A1816] tracking-tight leading-tight">
-              Turn your camera skills into <br />
-              <span className="text-[#FF6E00]">consistent bookings.</span>
+              Turn your photography into <br />
+              <span className="text-[#FF6E00]">opportunity.</span>
             </h2>
 
             <p className="text-xs sm:text-sm md:text-base text-[#665E55] leading-relaxed">
-              Showcase your portfolio, receive verified shoot requests near your location, and enjoy guaranteed 80% payouts directly into your bank account. Zero listing fees, full schedule autonomy, and complete escrow safety.
+              Showcase your portfolio, connect with customers, and grow your photography business with SnapShoot. Guaranteed 80% payouts, verified shoot requests, and complete escrow safety.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
@@ -47,7 +47,7 @@ export const RecruitmentBanner: React.FC = () => {
                 href="/for-photographers"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all"
               >
-                <span>Apply to join as a creator</span>
+                <span>Join as a Photographer</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </Link>
               <span className="text-xs text-[#8C847A]">

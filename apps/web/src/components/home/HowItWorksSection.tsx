@@ -17,19 +17,19 @@ export const HowItWorksSection: React.FC = () => {
   const STEPS = [
     {
       step: '01',
-      title: 'Discover & Compare',
+      title: 'Discover photographers',
       description: 'Explore verified visual artists in your city. Compare portfolios, upfront pricing packages, camera gear, and verified reviews.',
       icon: <Search className="w-5 h-5 text-[#FF6E00]" />,
     },
     {
       step: '02',
-      title: 'Book with Escrow Protection',
+      title: 'Choose a package and book a shoot',
       description: 'Choose your shoot package, venue, and time. Your payment stays securely held in RBI-compliant escrow until your final photos are delivered.',
       icon: <Lock className="w-5 h-5 text-[#FF6E00]" />,
     },
     {
       step: '03',
-      title: 'OTP Handshake & 4K Delivery',
+      title: 'Enjoy your shoot and receive your photos',
       description: 'Start your shoot safely with a 6-digit Shoot-Start OTP verification on arrival. Receive your color-graded high-resolution photos within 24–48 hours.',
       icon: <Sparkles className="w-5 h-5 text-[#FF6E00]" />,
     },

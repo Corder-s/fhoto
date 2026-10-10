@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -23,16 +24,28 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 
-export default function ExplorePage() {
+function ExploreContent() {
+  const searchParams = useSearchParams();
+  const urlLocation = searchParams.get('location') || '';
+  const urlCategory = searchParams.get('category') || 'all';
+  const urlQuery = searchParams.get('q') || '';
+
   // Search & Filter State
-  const [searchLocation, setSearchLocation] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchLocation, setSearchLocation] = useState(urlLocation);
+  const [selectedCategory, setSelectedCategory] = useState(urlCategory);
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedBudget, setSelectedBudget] = useState('all');
   const [selectedRating, setSelectedRating] = useState('all');
   const [selectedAvailability, setSelectedAvailability] = useState('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_low' | 'price_high'>('recommended');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (urlLocation) setSearchLocation(urlLocation);
+    if (urlCategory) setSelectedCategory(urlCategory);
+    if (urlQuery) setSearchQuery(urlQuery);
+  }, [urlLocation, urlCategory, urlQuery]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,6 +56,7 @@ export default function ExplorePage() {
   const handleResetFilters = () => {
     setSearchLocation('');
     setSelectedCategory('all');
+    setSearchQuery('');
     setSelectedDate('');
     setSelectedBudget('all');
     setSelectedRating('all');
@@ -64,9 +78,25 @@ export default function ExplorePage() {
       );
     }
 
-    // Category Filter
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.categories.includes(selectedCategory as any));
+    // Category Filter (case-insensitive)
+    if (selectedCategory && selectedCategory !== 'all') {
+      const catLower = selectedCategory.toLowerCase();
+      result = result.filter((p) =>
+        p.categories.some((c) => c.toLowerCase() === catLower)
+      );
+    }
+
+    // Search Query (name, gear, specialties, categories, bio)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.cameraGear.toLowerCase().includes(q) ||
+          p.specialties.some((s) => s.toLowerCase().includes(q)) ||
+          p.categories.some((c) => c.toLowerCase().includes(q)) ||
+          p.bio.toLowerCase().includes(q)
+      );
     }
 
     // Budget Filter
@@ -435,3 +465,12 @@ export default function ExplorePage() {
     </>
   );
 }
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
+      <ExploreContent />
+    </Suspense>
+  );
+}
+

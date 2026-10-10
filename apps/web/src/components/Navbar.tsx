@@ -20,48 +20,33 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-8 text-[14px] font-semibold text-[#5A544D]">
+        {/* Center/Right Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-7 text-[14px] font-semibold text-[#5A544D]">
           <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
-            Explore
+            Explore photographers
           </Link>
           <Link href="/how-it-works" className="hover:text-[#1A1816] transition-colors">
             How it works
           </Link>
           <Link href="/for-photographers" className="hover:text-[#1A1816] transition-colors">
-            For photographers
-          </Link>
-          <Link href="/stories" className="hover:text-[#1A1816] transition-colors">
-            Stories
+            Become a photographer
           </Link>
         </nav>
 
-        {/* Right Desktop Controls */}
+        {/* Right Desktop Auth Actions */}
         <div className="hidden sm:flex items-center gap-3">
-          {/* Search Icon Button */}
-          <Link
-            href="/explore"
-            className="p-2 text-[#5A544D] hover:text-[#1A1816] hover:bg-[#F2ECE3] rounded-full transition-colors"
-            title="Search photographers"
-          >
-            <Search className="w-4 h-4 stroke-[2.2]" />
-          </Link>
-
-          {/* Sign In Pill Button */}
           <Link
             href="/login"
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-[#1A1816] bg-[#F2ECE3]/80 hover:bg-[#EAE2D7] border border-[#E5DDD2] transition-all"
+            className="px-4 py-2 text-xs font-bold text-[#1A1816] hover:text-[#FF6E00] transition-colors"
           >
-            Sign in
+            Log in
           </Link>
 
-          {/* Book a Shoot Orange Pill Button */}
           <Link
-            href="/explore"
+            href="/register"
             className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] shadow-sm transition-all"
           >
-            <span>Book a shoot</span>
-            <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            Sign up
           </Link>
         </div>
 
@@ -93,7 +78,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
             >
-              Explore
+              Explore photographers
             </Link>
             <Link
               href="/how-it-works"
@@ -107,31 +92,24 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
             >
-              For photographers
-            </Link>
-            <Link
-              href="/stories"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
-            >
-              Stories
+              Become a photographer
             </Link>
           </nav>
 
           <div className="pt-2 border-t border-[#EDE6DC] flex flex-col gap-2.5">
             <Link
-              href="/explore"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-full font-bold text-xs text-white bg-[#FF6E00] shadow-sm"
-            >
-              Book a shoot →
-            </Link>
-            <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2]"
             >
-              Sign in
+              Log in
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-center py-2.5 rounded-full font-bold text-xs text-white bg-[#FF6E00] shadow-sm"
+            >
+              Sign up
             </Link>
           </div>
         </div>
