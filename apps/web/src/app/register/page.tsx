@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   Camera, 
   ShieldCheck, 
@@ -16,14 +17,27 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { saveAuthSession } from '../../lib/auth';
+import { sanitizeRedirectUrl } from '../../lib/safeRedirect';
 
-export default function RegisterPage() {
-  const [role, setRole] = useState<'customer' | 'creator'>('customer');
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const roleParam = searchParams.get('role');
+
+  const [role, setRole] = useState<'customer' | 'creator'>(
+    roleParam === 'creator' || roleParam === 'photographer' ? 'creator' : 'customer'
+  );
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    if (roleParam === 'creator' || roleParam === 'photographer') {
+      setRole('creator');
+    }
+  }, [roleParam]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -60,18 +74,26 @@ export default function RegisterPage() {
       setIsLoading(false);
       setIsSuccess(true);
       setTimeout(() => {
-        // Photographers are redirected to onboarding, NOT approved immediately
         if (role === 'creator') {
-          window.location.href = '/for-photographers';
+          saveAuthSession({
+            id: `creator-${Date.now()}`,
+            name: fullName,
+            email: email,
+            phone: `+91 ${phoneNumber}`,
+            role: 'creator',
+          });
+          const dest = sanitizeRedirectUrl(redirectParam, '/photographer/onboarding');
+          window.location.href = dest;
         } else {
           saveAuthSession({
-            id: 'cust-new',
+            id: `cust-${Date.now()}`,
             name: fullName,
             email: email,
             phone: `+91 ${phoneNumber}`,
             role: 'customer',
           });
-          window.location.href = '/';
+          const dest = sanitizeRedirectUrl(redirectParam, '/customer/dashboard');
+          window.location.href = dest;
         }
       }, 1200);
     }, 800);
@@ -267,3 +289,12 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+

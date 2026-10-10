@@ -3,8 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { ChevronRight, MapPin } from 'lucide-react';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 export const ZomatoPopularLocations: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const LOCATIONS = [
     {
       city: 'Greater Noida',
@@ -80,12 +84,23 @@ export const ZomatoPopularLocations: React.FC = () => {
 
         {/* 3-Column Locality Grid (Classic Zomato Pattern) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {LOCATIONS.map((loc) => (
-            <Link
-              key={loc.city}
-              href={`/explore?location=${encodeURIComponent(loc.param)}`}
-              className="group bg-[#FAF7F2] rounded-2xl border border-[#E8E2D8] p-5 hover:bg-white hover:border-[#FF6E00] hover:shadow-card transition-all duration-200 flex items-center justify-between gap-4"
-            >
+          {LOCATIONS.map((loc) => {
+            const locUrl = `/explore?location=${encodeURIComponent(loc.param)}`;
+            return (
+              <Link
+                key={loc.city}
+                href={locUrl}
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    openAuthModal({
+                      returnUrl: locUrl,
+                      message: `Join SnapShoot to discover and book photographers in ${loc.city}.`,
+                    });
+                  }
+                }}
+                className="group bg-[#FAF7F2] rounded-2xl border border-[#E8E2D8] p-5 hover:bg-white hover:border-[#FF6E00] hover:shadow-card transition-all duration-200 flex items-center justify-between gap-4"
+              >
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#FF6E00] shrink-0" />
@@ -105,7 +120,8 @@ export const ZomatoPopularLocations: React.FC = () => {
                 <ChevronRight className="w-4 h-4" />
               </div>
             </Link>
-          ))}
+          );
+        })}
         </div>
       </div>
     </section>

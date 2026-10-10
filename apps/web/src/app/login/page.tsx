@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   Camera, 
   Phone, 
@@ -18,8 +19,11 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { saveAuthSession } from '../../lib/auth';
+import { sanitizeRedirectUrl } from '../../lib/safeRedirect';
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
   const [step, setStep] = useState<'input' | 'verify'>('input');
   
@@ -82,15 +86,17 @@ export default function LoginPage() {
         setResendTimer(60);
         setCanResend(false);
       } else {
+        const isCreator = email.toLowerCase().includes('creator') || email.toLowerCase().includes('photographer');
         saveAuthSession({
-          id: 'cust-1',
-          name: 'Aman Sharma',
+          id: isCreator ? 'creator-1' : 'cust-1',
+          name: isCreator ? 'Rajat Kapoor' : 'Aman Sharma',
           email: email,
-          role: 'customer',
+          role: isCreator ? 'creator' : 'customer',
         });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/customer/dashboard';
+          const destination = sanitizeRedirectUrl(redirectParam, isCreator ? '/photographer/dashboard' : '/customer/dashboard');
+          window.location.href = destination;
         }, 1000);
       }
     }, 700);
@@ -139,7 +145,8 @@ export default function LoginPage() {
         });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/customer/dashboard';
+          const destination = sanitizeRedirectUrl(redirectParam, '/customer/dashboard');
+          window.location.href = destination;
         }, 1000);
       } else {
         setAttempts((prev) => prev + 1);
@@ -414,3 +421,12 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+

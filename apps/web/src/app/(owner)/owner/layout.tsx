@@ -1,8 +1,90 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { Camera, TrendingUp, BarChart3, PieChart, DollarSign, Settings, LogOut } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Camera, TrendingUp, BarChart3, PieChart, DollarSign, Settings, LogOut, Lock, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../../lib/auth';
+import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() || '/owner/dashboard';
+  const { user, isAuthenticated, isMounted, logout } = useAuth();
+  const { openAuthModal } = useAuthModal();
+
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
+      openAuthModal({
+        returnUrl: pathname,
+        initialTab: 'login',
+        message: 'Owner Executive Dashboard requires platform ownership credentials.',
+      });
+    }
+  }, [isMounted, isAuthenticated, pathname, openAuthModal]);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
+          <div className="w-14 h-14 rounded-2xl bg-ink-primary text-white flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-black text-ink-primary">Owner Credentials Required</h1>
+          <p className="text-xs sm:text-sm text-ink-secondary">
+            Please log in with verified platform ownership credentials to inspect executive metrics.
+          </p>
+          <button
+            onClick={() => openAuthModal({ returnUrl: pathname, initialTab: 'login' })}
+            className="w-full py-3 px-6 rounded-2xl bg-ink-primary hover:bg-black text-white text-xs sm:text-sm font-bold shadow-sm transition-all"
+          >
+            Log In as Owner
+          </button>
+          <Link href="/" className="block text-xs font-semibold text-ink-muted hover:text-ink-primary pt-2">
+            Return to Homepage
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'owner') {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
+          <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-black text-ink-primary">Access Restricted</h1>
+          <p className="text-xs sm:text-sm text-ink-secondary">
+            Your current account (<strong>{user.email}</strong>, role: <em>{user.role}</em>) does not possess executive ownership permissions.
+          </p>
+          <div className="space-y-2 pt-2">
+            <Link
+              href={user.role === 'creator' ? '/photographer/dashboard' : '/customer/dashboard'}
+              className="block w-full py-3 px-6 rounded-2xl bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-bold shadow-sm transition-all text-center"
+            >
+              Return to Your Workspace
+            </Link>
+            <button
+              onClick={() => logout()}
+              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-canvas-primary flex flex-col md:flex-row">
       {/* Sidebar Navigation */}

@@ -3,8 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 export const ZomatoServiceCards: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
+
   const CATEGORY_CARDS = [
     {
       id: 'portraits',
@@ -40,6 +45,15 @@ export const ZomatoServiceCards: React.FC = () => {
             <Link
               key={card.id}
               href={card.href}
+              onClick={(e) => {
+                if (!isAuthenticated) {
+                  e.preventDefault();
+                  openAuthModal({
+                    returnUrl: card.href,
+                    message: `Join SnapShoot to discover and book top ${card.title} specialists.`,
+                  });
+                }
+              }}
               className="group bg-white rounded-2xl border border-[#EBE4DA] overflow-hidden shadow-[0_4px_16px_-4px_rgba(26,24,22,0.06)] hover:shadow-elevated hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
             >
               {/* Card Photo Header */}

@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Camera, Search, ArrowRight, Menu, X, User, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { useAuthModal } from './auth/AuthModalContext';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const pathname = usePathname() || '';
 
   // Route matching helpers for active navigation highlight
@@ -105,6 +107,15 @@ export default function Navbar() {
             <>
               <Link
                 href="/explore"
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    openAuthModal({
+                      returnUrl: '/explore',
+                      message: 'Join SnapShoot to discover and book the perfect photographer.',
+                    });
+                  }
+                }}
                 className={`transition-colors ${
                   isExploreActive
                     ? 'text-[#FF6E00]'
@@ -154,6 +165,10 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openAuthModal({ initialTab: 'login' });
+                }}
                 className="px-4 py-2 text-xs font-bold text-[#1A1816] hover:text-[#FF6E00] transition-colors"
               >
                 Log in
@@ -161,6 +176,10 @@ export default function Navbar() {
 
               <Link
                 href="/register"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openAuthModal({ initialTab: 'register' });
+                }}
                 className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] shadow-sm transition-all"
               >
                 Sign up
@@ -246,7 +265,16 @@ export default function Navbar() {
               <>
                 <Link
                   href="/explore"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    if (!isAuthenticated) {
+                      e.preventDefault();
+                      openAuthModal({
+                        returnUrl: '/explore',
+                        message: 'Join SnapShoot to discover and book the perfect photographer.',
+                      });
+                    }
+                  }}
                   className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
                     isExploreActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
@@ -291,14 +319,22 @@ export default function Navbar() {
               <>
                 <Link
                   href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    openAuthModal({ initialTab: 'login' });
+                  }}
                   className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2]"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    openAuthModal({ initialTab: 'register' });
+                  }}
                   className="w-full text-center py-2.5 rounded-full font-bold text-xs text-white bg-[#FF6E00] shadow-sm"
                 >
                   Sign up

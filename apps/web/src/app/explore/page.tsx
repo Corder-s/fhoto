@@ -17,12 +17,15 @@ import {
   Heart, 
   ArrowRight,
   ShieldCheck,
-  Camera
+  Camera,
+  Lock
 } from 'lucide-react';
 import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../../data/photographers';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../../components/auth/AuthModalContext';
 
 function matchesCategory(categories: string[], filter: string): boolean {
   if (!filter || filter === 'all') return true;
@@ -59,6 +62,27 @@ function ExploreContent() {
   const [selectedAvailability, setSelectedAvailability] = useState('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_low' | 'price_high'>('recommended');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const { isAuthenticated, isMounted } = useAuth();
+  const { openAuthModal } = useAuthModal();
+
+  const currentFullUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (searchLocation) params.set('location', searchLocation);
+    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (searchQuery) params.set('q', searchQuery);
+    const qs = params.toString();
+    return qs ? `/explore?${qs}` : '/explore';
+  }, [searchLocation, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
+      openAuthModal({
+        returnUrl: currentFullUrl,
+        message: 'Join SnapShoot to discover and book the perfect photographer.',
+      });
+    }
+  }, [isMounted, isAuthenticated, currentFullUrl, openAuthModal]);
 
   useEffect(() => {
     if (urlLocation) setSearchLocation(urlLocation);
@@ -350,8 +374,38 @@ function ExploreContent() {
             </div>
           </div>
 
-          {/* EMPTY STATE */}
-          {filteredPhotographers.length === 0 ? (
+          {/* AUTHENTICATION GATE FOR UNVERIFIED BROWSING */}
+          {isMounted && !isAuthenticated ? (
+            <div className="bg-white rounded-3xl border border-[#E8E2D8] p-8 sm:p-12 max-w-lg mx-auto text-center space-y-4 shadow-elevated my-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-[#FF6E00] text-white flex items-center justify-center mx-auto shadow-md">
+                <Lock className="w-8 h-8 stroke-[2.2]" />
+              </div>
+              <span className="px-3.5 py-1 rounded-full text-[11px] font-bold bg-[#FFF3E5] text-[#FF6E00] border border-[#FFD4A8]">
+                Protected Photographer Discovery
+              </span>
+              <h2 className="text-2xl font-black text-[#1A1816] tracking-tight">
+                Authentication Required
+              </h2>
+              <p className="text-xs sm:text-sm text-[#5A544D] leading-relaxed">
+                Join SnapShoot to discover and book the perfect photographer in {searchLocation || 'your area'}. Your search parameters have been preserved.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 pt-3">
+                <button
+                  onClick={() => openAuthModal({ returnUrl: currentFullUrl, initialTab: 'login' })}
+                  className="flex-1 py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Log In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => openAuthModal({ returnUrl: currentFullUrl, initialTab: 'register' })}
+                  className="flex-1 py-3 px-6 rounded-2xl bg-[#FAF7F2] hover:bg-[#F2ECE3] border border-[#E8E2D8] text-[#1A1816] text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  Create Account
+                </button>
+              </div>
+            </div>
+          ) : filteredPhotographers.length === 0 ? (
             <div className="bg-white rounded-card-lg border border-contour-subtle p-12 text-center max-w-lg mx-auto space-y-4 shadow-subtle">
               <div className="w-12 h-12 rounded-full bg-brand-subtle flex items-center justify-center text-brand mx-auto">
                 <Search className="w-6 h-6" />

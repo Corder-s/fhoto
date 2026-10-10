@@ -15,6 +15,8 @@ import {
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { PhotographerServicePackage } from '../../data/photographers';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -29,6 +31,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   photographerName,
   selectedPackage,
 }) => {
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const [date, setDate] = useState('2026-10-20');
   const [time, setTime] = useState('16:00');
   const [locationAddress, setLocationAddress] = useState('');
@@ -41,6 +45,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      onClose();
+      openAuthModal({
+        message: `Please log in or create an account to reserve your shoot with ${photographerName}.`,
+      });
+      return;
+    }
     if (!date) {
       setError('Please select a preferred date for the shoot.');
       return;

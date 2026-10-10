@@ -3,9 +3,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Search, ChevronDown, Camera, ArrowRight } from 'lucide-react';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 export const ZomatoHero: React.FC = () => {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const [location, setLocation] = useState('Greater Noida');
   const [searchQuery, setSearchQuery] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -42,7 +46,19 @@ export const ZomatoHero: React.FC = () => {
       params.set('q', trimmedQuery);
     }
 
-    router.push(`/explore?${params.toString()}`);
+    const destinationUrl = `/explore?${params.toString()}`;
+
+    // If unauthenticated, open the professional authentication modal
+    // preserving the full destination URL and search parameters!
+    if (!isAuthenticated) {
+      openAuthModal({
+        returnUrl: destinationUrl,
+        message: 'Join SnapShoot to discover and book the perfect photographer.',
+      });
+      return;
+    }
+
+    router.push(destinationUrl);
   };
 
   return (

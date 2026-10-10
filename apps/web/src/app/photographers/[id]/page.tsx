@@ -26,6 +26,8 @@ import { Button } from '../../../components/ui/Button';
 import { PortfolioLightbox } from '../../../components/gallery/PortfolioLightbox';
 import { BookingModal } from '../../../components/booking/BookingModal';
 import { UnifiedPhotographerPage } from '../../../components/photographer/UnifiedPhotographerPage';
+import { useAuth } from '../../../lib/auth';
+import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function PhotographerProfilePage({ params }: { params: { id: string } }) {
   if (params.id === 'pro-aman') {
@@ -51,6 +53,9 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
   // Booking Modal State
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PhotographerServicePackage | null>(null);
+
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
 
   // Copy Profile Link Toast State
   const [copiedToast, setCopiedToast] = useState(false);
@@ -89,6 +94,13 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
   };
 
   const handleInitiateBooking = (pkg: PhotographerServicePackage) => {
+    if (!isAuthenticated) {
+      openAuthModal({
+        returnUrl: `/photographers/${params.id}`,
+        message: `Please sign in or create an account to book ${creator.name}.`,
+      });
+      return;
+    }
     setSelectedPackage(pkg);
     setBookingModalOpen(true);
   };

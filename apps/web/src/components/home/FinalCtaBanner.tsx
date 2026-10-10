@@ -3,8 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Camera, ShieldCheck, Sparkles } from 'lucide-react';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 export const FinalCtaBanner: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   return (
     <section className="py-12 md:py-16 bg-[#FAF7F2]">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,6 +35,15 @@ export const FinalCtaBanner: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
               <Link
                 href="/explore"
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    openAuthModal({
+                      returnUrl: '/explore',
+                      message: 'Join SnapShoot to discover and book the perfect photographer.',
+                    });
+                  }
+                }}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs sm:text-sm font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-md transition-all"
               >
                 <span>Find your photographer</span>

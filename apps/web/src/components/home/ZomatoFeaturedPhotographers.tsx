@@ -4,8 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { Star, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SAMPLE_PHOTOGRAPHERS } from '../../data/photographers';
+import { useAuth } from '../../lib/auth';
+import { useAuthModal } from '../auth/AuthModalContext';
 
 export const ZomatoFeaturedPhotographers: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
+
   return (
     <section className="py-10 md:py-16 bg-[#FAF7F2]">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -30,6 +35,15 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
 
           <Link
             href="/explore"
+            onClick={(e) => {
+              if (!isAuthenticated) {
+                e.preventDefault();
+                openAuthModal({
+                  returnUrl: '/explore',
+                  message: 'Join SnapShoot to discover and book the perfect photographer.',
+                });
+              }
+            }}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1A1816] hover:text-[#FF6E00] transition-colors self-start sm:self-auto"
           >
             <span>View all photographers</span>

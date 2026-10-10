@@ -6,7 +6,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'creator';
+  role: 'customer' | 'creator' | 'photographer' | 'admin' | 'owner';
   phone?: string;
   avatarUrl?: string;
 }
