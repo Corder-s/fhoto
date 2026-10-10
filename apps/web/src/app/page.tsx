@@ -6,6 +6,10 @@ import Footer from '../components/Footer';
 import { HeroSearch, SearchFilters } from '../components/home/HeroSearch';
 import { CategorySection } from '../components/home/CategorySection';
 import { FeaturedPhotographersSection } from '../components/home/FeaturedPhotographersSection';
+import { HowItWorksSection } from '../components/home/HowItWorksSection';
+import { RecruitmentBanner } from '../components/home/RecruitmentBanner';
+import { HomeFaqSection } from '../components/home/HomeFaqSection';
+import { FinalCtaBanner } from '../components/home/FinalCtaBanner';
 import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../data/photographers';
 
 export default function HomePage() {
@@ -130,6 +134,18 @@ export default function HomePage() {
             photographers={filteredPhotographers}
           />
         </div>
+
+        {/* HOW SNAPSHOOT WORKS & CUSTOMER BENEFITS */}
+        <HowItWorksSection />
+
+        {/* PHOTOGRAPHER RECRUITMENT BANNER */}
+        <RecruitmentBanner />
+
+        {/* FREQUENTLY ASKED QUESTIONS */}
+        <HomeFaqSection />
+
+        {/* FINAL BOOKING CALL TO ACTION */}
+        <FinalCtaBanner />
       </main>
 
       <Footer />

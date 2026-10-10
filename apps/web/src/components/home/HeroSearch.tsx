@@ -60,9 +60,15 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
   return (
     <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-6 pt-2">
       {/* 1. SEARCH BAR */}
+      {openDropdown !== 'none' && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => setOpenDropdown('none')}
+        />
+      )}
       <form
         onSubmit={handleSubmit}
-        className="relative bg-white rounded-2xl md:rounded-full border border-[#E8E2D8] shadow-[0_4px_20px_-4px_rgba(26,24,22,0.06)] p-2 md:py-2 md:px-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-0 max-w-full xl:max-w-[700px] flex-1"
+        className="relative bg-white rounded-2xl md:rounded-full border border-[#E8E2D8] shadow-[0_4px_20px_-4px_rgba(26,24,22,0.06)] p-2 md:py-2 md:px-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-0 max-w-full xl:max-w-[700px] flex-1 z-50"
       >
         {/* Location Dropdown */}
         <div className="relative flex-1">
