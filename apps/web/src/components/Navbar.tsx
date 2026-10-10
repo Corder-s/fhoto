@@ -3,18 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Camera, Search, ArrowRight, Menu, X, User, LogOut, Sparkles } from 'lucide-react';
+import { Camera, Search, ArrowRight, Menu, X, User, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const pathname = usePathname() || '';
-
-  const handleLogout = () => {
-    logout();
-    setMobileMenuOpen(false);
-  };
 
   // Route matching helpers for active navigation highlight
   const isDashboardActive =
@@ -145,27 +140,16 @@ export default function Navbar() {
         {/* Right Desktop Auth Actions */}
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/customer/dashboard"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all"
-              >
-                <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
-                  {user?.name ? user.name[0] : 'U'}
-                </div>
-                <span>{user?.name || 'My Account'}</span>
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#5A544D] hover:text-red-600 hover:bg-red-50 border border-[#E5DDD2] transition-colors"
-                title="Log out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log out</span>
-              </button>
-            </div>
+            <Link
+              href="/customer/settings"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
+              title="Account Settings"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
+                {user?.name ? user.name[0] : 'A'}
+              </div>
+              <span>{user?.name || 'Aman Sharma'}</span>
+            </Link>
           ) : (
             <>
               <Link
@@ -189,9 +173,9 @@ export default function Navbar() {
         <div className="flex lg:hidden items-center gap-2">
           {isAuthenticated ? (
             <Link
-              href="/customer/dashboard"
+              href="/customer/settings"
               className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden"
-              aria-label="Dashboard"
+              aria-label="Settings"
             >
               <User className="w-4 h-4" />
             </Link>
@@ -293,13 +277,16 @@ export default function Navbar() {
 
           <div className="pt-2 border-t border-[#EDE6DC] flex flex-col gap-2.5">
             {isAuthenticated ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full text-center py-2.5 rounded-full font-bold text-xs text-red-600 bg-red-50 border border-red-200"
+              <Link
+                href="/customer/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] hover:bg-[#EAE2D7] transition-all flex items-center justify-center gap-2"
               >
-                Log out ({user?.name || 'Account'})
-              </button>
+                <div className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[9px]">
+                  {user?.name ? user.name[0] : 'A'}
+                </div>
+                <span>{user?.name || 'Aman Sharma'} (Settings)</span>
+              </Link>
             ) : (
               <>
                 <Link

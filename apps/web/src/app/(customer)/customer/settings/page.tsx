@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   User,
   Phone,
@@ -63,13 +64,28 @@ type SettingsTab =
   | 'account';
 
 export default function CustomerSettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated, isMounted } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [prefs, setPrefs] = useState<CustomerPreferences>(getCustomerPreferences);
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Authentication guard: prevent unauthenticated access to Settings
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isMounted, isAuthenticated, router]);
+
+  const handleConfirmLogout = () => {
+    logout();
+    setIsLogoutModalOpen(false);
+    window.location.href = '/';
+  };
 
   // Avatar Upload Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -432,6 +448,23 @@ export default function CustomerSettingsPage() {
                 <Camera className="w-4 h-4 text-[#FF6E00]" />
                 <span>Switch to Creator Studio</span>
               </Link>
+            </div>
+
+            {/* Account Actions Section */}
+            <div className="mt-4 pt-4 border-t border-[#F0EAE1]">
+              <div className="px-3.5 mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C847A]">
+                  Account Actions
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLogoutModalOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors text-left cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-red-600 shrink-0" />
+                <span>Log Out</span>
+              </button>
             </div>
           </div>
         </aside>
@@ -1477,6 +1510,29 @@ export default function CustomerSettingsPage() {
                 <p className="text-xs text-[#665E55] mt-1">Manage platform account ownership and data controls</p>
               </div>
 
+              {/* DEDICATED ACCOUNT ACTIONS CARD */}
+              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-bold tracking-wider text-[#8C847A] uppercase">
+                      Account Actions
+                    </span>
+                    <h3 className="text-sm font-bold text-[#1A1816] mt-0.5">Session Log Out</h3>
+                    <p className="text-xs text-[#8C847A] mt-0.5">
+                      Safely sign out of your SnapShoot account on this browser.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsLogoutModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-red-600 hover:bg-red-700 active:scale-[0.98] shadow-sm transition-all shrink-0 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#F0EAE1]">
                   <div>
@@ -1700,6 +1756,39 @@ export default function CustomerSettingsPage() {
             >
               Permanently Delete
             </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ========================================================= */}
+      {/* MODAL 4: CONFIRM LOG OUT */}
+      {/* ========================================================= */}
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        title="Confirm Log Out"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-[#665E55] leading-relaxed">
+            Are you sure you want to log out of your SnapShoot account? You will be returned to the public homepage and will need to sign in again to manage your bookings and settings.
+          </p>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0EAE1]">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleConfirmLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log Out
+            </Button>
           </div>
         </div>
       </Modal>
