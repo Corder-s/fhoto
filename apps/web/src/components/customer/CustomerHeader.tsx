@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Camera,
   Calendar,
@@ -17,59 +17,99 @@ import {
   ChevronDown,
   User,
   LogOut,
-  Sparkles
+  Sparkles,
+  Search,
+  MessageSquare
 } from 'lucide-react';
 import { INITIAL_CUSTOMER_PROFILE, INITIAL_NOTIFICATIONS } from '../../data/customerDashboardData';
-import { clearAuthSession } from '../../lib/auth';
+import { clearAuthSession, useAuth } from '../../lib/auth';
+import { getCustomerPreferences, CustomerPreferences } from '../../lib/settingsService';
 
 export const CustomerHeader: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get active profile preferences if saved
+  const [currentProfile, setCurrentProfile] = useState<CustomerPreferences['profile']>(() => {
+    try {
+      return getCustomerPreferences().profile;
+    } catch {
+      return getCustomerPreferences().profile;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const p = getCustomerPreferences().profile;
+      setCurrentProfile(p);
+    } catch {}
+  }, [pathname]);
 
   const navLinks = [
-    { label: 'Overview', href: '/customer/dashboard', icon: Sparkles },
-    { label: 'My Bookings', href: '/customer/bookings', icon: Calendar },
-    { label: 'Photo Gallery', href: '/customer/gallery', icon: ImageIcon },
-    { label: 'Payments & Escrow', href: '/customer/payments', icon: CreditCard },
-    { label: 'Reviews', href: '/customer/reviews', icon: Star },
-    { label: 'Settings', href: '/customer/settings', icon: Settings },
+    { label: 'Home', href: '/', icon: Sparkles },
+    { label: 'Explore', href: '/explore', icon: Camera },
+    { label: 'Bookings', href: '/customer/bookings', icon: Calendar },
+    { label: 'Messages', href: '/customer/bookings?tab=messages', icon: MessageSquare },
   ];
 
-  const unreadCount = INITIAL_NOTIFICATIONS.filter((n) => n.unread).length;
+  const unreadCount = INITIAL_NOTIFICATIONS.filter((n) => n.unread).length || 1;
+  const displayName = user?.name || currentProfile.displayName || currentProfile.name || 'Priya Sharma';
+  const displayAvatar = user?.avatarUrl || currentProfile.avatar || INITIAL_CUSTOMER_PROFILE.avatar;
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E1D6]">
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Brand Logo & Portal Tag */}
-        <div className="flex items-center gap-4">
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        {/* Brand Logo */}
+        <div className="flex items-center gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-card-sm bg-[#FF6E00] flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
               <Camera className="w-5 h-5 fill-white/20 stroke-[2.2]" />
             </div>
             <span className="text-xl sm:text-2xl font-black tracking-tight text-[#1A1816]">
-              SNAPSHOOT
+              SnapShoot
             </span>
           </Link>
-
-          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#F2ECE3] text-[#5A544D] border border-[#E0D8CD]">
-            Client Portal
-          </span>
         </div>
 
-        {/* Center Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+        {/* Search Bar matching reference image */}
+        <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                router.push(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
+              }
+            }}
+            className="w-full relative"
+          >
+            <Search className="w-4 h-4 text-[#8C847A] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search photographers, locations, or categories..."
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-full bg-white border border-[#E0D8CD] placeholder-[#8C847A] text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all shadow-sm"
+            />
+          </form>
+        </div>
+
+        {/* Center/Right Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-6">
           {navLinks.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                className={`text-xs font-bold transition-all ${
                   isActive
-                    ? 'bg-[#FF6E00] text-white shadow-sm'
-                    : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#F2ECE3]'
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
                 {item.label}
@@ -79,7 +119,7 @@ export const CustomerHeader: React.FC = () => {
         </nav>
 
         {/* Right Action Controls */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Notifications Trigger */}
           <div className="relative">
             <button
@@ -92,7 +132,9 @@ export const CustomerHeader: React.FC = () => {
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF6E00] ring-2 ring-white" />
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#E53935] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+                  1
+                </span>
               )}
             </button>
 
@@ -133,15 +175,6 @@ export const CustomerHeader: React.FC = () => {
             )}
           </div>
 
-          {/* Book New Shoot Button */}
-          <Link
-            href="/explore"
-            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Book New Shoot</span>
-          </Link>
-
           {/* Profile Menu Trigger */}
           <div className="relative">
             <button
@@ -149,15 +182,15 @@ export const CustomerHeader: React.FC = () => {
                 setShowProfileMenu(!showProfileMenu);
                 setShowNotifMenu(false);
               }}
-              className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-full border border-[#E0D8CD] bg-white hover:bg-[#FAF7F2] transition-all"
+              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-[#E0D8CD] bg-white hover:bg-[#FAF7F2] transition-all"
             >
               <img
-                src={INITIAL_CUSTOMER_PROFILE.avatar}
-                alt={INITIAL_CUSTOMER_PROFILE.name}
+                src={displayAvatar}
+                alt={displayName}
                 className="w-7 h-7 rounded-full object-cover border border-[#E8E1D6]"
               />
               <span className="hidden md:inline text-xs font-bold text-[#1A1816]">
-                {INITIAL_CUSTOMER_PROFILE.name.split(' ')[0]}
+                {displayName}
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
             </button>
@@ -166,8 +199,8 @@ export const CustomerHeader: React.FC = () => {
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E1D6] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-3 py-2 border-b border-[#F0EAE1]">
-                  <p className="text-xs font-bold text-[#1A1816]">{INITIAL_CUSTOMER_PROFILE.name}</p>
-                  <p className="text-[11px] text-[#8C847A] truncate">{INITIAL_CUSTOMER_PROFILE.email}</p>
+                  <p className="text-xs font-bold text-[#1A1816]">{displayName}</p>
+                  <p className="text-[11px] text-[#8C847A] truncate">{user?.email || currentProfile.email || 'priya.sharma@example.com'}</p>
                 </div>
                 <div className="py-1">
                   <Link

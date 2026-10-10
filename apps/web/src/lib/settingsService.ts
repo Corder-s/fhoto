@@ -18,10 +18,21 @@ export interface SavedLocation {
 
 export interface CustomerPreferences {
   profile: CustomerProfile & {
+    firstName: string;
+    lastName: string;
     displayName: string;
+    handle: string;
+    tagline: string;
+    dob: string;
+    gender: string;
+    phoneCountryCode: string;
     preferredLanguage: string;
     emailVerified: boolean;
     phoneVerified: boolean;
+    accountStatus: string;
+    accountType: string;
+    userId: string;
+    lastLogin: string;
   };
   savedLocations: SavedLocation[];
   bookingPreferences: {
@@ -100,10 +111,28 @@ const PHOTOGRAPHER_SETTINGS_KEY = 'snapshoot_photographer_settings';
 export const DEFAULT_CUSTOMER_PREFERENCES: CustomerPreferences = {
   profile: {
     ...INITIAL_CUSTOMER_PROFILE,
-    displayName: 'Aarav S.',
-    preferredLanguage: 'English (India)',
+    id: '#USR102938',
+    name: 'Priya Sharma',
+    firstName: 'Priya',
+    lastName: 'Sharma',
+    displayName: 'Priya Sharma',
+    handle: '@priyasharma',
+    tagline: 'Captured memories, beautiful stories ✨',
+    email: 'priya.sharma@example.com',
+    phone: '98765 43210',
+    phoneCountryCode: '+91',
+    dob: '15 Mar 1998',
+    gender: 'Female',
+    city: 'Mumbai, Maharashtra',
+    preferredLanguage: 'English',
     emailVerified: true,
     phoneVerified: true,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    accountStatus: 'Active',
+    accountType: 'Customer',
+    userId: '#USR102938',
+    memberSince: '15 Jan 2024',
+    lastLogin: '12 Aug 2024, 10:24 AM',
   },
   savedLocations: [
     {
