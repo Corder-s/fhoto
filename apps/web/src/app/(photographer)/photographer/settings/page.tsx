@@ -28,7 +28,8 @@ import {
   CreditCard,
   DollarSign,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -40,10 +41,15 @@ import {
   savePhotographerPreferences,
   PhotographerPreferences
 } from '../../../../lib/settingsService';
+import {
+  getStoredSubscription,
+  getPlanDetails
+} from '../../../../lib/subscriptionService';
 import { useAuth } from '../../../../lib/auth';
 
 type PhotographerTab =
   | 'profile'
+  | 'subscription'
   | 'gear'
   | 'location'
   | 'booking'
@@ -75,8 +81,15 @@ export default function PhotographerSettingsPage() {
   const [isCloseStudioModalOpen, setIsCloseStudioModalOpen] = useState(false);
   const [confirmStudioText, setConfirmStudioText] = useState('');
 
+  // Subscription SaaS State
+  const [currentSubscription, setCurrentSubscription] = useState(getStoredSubscription);
+
   useEffect(() => {
     setPrefs(getPhotographerPreferences());
+    setCurrentSubscription(getStoredSubscription());
+    const handleSubSync = () => setCurrentSubscription(getStoredSubscription());
+    window.addEventListener('snapshoot:subscription-change', handleSubSync);
+    return () => window.removeEventListener('snapshoot:subscription-change', handleSubSync);
   }, []);
 
   const handleSave = (e?: React.FormEvent) => {
@@ -210,6 +223,7 @@ export default function PhotographerSettingsPage() {
       <div className="flex overflow-x-auto gap-2 p-1.5 bg-canvas-secondary rounded-card-md border border-contour-subtle scrollbar-none">
         {[
           { id: 'profile' as PhotographerTab, label: 'Profile & Bio', icon: User },
+          { id: 'subscription' as PhotographerTab, label: 'SaaS Plan & Billing', icon: CreditCard },
           { id: 'gear' as PhotographerTab, label: 'Specialties & Gear', icon: Camera },
           { id: 'location' as PhotographerTab, label: 'Coverage & Travel', icon: MapPin },
           { id: 'booking' as PhotographerTab, label: 'Booking Rules & Radar', icon: Clock },
@@ -382,6 +396,175 @@ export default function PhotographerSettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* TAB: SAAS PLAN & BILLING */}
+      {/* ========================================================= */}
+      {activeTab === 'subscription' && (() => {
+        const plan = getPlanDetails(currentSubscription.tier);
+        return (
+          <div className="space-y-6">
+            <Card className="p-6 sm:p-8 space-y-6">
+              <div className="border-b border-contour-subtle pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-brand/10 text-brand">
+                      SaaS Business Tier
+                    </span>
+                    <Badge variant={currentSubscription.status === 'ACTIVE' ? 'brand' : 'neutral'} size="sm">
+                      {currentSubscription.status}
+                    </Badge>
+                  </div>
+                  <h3 className="text-xl font-extrabold text-ink-primary">
+                    Current Plan: {plan.name}
+                  </h3>
+                  <p className="text-xs text-ink-secondary mt-0.5">
+                    Your studio is currently subscribed to the {plan.name} tier billed {currentSubscription.billingInterval.toLowerCase()}.
+                  </p>
+                </div>
+
+                <Link
+                  href="/photographer/subscription"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-card-sm bg-brand text-white font-bold text-xs shadow-sm hover:bg-brand-dark transition-all shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Manage or Upgrade Plan</span>
+                </Link>
+              </div>
+
+              {/* Plan Pricing & Billing Cycle Card */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-card-md bg-canvas-primary border border-contour-subtle">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Recurring Billing</span>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-ink-primary">
+                      ₹{currentSubscription.billingInterval === 'ANNUAL' ? (plan.priceAnnualInr / 12).toFixed(0) : plan.priceMonthlyInr}
+                    </span>
+                    <span className="text-xs text-ink-muted font-medium">/ month</span>
+                  </div>
+                  <p className="text-[11px] text-ink-secondary mt-1">
+                    Billed {currentSubscription.billingInterval.toLowerCase()}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-card-md bg-canvas-primary border border-contour-subtle">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Next Renewal Date</span>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-xl font-bold text-ink-primary">
+                      {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                    Auto-renewal active
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-card-md bg-canvas-primary border border-contour-subtle">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Platform Take-Rate</span>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-brand">
+                      {currentSubscription.tier === 'BUSINESS' ? 15 : currentSubscription.tier === 'PRO' ? 20 : 25}%
+                    </span>
+                    <span className="text-xs text-ink-muted font-medium">Commission</span>
+                  </div>
+                  <p className="text-[11px] text-ink-secondary mt-1">
+                    Keep {100 - (currentSubscription.tier === 'BUSINESS' ? 15 : currentSubscription.tier === 'PRO' ? 20 : 25)}% of gross booking payouts
+                  </p>
+                </div>
+              </div>
+
+              {/* Included Entitlements */}
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-ink-primary mb-3">
+                  Tier Entitlements & Features
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Max Active Packages</span>
+                    <span className="font-bold text-ink-primary">
+                      {plan.maxServicePackages === -1 ? 'Unlimited' : `${plan.maxServicePackages} Packages`}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Portfolio Photos Limit</span>
+                    <span className="font-bold text-ink-primary">
+                      {plan.maxPortfolioItems === -1 ? 'Unlimited' : `${plan.maxPortfolioItems} Photos`}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Client CRM Directory</span>
+                    <span className="font-bold text-emerald-600">
+                      {plan.hasClientCrm ? 'Included' : 'Not Included'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Custom Gallery Branding</span>
+                    <span className="font-bold text-emerald-600">
+                      {plan.hasCustomGalleryBranding ? 'Enabled' : 'Standard'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Discovery Boost</span>
+                    <span className="font-bold text-brand">
+                      {plan.hasPriorityListing ? 'Priority Placement' : 'Standard Listing'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-card-sm border border-contour-subtle bg-white flex items-center justify-between">
+                    <span className="text-ink-secondary">Advanced Analytics</span>
+                    <span className="font-bold text-ink-primary">
+                      {plan.hasAdvancedAnalytics ? 'Included' : 'Basic'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoices History */}
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-ink-primary mb-3">
+                  Recent SaaS Billing Receipts
+                </h4>
+                <div className="border border-contour-subtle rounded-card-sm overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-canvas-primary text-[11px] font-bold text-ink-muted uppercase border-b border-contour-subtle">
+                      <tr>
+                        <th className="py-2.5 px-4">Invoice ID</th>
+                        <th className="py-2.5 px-4">Date</th>
+                        <th className="py-2.5 px-4">Plan Description</th>
+                        <th className="py-2.5 px-4">Amount</th>
+                        <th className="py-2.5 px-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-contour-subtle">
+                      <tr>
+                        <td className="py-3 px-4 font-mono font-bold text-ink-primary">INV-2026-009</td>
+                        <td className="py-3 px-4 text-ink-secondary">01 Oct 2026</td>
+                        <td className="py-3 px-4 text-ink-primary font-medium">{plan.name} - Monthly Plan</td>
+                        <td className="py-3 px-4 font-bold text-ink-primary">₹{plan.priceMonthlyInr.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                            PAID
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 px-4 font-mono font-bold text-ink-primary">INV-2026-008</td>
+                        <td className="py-3 px-4 text-ink-secondary">01 Sep 2026</td>
+                        <td className="py-3 px-4 text-ink-primary font-medium">{plan.name} - Monthly Plan</td>
+                        <td className="py-3 px-4 font-bold text-ink-primary">₹{plan.priceMonthlyInr.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                            PAID
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* ========================================================= */}
       {/* TAB 2: GEAR & SPECIALTIES */}

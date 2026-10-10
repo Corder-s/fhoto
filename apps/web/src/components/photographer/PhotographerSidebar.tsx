@@ -18,7 +18,9 @@ import {
   ExternalLink,
   Camera,
   X,
-  LogOut
+  LogOut,
+  Users,
+  CreditCard,
 } from 'lucide-react';
 import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
 import { clearAuthSession } from '../../lib/auth';
@@ -45,6 +47,13 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       badgeColor: 'bg-brand text-white',
     },
     {
+      label: 'Client CRM',
+      href: '/photographer/clients',
+      icon: Users,
+      badge: '5 Active',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+    },
+    {
       label: 'Availability & Slots',
       href: '/photographer/availability',
       icon: Clock,
@@ -68,6 +77,13 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       label: 'Payouts & UPI',
       href: '/photographer/payouts',
       icon: DollarSign,
+    },
+    {
+      label: 'SaaS Plan & Billing',
+      href: '/photographer/subscription',
+      icon: CreditCard,
+      badge: 'PRO',
+      badgeColor: 'bg-amber-100 text-amber-800 border border-amber-200',
     },
     {
       label: 'Client Reviews',

@@ -129,6 +129,8 @@ model PhotographerProfile {
   bookings       Booking[]
   payouts        Payout[]
   reviews        Review[]
+  subscription   PhotographerSubscription?
+  clients        PhotographerClient[]
 }
 
 model ServiceCategory {
@@ -362,4 +364,91 @@ model AuditLog {
   createdAt    DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+model SubscriptionPlan {
+  id                    String          @id @default(uuid())
+  tier                  PlanTier        @unique
+  name                  String
+  priceMonthlyInr       Int             @default(0)
+  priceAnnualInr        Int             @default(0)
+  maxPortfolioItems     Int             @default(10)
+  maxServicePackages    Int             @default(2)
+  hasClientCrm          Boolean         @default(false)
+  hasAdvancedAnalytics  Boolean         @default(false)
+  hasPriorityListing    Boolean         @default(false)
+  hasCustomGalleryBranding Boolean      @default(false)
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  subscriptions         PhotographerSubscription[]
+}
+
+model PhotographerSubscription {
+  id                    String             @id @default(uuid())
+  photographerId        String             @unique
+  planId                String
+  status                SubscriptionStatus @default(ACTIVE)
+  billingInterval       BillingInterval    @default(MONTHLY)
+  currentPeriodStart    DateTime           @default(now())
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
+  gatewaySubscriptionId String?            @unique
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  photographer          PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices              SubscriptionInvoice[]
+
+  @@index([status])
+}
+
+model SubscriptionInvoice {
+  id               String        @id @default(uuid())
+  subscriptionId   String
+  amountPaise      BigInt
+  status           PaymentStatus @default(PENDING)
+  gatewayInvoiceId String?       @unique
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+
+  subscription     PhotographerSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model PhotographerClient {
+  id             String   @id @default(uuid())
+  photographerId String
+  name           String
+  email          String?
+  phone          String
+  totalShoots    Int      @default(1)
+  totalSpentInr  Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  photographer   PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+
+  @@unique([photographerId, phone])
+  @@index([photographerId])
 }
