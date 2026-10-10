@@ -90,7 +90,7 @@ export default function LoginPage() {
         });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/customer/dashboard';
         }, 1000);
       }
     }, 700);
@@ -139,7 +139,7 @@ export default function LoginPage() {
         });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/customer/dashboard';
         }, 1000);
       } else {
         setAttempts((prev) => prev + 1);
