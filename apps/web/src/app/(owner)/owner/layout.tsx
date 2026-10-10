@@ -67,6 +67,15 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
 
       {/* Main Owner Content */}
       <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
+        <div className="mb-6 p-3 bg-white border border-contour-subtle rounded-card-sm text-xs text-ink-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-subtle">
+          <span className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-brand shrink-0" />
+            <span><strong>Executive Security Notice:</strong> Platform analytics and take-rate policies are restricted to platform owners.</span>
+          </span>
+          <span className="font-mono text-[10px] font-bold bg-ink-primary text-white px-2 py-0.5 rounded self-start sm:self-auto">
+            ROLE: OWNER
+          </span>
+        </div>
         {children}
       </main>
     </div>

@@ -74,6 +74,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main Admin Content */}
       <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
+        <div className="mb-6 p-3 bg-canvas-primary border border-contour-subtle rounded-card-sm text-xs text-ink-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-brand shrink-0" />
+            <span><strong>Role-Restricted Interface:</strong> Operations desk actions require verified server-side JWT claims.</span>
+          </span>
+          <span className="font-mono text-[10px] font-bold bg-white px-2 py-0.5 rounded border border-contour-subtle text-ink-secondary self-start sm:self-auto">
+            ROLE: ADMIN
+          </span>
+        </div>
         {children}
       </main>
     </div>
