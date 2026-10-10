@@ -25,8 +25,23 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { PortfolioLightbox } from '../../../components/gallery/PortfolioLightbox';
 import { BookingModal } from '../../../components/booking/BookingModal';
+import { UnifiedPhotographerPage } from '../../../components/photographer/UnifiedPhotographerPage';
 
 export default function PhotographerProfilePage({ params }: { params: { id: string } }) {
+  if (params.id === 'pro-aman') {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-canvas-primary py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <UnifiedPhotographerPage initialMode="public" creatorId="pro-aman" />
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   const creator = SAMPLE_PHOTOGRAPHERS.find((p) => p.id === params.id);
 
   // Lightbox State

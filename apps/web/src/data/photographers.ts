@@ -67,7 +67,7 @@ export interface SamplePhotographer {
 export const SAMPLE_PHOTOGRAPHERS: SamplePhotographer[] = [
   {
     id: 'pro-aman',
-    name: 'Aman Verma',
+    name: 'Aman Sharma',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
     coverImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1600&q=80',
     isVerified: true,
