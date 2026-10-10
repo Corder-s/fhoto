@@ -87,12 +87,14 @@ export default function ExplorePage() {
 
     // Availability Filter
     if (selectedAvailability === 'today') {
-      result = result.filter((p) => p.availabilityStatus === 'Available Today');
+      result = result.filter(
+        (p) => p.availabilityStatus.toLowerCase() === 'available today'
+      );
     } else if (selectedAvailability === 'this_week') {
       result = result.filter(
         (p) =>
-          p.availabilityStatus === 'Available Today' ||
-          p.availabilityStatus === 'Available This Week'
+          p.availabilityStatus.toLowerCase() === 'available today' ||
+          p.availabilityStatus.toLowerCase() === 'available this week'
       );
     }
 

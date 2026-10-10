@@ -2,10 +2,11 @@ export interface PhotographyCategory {
   id: string;
   slug: string;
   title: string;
+  subtitle: string;
   shortDescription: string;
-  tagline: string;
   startingPriceInr: number;
-  creatorsCount: number;
+  rating: number;
+  reviewCount: number;
   imageUrl: string;
 }
 
@@ -13,41 +14,45 @@ export const SAMPLE_CATEGORIES: PhotographyCategory[] = [
   {
     id: 'cat-portraits',
     slug: 'portraits',
-    title: 'Portraits',
-    shortDescription: 'Studio portraits, corporate headshots & personal branding.',
-    tagline: 'Refined personal & executive aesthetics',
-    startingPriceInr: 3500,
-    creatorsCount: 320,
+    title: 'Portrait Session',
+    subtitle: 'Individual · Professional · Lifestyle',
+    shortDescription: 'Studio portraits, executive headshots, and personal lifestyle aesthetics.',
+    startingPriceInr: 800,
+    rating: 4.9,
+    reviewCount: 320,
     imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'cat-reels',
     slug: 'reels',
-    title: 'Reels and creators',
-    shortDescription: 'Cinematic 4K short-form video, lifestyle reels & TikToks.',
-    tagline: 'High-energy content built for engagement',
-    startingPriceInr: 4500,
-    creatorsCount: 210,
+    title: 'Creator Reels',
+    subtitle: 'Social media · Content · Personal brand',
+    shortDescription: 'Cinematic 4K vertical video, trending audio transitions, and B-roll.',
+    startingPriceInr: 1200,
+    rating: 4.8,
+    reviewCount: 210,
     imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'cat-couples',
     slug: 'couples',
-    title: 'Couples',
-    shortDescription: 'Pre-weddings, candid engagements & milestone anniversaries.',
-    tagline: 'Authentic love stories preserved forever',
-    startingPriceInr: 6000,
-    creatorsCount: 450,
-    imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+    title: 'Couple Shoot',
+    subtitle: 'Pre-weddings · Love stories · Engagements',
+    shortDescription: 'Intimate, candid storytelling and romantic golden-hour sessions.',
+    startingPriceInr: 1500,
+    rating: 4.9,
+    reviewCount: 412,
+    imageUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'cat-events',
     slug: 'events',
     title: 'Events',
-    shortDescription: 'Private birthdays, celebratory parties & live concerts.',
-    tagline: 'Capture the spontaneous energy of the crowd',
-    startingPriceInr: 3000,
-    creatorsCount: 280,
-    imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+    subtitle: 'Weddings · Parties · Corporate',
+    shortDescription: 'Comprehensive candid guest coverage, banquets, and celebrations.',
+    startingPriceInr: 2500,
+    rating: 4.8,
+    reviewCount: 189,
+    imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80',
   },
 ];

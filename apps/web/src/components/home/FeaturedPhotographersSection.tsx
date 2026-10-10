@@ -2,18 +2,16 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  Star, 
-  MapPin, 
-  CheckCircle2, 
-  Heart, 
-  ArrowRight, 
-  Sparkles, 
-  Calendar 
+import {
+  Star,
+  MapPin,
+  CheckCircle2,
+  Heart,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { SamplePhotographer } from '../../data/photographers';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 
 interface FeaturedPhotographersSectionProps {
   photographers: SamplePhotographer[];
@@ -38,185 +36,256 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
   };
 
   return (
-    <section className="py-16 md:py-24 bg-canvas-secondary/50 border-t border-contour-subtle">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-subtle text-brand text-xs font-bold mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Verified Creator Showcase</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink-primary">
-              Featured Photographers & Filmmakers
-            </h2>
-            {activeFilterDescription && (
-              <p className="text-xs sm:text-sm font-semibold text-ink-secondary mt-1">
-                {activeFilterDescription}{' '}
-                {onResetFilter && (
-                  <button
-                    onClick={onResetFilter}
-                    className="text-brand font-bold underline hover:text-brand-hover ml-2"
-                  >
-                    Clear Filter
-                  </button>
-                )}
-              </p>
-            )}
-          </div>
+    <section className="py-10 md:py-16 bg-[#FAF7F2]">
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="mb-6 space-y-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C847A]">
+            FEATURED PHOTOGRAPHERS
+          </span>
 
-          <Link
-            href="/photographers"
-            className="inline-flex items-center gap-1 text-sm font-bold text-brand hover:text-brand-hover transition-colors"
-          >
-            Explore all creators <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-[34px] font-bold text-[#1A1816] tracking-tight">
+              Photographers near you.
+            </h2>
+
+            {/* View all link + Circular arrows */}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/explore"
+                className="text-xs font-bold text-[#1A1816] hover:text-[#FF6E00] flex items-center gap-1 transition-colors"
+              >
+                <span>View all photographers</span>
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.2]" />
+              </Link>
+
+              <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                <button
+                  type="button"
+                  className="w-7 h-7 rounded-full border border-[#D5CEC4] flex items-center justify-center text-[#5A544D] hover:bg-white transition-colors"
+                  aria-label="Previous photographers"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  className="w-7 h-7 rounded-full border border-[#D5CEC4] flex items-center justify-center text-[#5A544D] hover:bg-white transition-colors"
+                  aria-label="Next photographers"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Empty State */}
-        {photographers.length === 0 ? (
-          <div className="bg-white rounded-card-lg border border-contour-subtle p-12 text-center max-w-md mx-auto space-y-4">
-            <p className="text-3xl">🔍</p>
-            <h3 className="text-lg font-bold text-ink-primary">No creators match this filter</h3>
-            <p className="text-xs text-ink-secondary">
-              Try switching categories or expanding your location to see more verified photographers.
-            </p>
-            {onResetFilter && (
-              <button
-                onClick={onResetFilter}
-                className="px-4 py-2 rounded-card-sm text-xs font-bold bg-brand text-white hover:bg-brand-hover"
+        {/* 3-Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {photographers.slice(0, 3).map((creator) => {
+            const isFav = !!favorites[creator.id];
+
+            return (
+              <div
+                key={creator.id}
+                className="bg-white rounded-2xl border border-[#EBE4DA] overflow-hidden shadow-[0_2px_12px_-2px_rgba(26,24,22,0.04)] hover:shadow-card hover:-translate-y-1 transition-all duration-300 p-4 sm:p-5 flex flex-col justify-between"
               >
-                Reset Search Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-            {photographers.map((creator) => {
-              const isFav = !!favorites[creator.id];
-              return (
-                <Card
-                  key={creator.id}
-                  hoverEffect
-                  className="p-0 overflow-hidden flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Header: Avatar, Name, Verification, Location & Favorite */}
-                    <div className="p-5 sm:p-6 flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3.5">
-                        <div className="w-14 h-14 rounded-full overflow-hidden bg-canvas-secondary border border-contour-subtle shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                <div className="space-y-4">
+                  {/* Top: Avatar, Name, Verification, Location, Rating, Favorite */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={
+                          creator.id === 'pro-aman'
+                            ? '/reference-assets/avatar_aman.jpg'
+                            : creator.id === 'pro-riya'
+                            ? '/reference-assets/avatar_riya.jpg'
+                            : '/reference-assets/avatar_karan.jpg'
+                        }
+                        alt={creator.name}
+                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#E8E1D6]"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <h3 className="text-sm font-bold text-[#1A1816] truncate">
+                            {creator.name}
+                          </h3>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#FF6E00] fill-[#FF6E00]/10 shrink-0 stroke-[2.5]" />
+                        </div>
+                        <p className="text-[11px] text-[#8C847A] flex items-center gap-1 mt-0.5 truncate">
+                          <MapPin className="w-3 h-3 text-[#8C847A] shrink-0" />
+                          <span>{creator.locationArea}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-1 text-xs font-bold text-[#1A1816]">
+                        <Star className="w-3.5 h-3.5 text-[#FF6E00] fill-[#FF6E00]" />
+                        <span>{creator.rating}</span>
+                        <span className="text-[#8C847A] font-normal">({creator.reviewCount})</span>
+                      </div>
+
+                      <button
+                        onClick={(e) => toggleFavorite(creator.id, e)}
+                        className="text-[#FF4D4D] hover:scale-110 transition-transform p-0.5"
+                        aria-label="Favorite"
+                      >
+                        <Heart
+                          className={`w-4 h-4 ${
+                            isFav ? 'fill-[#FF4D4D]' : 'stroke-[#FF4D4D] stroke-[1.8]'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Middle: Custom Portfolio Image Collages */}
+                  {/* Card 1: Aman Verma (3-column landscape/portrait collage) */}
+                  {creator.id === 'pro-aman' && (
+                    <Link href={`/photographers/${creator.id}`} className="block">
+                      <div className="grid grid-cols-12 gap-1.5 h-24 sm:h-28 rounded-xl overflow-hidden bg-[#FAF7F2]">
+                        <div className="col-span-5 h-full overflow-hidden">
                           <img
-                            src={creator.avatarUrl}
-                            alt={creator.name}
-                            className="w-full h-full object-cover"
+                            src="/reference-assets/aman_c1.jpg"
+                            alt="Aman Shoot 1"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                           />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-lg font-bold text-ink-primary">{creator.name}</h3>
-                            {creator.isVerified && (
-                              <span title="Government ID & Portfolio Verified">
-                                <CheckCircle2 className="w-4 h-4 text-brand fill-brand-subtle shrink-0" />
-                              </span>
-                            )}
+                        <div className="col-span-3 h-full overflow-hidden">
+                          <img
+                            src="/reference-assets/aman_c2.jpg"
+                            alt="Aman Shoot 2"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="col-span-4 h-full relative overflow-hidden group">
+                          <img
+                            src="/reference-assets/aman_c3.jpg"
+                            alt="Aman Shoot 3"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
+                            +12
                           </div>
-                          <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3.5 h-3.5 text-ink-muted" />
-                            <span>{creator.locationArea}</span>
-                          </p>
                         </div>
                       </div>
+                    </Link>
+                  )}
 
-                      <div className="flex items-center gap-2">
-                        {/* Rating pill */}
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-card-sm bg-canvas-primary border border-contour-subtle text-xs font-bold text-ink-primary">
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                          <span>{creator.rating}</span>
-                          <span className="text-ink-muted font-normal">({creator.reviewCount})</span>
+                  {/* Card 2: Riya Sharma (Large portrait + 2 stacked + +18 overlay) */}
+                  {creator.id === 'pro-riya' && (
+                    <Link href={`/photographers/${creator.id}`} className="block">
+                      <div className="grid grid-cols-12 gap-1.5 h-24 sm:h-28 rounded-xl overflow-hidden bg-[#FAF7F2]">
+                        <div className="col-span-5 h-full overflow-hidden">
+                          <img
+                            src="/reference-assets/riya_c1.jpg"
+                            alt="Riya Shoot 1"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
                         </div>
-
-                        {/* Favorite button toggle */}
-                        <button
-                          onClick={(e) => toggleFavorite(creator.id, e)}
-                          aria-label={isFav ? 'Remove from favorites' : 'Save to favorites'}
-                          className={`p-2 rounded-card-sm border transition-colors ${
-                            isFav
-                              ? 'bg-red-50 border-red-200 text-red-500'
-                              : 'bg-white border-contour-subtle text-ink-muted hover:text-red-500'
-                          }`}
-                        >
-                          <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500' : ''}`} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Tagline / Bio */}
-                    <div className="px-5 sm:px-6 pb-3">
-                      <p className="text-xs sm:text-sm text-ink-secondary font-medium">
-                        {creator.tagline}
-                      </p>
-                    </div>
-
-                    {/* Portfolio Preview Gallery (3 Images) */}
-                    <div className="px-5 sm:px-6 pb-4">
-                      <div className="grid grid-cols-3 gap-2 rounded-card-sm overflow-hidden">
-                        {creator.portfolioPreviews.map((img, i) => (
-                          <div key={i} className="aspect-[4/3] bg-canvas-secondary overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <div className="col-span-4 h-full flex flex-col gap-1.5">
+                          <div className="h-1/2 overflow-hidden">
                             <img
-                              src={img}
-                              alt={`${creator.name} portfolio sample ${i + 1}`}
+                              src="/reference-assets/riya_c2.jpg"
+                              alt="Riya Shoot 2"
                               className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                             />
                           </div>
-                        ))}
+                          <div className="h-1/2 overflow-hidden">
+                            <img
+                              src="/reference-assets/riya_c3.jpg"
+                              alt="Riya Shoot 3"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                        </div>
+                        <div className="col-span-3 h-full relative overflow-hidden group">
+                          <img
+                            src="/reference-assets/riya_c4.jpg"
+                            alt="Riya Shoot 4"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
+                            +18
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Categories & Availability badges */}
-                    <div className="px-5 sm:px-6 pb-4 flex flex-wrap items-center gap-2">
-                      <Badge variant="success" size="sm">
-                        {creator.availabilityStatus}
-                      </Badge>
-                      {creator.categories.map((c) => (
-                        <span
-                          key={c}
-                          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-canvas-primary text-ink-secondary border border-contour-subtle"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                      <span className="text-[11px] text-ink-muted ml-auto">
-                        Gear: {creator.cameraGear}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Pricing & Booking CTA */}
-                  <div className="p-5 sm:px-6 border-t border-contour-subtle flex items-center justify-between bg-canvas-primary/40">
-                    <div>
-                      <p className="text-[10px] uppercase font-extrabold text-ink-muted tracking-wider">
-                        Starting Package
-                      </p>
-                      <p className="text-lg font-black text-ink-primary">
-                        ₹{creator.startingPriceInr.toLocaleString('en-IN')}{' '}
-                        <span className="text-xs font-normal text-ink-muted">/ shoot</span>
-                      </p>
-                    </div>
-
-                    <Link
-                      href={`/photographers/${creator.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-card-sm text-xs font-bold bg-brand hover:bg-brand-hover active:bg-brand-active text-white shadow-sm transition-colors"
-                    >
-                      <span>View Profile & Packages</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
+                  )}
+
+                  {/* Card 3: Karan Mehta (Large photo + 2 stacked + +15 overlay) */}
+                  {creator.id === 'pro-karan' && (
+                    <Link href={`/photographers/${creator.id}`} className="block">
+                      <div className="grid grid-cols-12 gap-1.5 h-24 sm:h-28 rounded-xl overflow-hidden bg-[#FAF7F2]">
+                        <div className="col-span-5 h-full overflow-hidden">
+                          <img
+                            src="/reference-assets/karan_c1.jpg"
+                            alt="Karan Shoot 1"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="col-span-4 h-full flex flex-col gap-1.5">
+                          <div className="h-1/2 overflow-hidden">
+                            <img
+                              src="/reference-assets/karan_c2.jpg"
+                              alt="Karan Shoot 2"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="h-1/2 overflow-hidden">
+                            <img
+                              src="/reference-assets/karan_c3.jpg"
+                              alt="Karan Shoot 3"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                        </div>
+                        <div className="col-span-3 h-full relative overflow-hidden group">
+                          <img
+                            src="/reference-assets/karan_c4.jpg"
+                            alt="Karan Shoot 4"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
+                            +15
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )}
+
+                  {/* Category Tag Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {creator.categories.map((cat) => (
+                      <span
+                        key={cat}
+                        className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#F2ECE3] text-[#5A544D]"
+                      >
+                        {cat}
+                      </span>
+                    ))}
                   </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                </div>
+
+                {/* Bottom: Pricing & Availability Badge */}
+                <div className="pt-4 mt-4 border-t border-[#EBE4DA] flex items-center justify-between">
+                  <div className="text-xs text-[#8C847A]">
+                    <span>From </span>
+                    <span className="text-sm font-black text-[#1A1816]">
+                      ₹{creator.startingPriceInr.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px]"> / session</span>
+                  </div>
+
+                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1E7D46]" />
+                    <span>{creator.availabilityStatus}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

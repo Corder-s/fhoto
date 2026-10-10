@@ -4,16 +4,12 @@ import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { HeroSearch, SearchFilters } from '../components/home/HeroSearch';
-import { TrustSection } from '../components/home/TrustSection';
 import { CategorySection } from '../components/home/CategorySection';
 import { FeaturedPhotographersSection } from '../components/home/FeaturedPhotographersSection';
-import { RecruitmentBanner } from '../components/home/RecruitmentBanner';
 import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../data/photographers';
-import { Sparkles } from 'lucide-react';
 
 export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [activeFilterDescription, setActiveFilterDescription] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('portraits');
   const [filteredPhotographers, setFilteredPhotographers] = useState<SamplePhotographer[]>(SAMPLE_PHOTOGRAPHERS);
 
   // Handle Search Submission
@@ -22,10 +18,12 @@ export default function HomePage() {
 
     // Filter by Category
     if (filters.category && filters.category !== 'all') {
-      result = result.filter((p) => p.categories.includes(filters.category as any));
+      result = result.filter((p) =>
+        p.categories.some((c) => c.toLowerCase() === filters.category.toLowerCase())
+      );
     }
 
-    // Filter by Location if matching city/area
+    // Filter by Location
     if (filters.location && filters.location.trim()) {
       const loc = filters.location.toLowerCase();
       const locationMatches = result.filter(
@@ -38,107 +36,103 @@ export default function HomePage() {
       }
     }
 
-    setFilteredPhotographers(result);
-    setSelectedCategory(filters.category);
-    setActiveFilterDescription(
-      `Showing results for "${filters.category === 'all' ? 'All Genres' : filters.category}" in ${filters.location} (${filters.duration} hrs)`
-    );
-
-    // Scroll to results
-    const resultsElement = document.getElementById('creators-section');
-    if (resultsElement) {
-      resultsElement.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  // Handle Category Card Click from CategorySection
-  const handleCategorySelect = (categorySlug: string) => {
-    if (selectedCategory === categorySlug) {
-      // Toggle off
-      setSelectedCategory('all');
-      setFilteredPhotographers(SAMPLE_PHOTOGRAPHERS);
-      setActiveFilterDescription('');
-    } else {
-      setSelectedCategory(categorySlug);
-      const result = SAMPLE_PHOTOGRAPHERS.filter((p) =>
-        p.categories.includes(categorySlug as any)
-      );
+    if (result.length > 0) {
       setFilteredPhotographers(result);
-      setActiveFilterDescription(`Showing creators for category: "${categorySlug}"`);
+    }
+    setSelectedCategory(filters.category);
 
-      const resultsElement = document.getElementById('creators-section');
-      if (resultsElement) {
-        resultsElement.scrollIntoView({ behavior: 'smooth' });
-      }
+    const creatorsElement = document.getElementById('photographers-section');
+    if (creatorsElement) {
+      creatorsElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const handleResetFilter = () => {
-    setSelectedCategory('all');
-    setFilteredPhotographers(SAMPLE_PHOTOGRAPHERS);
-    setActiveFilterDescription('');
+  const handleCategorySelect = (categorySlug: string) => {
+    setSelectedCategory(categorySlug);
+    const result = SAMPLE_PHOTOGRAPHERS.filter((p) =>
+      p.categories.some((c) => c.toLowerCase() === categorySlug.toLowerCase())
+    );
+    if (result.length > 0) {
+      setFilteredPhotographers(result);
+    } else {
+      setFilteredPhotographers(SAMPLE_PHOTOGRAPHERS);
+    }
+
+    const creatorsElement = document.getElementById('photographers-section');
+    if (creatorsElement) {
+      creatorsElement.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-[#FAF7F2] flex flex-col font-sans selection:bg-[#FF6E00] selection:text-white">
       <Navbar />
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden bg-gradient-to-b from-canvas-primary via-canvas-primary to-canvas-secondary/60">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center space-y-6">
-              {/* Trust Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-subtle border border-brand-border text-brand text-xs sm:text-sm font-bold tracking-wide shadow-subtle">
-                <Sparkles className="w-4 h-4 text-brand" />
-                <span>India&apos;s Verified Visual Creator Marketplace</span>
+        <section className="relative overflow-hidden pt-8 pb-10 md:pt-12 md:pb-14">
+          <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Top Row: Left Headline & Copy, Right Hero Photography */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[280px]">
+              {/* Left Content */}
+              <div className="lg:col-span-6 space-y-4 z-10">
+                {/* Eyebrow */}
+                <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#8C847A] uppercase">
+                  REAL PEOPLE · REAL STORIES · REMARKABLE PHOTOGRAPHY
+                </p>
+
+                {/* Main Headline */}
+                <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black tracking-tight text-[#1A1816] leading-[1.06]">
+                  Book your <br />
+                  photographer. <br />
+                  <span className="text-[#FF6E00]">Capture the moment.</span>
+                </h1>
+
+                {/* Subtitle Copy */}
+                <p className="text-xs sm:text-sm text-[#665E55] max-w-lg leading-relaxed pt-1">
+                  Find verified photographers near you for portraits, reels, events and more. Book in minutes.
+                </p>
               </div>
 
-              {/* Main Headline */}
-              <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-ink-primary leading-[1.12]">
-                Book your photographer. <br />
-                <span className="text-brand">Capture the moment.</span>
-              </h1>
-
-              {/* Supporting Text */}
-              <p className="text-base sm:text-lg text-ink-secondary max-w-2xl mx-auto leading-relaxed">
-                Discover talented photographers near you for portraits, reels, events, and everything worth remembering.
-              </p>
-
-              {/* Hero Search Controls */}
-              <div className="pt-4">
-                <HeroSearch
-                  onSearch={handleSearch}
-                  selectedCategory={selectedCategory}
-                />
+              {/* Right Hero Image (Photographer shooting couple overlooking castle with "Moments Beyond Time") */}
+              <div className="lg:col-span-6 relative w-full h-[240px] sm:h-[300px] lg:h-[340px] flex items-center justify-end">
+                <div className="relative w-full h-full max-w-[620px] rounded-3xl overflow-hidden shadow-subtle group">
+                  <img
+                    src="/reference-assets/hero_scene.jpg"
+                    alt="Moments Beyond Time - Photographer shooting couple"
+                    className="w-full h-full object-cover object-right group-hover:scale-102 transition-transform duration-700"
+                  />
+                  {/* Subtle blend gradient on the left edge into canvas */}
+                  <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#FAF7F2] to-transparent pointer-events-none" />
+                </div>
               </div>
+            </div>
+
+            {/* Bottom Row: Search Bar & Trust Indicators */}
+            <div className="mt-6 md:mt-8">
+              <HeroSearch
+                onSearch={handleSearch}
+                selectedCategory={selectedCategory}
+              />
             </div>
           </div>
         </section>
 
-        {/* TRUST SECTION */}
-        <TrustSection />
-
-        {/* PHOTOGRAPHY CATEGORIES */}
+        {/* CATEGORY SECTION */}
         <CategorySection
           selectedCategory={selectedCategory}
           onSelectCategory={handleCategorySelect}
         />
 
         {/* FEATURED PHOTOGRAPHERS SECTION */}
-        <div id="creators-section">
+        <div id="photographers-section">
           <FeaturedPhotographersSection
             photographers={filteredPhotographers}
-            activeFilterDescription={activeFilterDescription}
-            onResetFilter={activeFilterDescription ? handleResetFilter : undefined}
           />
         </div>
-
-        {/* PHOTOGRAPHER RECRUITMENT BANNER */}
-        <RecruitmentBanner />
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }
