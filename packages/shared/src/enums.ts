@@ -66,3 +66,16 @@ export enum BillingInterval {
   MONTHLY = 'MONTHLY',
   ANNUAL = 'ANNUAL',
 }
+
+export enum ClientStatus {
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  VIP = 'VIP',
+}
+
+export enum StudioRole {
+  OWNER = 'OWNER',
+  LEAD_PHOTOGRAPHER = 'LEAD_PHOTOGRAPHER',
+  ASSOCIATE_SHOOTER = 'ASSOCIATE_SHOOTER',
+  EDITOR = 'EDITOR',
+}

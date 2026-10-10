@@ -6,7 +6,9 @@ import {
   PaymentStatus,
   PlanTier,
   SubscriptionStatus,
-  BillingInterval
+  BillingInterval,
+  ClientStatus,
+  StudioRole
 } from './enums.js';
 
 export interface UserDto {
@@ -106,7 +108,16 @@ export interface PhotographerClientDto {
   totalSpentInr: number;
   lastShootDate?: string | null;
   notes?: string | null;
-  status: 'ACTIVE' | 'COMPLETED' | 'VIP';
+  status: ClientStatus | 'ACTIVE' | 'COMPLETED' | 'VIP';
+  createdAt: string;
+}
+
+export interface StudioMemberDto {
+  id: string;
+  photographerId: string;
+  userId: string;
+  role: StudioRole;
+  isActive: boolean;
   createdAt: string;
 }
 

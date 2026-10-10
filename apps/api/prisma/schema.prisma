@@ -74,6 +74,7 @@ model User {
   roles               UserRole[]
   customerProfile     CustomerProfile?
   photographerProfile PhotographerProfile?
+  studioMemberships   StudioMember[]
   statusLogsCreated   BookingStatusLog[]
   auditLogs           AuditLog[]
 }
@@ -131,6 +132,7 @@ model PhotographerProfile {
   reviews        Review[]
   subscription   PhotographerSubscription?
   clients        PhotographerClient[]
+  teamMembers    StudioMember[]
 }
 
 model ServiceCategory {
@@ -385,22 +387,24 @@ enum BillingInterval {
 }
 
 model SubscriptionPlan {
-  id                    String          @id @default(uuid())
-  tier                  PlanTier        @unique
-  name                  String
-  priceMonthlyInr       Int             @default(0)
-  priceAnnualInr        Int             @default(0)
-  maxPortfolioItems     Int             @default(10)
-  maxServicePackages    Int             @default(2)
-  hasClientCrm          Boolean         @default(false)
-  hasAdvancedAnalytics  Boolean         @default(false)
-  hasPriorityListing    Boolean         @default(false)
-  hasCustomGalleryBranding Boolean      @default(false)
-  isActive              Boolean         @default(true)
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  id                       String   @id @default(uuid())
+  tier                     PlanTier @unique
+  name                     String
+  priceMonthlyInr          Int      @default(0)
+  priceAnnualInr           Int      @default(0)
+  commissionRatePercent    Decimal  @default(20.00) @db.Decimal(5, 2)
+  storageLimitGb           Int      @default(2)
+  maxPortfolioItems        Int      @default(10) // -1 = Unlimited
+  maxServicePackages       Int      @default(2)  // -1 = Unlimited
+  hasClientCrm             Boolean  @default(false)
+  hasAdvancedAnalytics     Boolean  @default(false)
+  hasPriorityListing       Boolean  @default(false)
+  hasCustomGalleryBranding Boolean  @default(false)
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
-  subscriptions         PhotographerSubscription[]
+  subscriptions            PhotographerSubscription[]
 }
 
 model PhotographerSubscription {
@@ -416,39 +420,78 @@ model PhotographerSubscription {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
-  photographer          PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
-  plan                  SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  photographer          PhotographerProfile   @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan      @relation(fields: [planId], references: [id], onDelete: Restrict)
   invoices              SubscriptionInvoice[]
 
   @@index([status])
+  @@index([photographerId])
 }
 
 model SubscriptionInvoice {
   id               String        @id @default(uuid())
+  invoiceNumber    String?       @unique
   subscriptionId   String
   amountPaise      BigInt
+  currency         String        @default("INR")
   status           PaymentStatus @default(PENDING)
   gatewayInvoiceId String?       @unique
   paidAt           DateTime?
   createdAt        DateTime      @default(now())
 
   subscription     PhotographerSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+enum ClientStatus {
+  ACTIVE
+  COMPLETED
+  VIP
 }
 
 model PhotographerClient {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   photographerId String
   name           String
   email          String?
   phone          String
-  totalShoots    Int      @default(1)
-  totalSpentInr  Int      @default(0)
+  totalShoots    Int          @default(1)
+  totalSpentInr  Int          @default(0)
+  lastShootDate  DateTime?
   notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  status         ClientStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   photographer   PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
 
   @@unique([photographerId, phone])
   @@index([photographerId])
+  @@index([status])
+}
+
+enum StudioRole {
+  OWNER
+  LEAD_PHOTOGRAPHER
+  ASSOCIATE_SHOOTER
+  EDITOR
+}
+
+model StudioMember {
+  id             String     @id @default(uuid())
+  photographerId String
+  userId         String
+  role           StudioRole @default(ASSOCIATE_SHOOTER)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  photographer   PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([photographerId, userId])
+  @@index([photographerId])
+  @@index([userId])
 }
