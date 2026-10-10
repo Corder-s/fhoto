@@ -11,8 +11,12 @@ import { RecruitmentBanner } from './RecruitmentBanner';
 import { HomeFaqSection } from './HomeFaqSection';
 import { FinalCtaBanner } from './FinalCtaBanner';
 import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../../data/photographers';
+import { useAuth } from '../../lib/auth';
 
 export const OriginalAuthenticatedLanding: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  const currentUserName = user?.name ? user.name.split(' ')[0] : 'Aman';
+
   const [selectedCategory, setSelectedCategory] = useState<string>('portraits');
   const [filteredPhotographers, setFilteredPhotographers] = useState<SamplePhotographer[]>(SAMPLE_PHOTOGRAPHERS);
 
@@ -80,10 +84,17 @@ export const OriginalAuthenticatedLanding: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[280px]">
               {/* Left Content */}
               <div className="lg:col-span-6 space-y-4 z-10">
-                {/* Eyebrow */}
-                <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#8C847A] uppercase">
-                  REAL PEOPLE · REAL STORIES · REMARKABLE PHOTOGRAPHY
-                </p>
+                {/* Eyebrow & Personalized Welcome Badge */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {isAuthenticated && (
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-[#FFF4EB] text-[#FF6E00] border border-[#FFD9B3] shadow-xs">
+                      <span>Welcome back, {currentUserName} 👋</span>
+                    </span>
+                  )}
+                  <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#8C847A] uppercase">
+                    REAL PEOPLE · REAL STORIES · REMARKABLE PHOTOGRAPHY
+                  </span>
+                </div>
 
                 {/* Main Headline */}
                 <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black tracking-tight text-[#1A1816] leading-[1.06]">
