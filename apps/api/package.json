@@ -10,7 +10,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "tsc -p test/tsconfig.test.json && node --test dist/test/security-and-tenancy.test.js dist/test/subscription-billing.test.js",
+    "test": "tsc -p test/tsconfig.test.json && node --test dist/test/security-and-tenancy.test.js dist/test/subscription-billing.test.js dist/test/security-audit-and-readiness.test.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { PhotographersModule } from './photographers/photographers.module';
@@ -8,6 +9,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { GalleriesModule } from './galleries/galleries.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AdminModule } from './admin/admin.module';
+import { HealthController } from './common/health.controller';
+import { RateLimitGuard } from './common/rate-limit.guard';
 
 @Module({
   imports: [
@@ -23,6 +26,13 @@ import { AdminModule } from './admin/admin.module';
     GalleriesModule,
     SubscriptionsModule,
     AdminModule,
+  ],
+  controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
   ],
 })
 export class AppModule {}
