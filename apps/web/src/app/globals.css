@@ -3,33 +3,31 @@
 @tailwind utilities;
 
 :root {
-  /* Surface & Background (Warm Editorial Creams) */
-  --bg-primary: #FAF8F5;          /* Warm cream canvas */
-  --bg-secondary: #F4EFEB;        /* Soft stone surface */
-  --bg-tertiary: #ECE5DE;         /* Input & container fill */
-  --bg-card: #FFFFFF;             /* Crisp white card surface */
+  /* Centralized SnapShoot Design Tokens */
+  --color-primary: #FF8500;
+  --color-primary-hover: #E87500;
+  --color-background: #FBF8F2;
+  --color-surface: #FFFFFF;
+  --color-text: #171717;
+  --color-text-secondary: #68635D;
+  --color-border: #E9E2D8;
+  --color-success: #237A45;
 
-  /* Brand Accents (Vibrant Sunset Orange) */
-  --primary: #FF5A1F;             /* Primary action & CTA */
-  --primary-hover: #E4480F;       /* Hover state */
-  --primary-active: #CA3C0A;      /* Pressed state */
-  --primary-subtle: #FFF0EB;      /* Subtle tint */
-  --primary-border: #FFD4C4;
-
-  /* Typography (High Contrast Charcoal & Warm Greys) */
-  --text-primary: #121212;        /* Near black */
-  --text-secondary: #57534E;      /* Editorial subtitle */
-  --text-muted: #8A8580;          /* Disabled states & placeholders */
-  --text-inverse: #FFFFFF;
-
-  /* Neutral Borders */
-  --border-subtle: #EBE5DF;
-  --border-strong: #D5CDC5;
+  /* Aliases for semantic mapping */
+  --bg-primary: var(--color-background);
+  --bg-secondary: #F5EFE6;
+  --bg-card: var(--color-surface);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-subtle: #FFF3E5;
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --border-subtle: var(--color-border);
 }
 
 body {
-  color: var(--text-primary);
-  background-color: var(--bg-primary);
+  color: var(--color-text);
+  background-color: var(--color-background);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -42,14 +40,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #FAF8F5;
+  background: var(--color-background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D5CDC5;
+  background: #D4C9BC;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8A8580;
+  background: #8C857E;
 }

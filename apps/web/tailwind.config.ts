@@ -10,27 +10,31 @@ const config: Config = {
     extend: {
       colors: {
         canvas: {
-          primary: '#FAF8F5',    // Warm cream canvas
-          secondary: '#F4EFEB',  // Soft stone surface
-          tertiary: '#ECE5DE',   // Fill / container surface
+          primary: '#FBF8F2',    // Warm cream background
+          secondary: '#F5EFE6',  // Soft stone surface
+          tertiary: '#EBE2D5',   // Input & container fill
           card: '#FFFFFF',
         },
         brand: {
-          DEFAULT: '#FF5A1F',    // Vibrant sunset orange
-          hover: '#E4480F',
-          active: '#CA3C0A',
-          subtle: '#FFF0EB',
-          border: '#FFD4C4',
+          DEFAULT: '#FF8500',    // Bright primary orange
+          hover: '#E87500',      // Primary hover
+          active: '#CF6600',
+          subtle: '#FFF3E5',     // Soft orange tint
+          border: '#FFD4A8',
         },
         ink: {
-          primary: '#121212',    // Near-black headline/body
-          secondary: '#57534E',  // Muted editorial charcoal
-          muted: '#8A8580',      // Placeholder and subtle hints
+          primary: '#171717',    // Near-black typography
+          secondary: '#68635D',  // Editorial secondary text
+          muted: '#8C857E',      // Placeholder and subtle hints
           inverse: '#FFFFFF',
         },
         contour: {
-          subtle: '#EBE5DF',
-          strong: '#D5CDC5',
+          subtle: '#E9E2D8',     // Neutral subtle borders
+          strong: '#D4C9BC',
+        },
+        status: {
+          success: '#237A45',
+          'success-subtle': '#E7F5EC',
         },
       },
       fontFamily: {
@@ -43,9 +47,9 @@ const config: Config = {
         'card-xl': '28px',
       },
       boxShadow: {
-        subtle: '0 2px 8px -2px rgba(18, 18, 18, 0.04), 0 1px 4px -1px rgba(18, 18, 18, 0.02)',
-        card: '0 10px 25px -5px rgba(18, 18, 18, 0.05), 0 4px 10px -3px rgba(18, 18, 18, 0.03)',
-        elevated: '0 20px 35px -8px rgba(18, 18, 18, 0.09), 0 8px 16px -4px rgba(18, 18, 18, 0.04)',
+        subtle: '0 2px 8px -2px rgba(23, 23, 23, 0.04), 0 1px 4px -1px rgba(23, 23, 23, 0.02)',
+        card: '0 10px 25px -5px rgba(23, 23, 23, 0.05), 0 4px 10px -3px rgba(23, 23, 23, 0.03)',
+        elevated: '0 20px 35px -8px rgba(23, 23, 23, 0.09), 0 8px 16px -4px rgba(23, 23, 23, 0.04)',
       },
     },
   },

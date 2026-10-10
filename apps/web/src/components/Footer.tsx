@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import { Camera, Shield, Heart } from 'lucide-react';
 
@@ -6,7 +7,7 @@ export default function Footer() {
     <footer className="bg-canvas-secondary border-t border-contour-subtle mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          {/* Brand Info */}
+          {/* About SnapShoot */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white">
@@ -17,59 +18,55 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-ink-secondary leading-relaxed">
-              India&apos;s premier on-demand visual marketplace. Verified photographers & videographers delivered to your venue within hours.
+              SnapShoot is India&apos;s curated on-demand marketplace connecting individuals, creators, and brands with vetted professional photographers and filmmakers.
             </p>
           </div>
 
-          {/* Quick Links */}
+          {/* Explore Photographers */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-ink-primary mb-4">
-              Explore
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-primary mb-4">
+              Explore Photographers
             </h4>
             <ul className="space-y-2.5 text-sm text-ink-secondary">
-              <li><Link href="/photographers?category=portrait" className="hover:text-ink-primary">Portraits & Headshots</Link></li>
-              <li><Link href="/photographers?category=wedding" className="hover:text-ink-primary">Weddings & Engagements</Link></li>
-              <li><Link href="/photographers?category=event" className="hover:text-ink-primary">Events & Birthdays</Link></li>
-              <li><Link href="/photographers?category=commercial" className="hover:text-ink-primary">Commercial & Food</Link></li>
+              <li><Link href="/photographers" className="hover:text-ink-primary transition-colors">All Photographers</Link></li>
+              <li><Link href="/explore" className="hover:text-ink-primary transition-colors">Geospatial Radar Search</Link></li>
+              <li><Link href="/categories" className="hover:text-ink-primary transition-colors">Photography Categories</Link></li>
+              <li><Link href="/stories" className="hover:text-ink-primary transition-colors">Visual Stories & Inspiration</Link></li>
             </ul>
           </div>
 
-          {/* Trust & Safety */}
+          {/* For Photographers */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-ink-primary mb-4">
-              Trust & Safety
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-primary mb-4">
+              For Photographers
             </h4>
             <ul className="space-y-2.5 text-sm text-ink-secondary">
-              <li><Link href="/safety" className="hover:text-ink-primary">Identity & KYC Checks</Link></li>
-              <li><Link href="/escrow" className="hover:text-ink-primary">100% Escrow Protection</Link></li>
-              <li><Link href="/otp-handshake" className="hover:text-ink-primary">Shoot-Start OTP System</Link></li>
-              <li><Link href="/cancellation-policy" className="hover:text-ink-primary">Cancellation Policies</Link></li>
+              <li><Link href="/for-photographers" className="hover:text-ink-primary transition-colors">Join as a Creator</Link></li>
+              <li><Link href="/how-it-works" className="hover:text-ink-primary transition-colors">How Creator Payouts Work</Link></li>
+              <li><Link href="/login" className="hover:text-ink-primary transition-colors">Creator Studio Sign-In</Link></li>
             </ul>
           </div>
 
-          {/* Creator Portal */}
+          {/* Contact & Policies */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-ink-primary mb-4">
-              For Creators
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-primary mb-4">
+              Trust & Policies
             </h4>
-            <p className="text-sm text-ink-secondary mb-3 leading-relaxed">
-              Grow your client base and get guaranteed on-time bank settlements.
-            </p>
-            <Link
-              href="/pro/onboarding"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-card-sm text-sm font-semibold text-white bg-ink-primary hover:bg-black transition-colors"
-            >
-              <Shield className="w-4 h-4 text-brand" />
-              Apply as a Creator
-            </Link>
+            <ul className="space-y-2.5 text-sm text-ink-secondary">
+              <li><Link href="/how-it-works" className="hover:text-ink-primary transition-colors">Shoot-Start OTP System</Link></li>
+              <li><Link href="/privacy" className="hover:text-ink-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-ink-primary transition-colors">Terms of Service</Link></li>
+              <li><Link href="/cancellation" className="hover:text-ink-primary transition-colors">Cancellation & Refund Policy</Link></li>
+            </ul>
           </div>
         </div>
 
         <div className="border-t border-contour-subtle mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-ink-muted gap-4">
           <p>© {new Date().getFullYear()} SnapShoot Technologies Pvt. Ltd. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="hover:text-ink-secondary">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-ink-secondary">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-ink-secondary transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink-secondary transition-colors">Terms</Link>
+            <Link href="/cancellation" className="hover:text-ink-secondary transition-colors">Cancellation Policy</Link>
             <span className="flex items-center gap-1">
               Crafted with <Heart className="w-3.5 h-3.5 text-brand fill-brand" /> for creators
             </span>

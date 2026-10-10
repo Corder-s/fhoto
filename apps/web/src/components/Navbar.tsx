@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Camera, ShieldCheck, User, Menu, X, ArrowRight } from 'lucide-react';
+import { Camera, ShieldCheck, User, Menu, X, ArrowRight, BookOpen } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -25,14 +25,11 @@ export default function Navbar() {
           <Link href="/explore" className="hover:text-ink-primary transition-colors">
             Explore
           </Link>
-          <Link href="/photographers" className="hover:text-ink-primary transition-colors">
-            Find Creators
-          </Link>
-          <Link href="/categories" className="hover:text-ink-primary transition-colors">
-            Categories
-          </Link>
           <Link href="/how-it-works" className="hover:text-ink-primary transition-colors">
             How It Works
+          </Link>
+          <Link href="/stories" className="hover:text-ink-primary transition-colors">
+            Stories
           </Link>
           <Link href="/for-photographers" className="flex items-center gap-1.5 text-brand hover:text-brand-hover font-semibold transition-colors">
             <ShieldCheck className="w-4 h-4" />
@@ -88,25 +85,18 @@ export default function Navbar() {
               Explore Map & Directory
             </Link>
             <Link
-              href="/photographers"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-card-sm hover:bg-canvas-secondary"
-            >
-              Find Creators Near You
-            </Link>
-            <Link
-              href="/categories"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-card-sm hover:bg-canvas-secondary"
-            >
-              Browse Categories
-            </Link>
-            <Link
               href="/how-it-works"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-card-sm hover:bg-canvas-secondary"
             >
               How SnapShoot Works
+            </Link>
+            <Link
+              href="/stories"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-card-sm hover:bg-canvas-secondary"
+            >
+              Stories & Inspiration
             </Link>
             <Link
               href="/for-photographers"
