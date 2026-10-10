@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AiChatWidgetRoot } from '../components/ai/AiChatWidgetRoot';
 
 export const metadata: Metadata = {
   title: 'SnapShoot — On-Demand Photography & Videography Marketplace',
@@ -23,6 +24,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col bg-canvas-primary text-ink-primary selection:bg-brand-subtle selection:text-brand">
         {children}
+        <AiChatWidgetRoot />
       </body>
     </html>
   );

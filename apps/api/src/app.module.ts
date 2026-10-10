@@ -9,6 +9,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { GalleriesModule } from './galleries/galleries.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AdminModule } from './admin/admin.module';
+import { AiModule } from './ai/ai.module';
 import { HealthController } from './common/health.controller';
 import { RateLimitGuard } from './common/rate-limit.guard';
 
@@ -26,6 +27,7 @@ import { RateLimitGuard } from './common/rate-limit.guard';
     GalleriesModule,
     SubscriptionsModule,
     AdminModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [

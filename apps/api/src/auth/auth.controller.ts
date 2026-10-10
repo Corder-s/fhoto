@@ -11,19 +11,39 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard, CurrentUser, AuthenticatedUser } from '../common/auth.guard';
 import { RoleType } from '@snapshoot/shared';
 
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+
 export class RequestOtpDto {
+  @IsString()
+  @IsNotEmpty()
   phoneNumber: string;
 }
 
 export class VerifyOtpDto {
+  @IsString()
+  @IsNotEmpty()
   phoneNumber: string;
+
+  @IsString()
+  @IsNotEmpty()
   otp: string;
+
+  @IsOptional()
+  @IsEnum(RoleType)
   role?: RoleType;
 }
 
 export class LoginDto {
+  @IsString()
+  @IsNotEmpty()
   email: string;
+
+  @IsOptional()
+  @IsString()
   password?: string;
+
+  @IsOptional()
+  @IsEnum(RoleType)
   role?: RoleType;
 }
 
