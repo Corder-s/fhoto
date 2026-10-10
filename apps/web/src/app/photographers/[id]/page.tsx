@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
@@ -9,157 +12,271 @@ import {
   Clock, 
   Sparkles, 
   Camera, 
-  Calendar, 
   ArrowRight,
   Share2,
-  Heart
+  Calendar,
+  AlertCircle,
+  Eye,
+  Check
 } from 'lucide-react';
+import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer, PhotographerServicePackage } from '../../../data/photographers';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
+import { PortfolioLightbox } from '../../../components/gallery/PortfolioLightbox';
+import { BookingModal } from '../../../components/booking/BookingModal';
 
 export default function PhotographerProfilePage({ params }: { params: { id: string } }) {
-  const PACKAGES = [
-    {
-      id: 'pkg-basic',
-      name: 'Essential Portrait',
-      duration: '1 Hour Shoot',
-      photos: '15 Edited High-Res Photos',
-      turnaround: '48 Hour Turnaround',
-      price: '₹4,500',
-      popular: false,
-    },
-    {
-      id: 'pkg-standard',
-      name: 'Signature Editorial',
-      duration: '2.5 Hours Shoot',
-      photos: '35 Edited High-Res Photos + RAW files',
-      turnaround: '24 Hour Priority Turnaround',
-      price: '₹7,500',
-      popular: true,
-    },
-    {
-      id: 'pkg-premium',
-      name: 'Complete Production',
-      duration: '5 Hours Half-Day Shoot',
-      photos: '75 Edited High-Res Photos + 4K Cinema Reel',
-      turnaround: 'Full Gallery in 48 Hours',
-      price: '₹14,000',
-      popular: false,
-    },
-  ];
+  const creator = SAMPLE_PHOTOGRAPHERS.find((p) => p.id === params.id);
+
+  // Lightbox State
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Booking Modal State
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<PhotographerServicePackage | null>(null);
+
+  // Copy Profile Link Toast State
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  // 404 NOT FOUND STATE FOR UNKNOWN IDS
+  if (!creator) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-canvas-primary py-20">
+          <div className="max-w-md mx-auto text-center px-4 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-ink-primary">Photographer Not Found</h1>
+            <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+              We couldn&apos;t find a visual artist with the ID &ldquo;{params.id}&rdquo;. They may have moved or updated their profile handle.
+            </p>
+            <div className="pt-2">
+              <Link href="/explore">
+                <Button variant="primary" size="md">
+                  Explore All Verified Photographers
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const handleOpenLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const handleInitiateBooking = (pkg: PhotographerServicePackage) => {
+    setSelectedPackage(pkg);
+    setBookingModalOpen(true);
+  };
+
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2000);
+    }
+  };
 
   return (
     <>
       <Navbar />
 
-      <main className="flex-1 bg-canvas-primary py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* PROFILE HEADER CARD */}
-          <div className="bg-white rounded-card-lg border border-contour-subtle shadow-subtle p-6 sm:p-8 mb-10">
-            <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between">
+      <main className="flex-1 bg-canvas-primary pb-20">
+        {/* HERO PORTFOLIO COVER IMAGE */}
+        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-canvas-secondary overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={creator.coverImageUrl}
+            alt={`${creator.name} cover`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 space-y-10">
+          {/* PROFILE CARD */}
+          <div className="bg-white rounded-card-lg border border-contour-subtle shadow-card p-6 sm:p-8">
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
+              {/* Avatar + Main Details */}
               <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                {/* Avatar */}
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-canvas-secondary border-2 border-brand/20 shrink-0">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-canvas-secondary border-4 border-white shadow-md shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
-                    alt="Kabir Varma"
+                    src={creator.avatarUrl}
+                    alt={creator.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">Kabir Varma</h1>
-                    <CheckCircle2 className="w-5 h-5 text-brand fill-brand-subtle" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
+                      {creator.name}
+                    </h1>
+                    {creator.isVerified && (
+                      <span title="Government ID & Portfolio Authenticity Verified">
+                        <CheckCircle2 className="w-5 h-5 text-brand fill-brand-subtle shrink-0" />
+                      </span>
+                    )}
                     <Badge variant="brand" size="sm">
-                      Verified Pro
+                      Verified Artist
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-ink-muted flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-ink-muted" />
-                    <span>South Delhi, New Delhi • Travel radius: 25 km</span>
+                  <p className="text-xs sm:text-sm text-ink-muted flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-brand shrink-0" />
+                    <span>{creator.locationArea} • Base City: {creator.locationCity}</span>
                   </p>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-ink-primary pt-1">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm font-semibold text-ink-primary pt-1">
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                      <span>4.96</span>
-                      <span className="text-ink-muted font-normal">(148 reviews)</span>
+                      <span>{creator.rating}</span>
+                      <span className="text-ink-muted font-normal">({creator.reviewCount} reviews)</span>
                     </div>
                     <span>•</span>
-                    <span className="text-ink-secondary">8 Years Professional Exp</span>
+                    <span className="text-ink-secondary">{creator.experienceYears} Years Experience</span>
                     <span>•</span>
-                    <span className="text-green-600 font-bold">● Available This Week</span>
+                    <Badge variant="success" size="sm">
+                      {creator.availabilityStatus}
+                    </Badge>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
-                <Button variant="secondary" size="md" leftIcon={<Share2 className="w-4 h-4" />}>
-                  Share
+              <div className="flex items-center gap-3 pt-4 lg:pt-0">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={handleShare}
+                  leftIcon={copiedToast ? <Check className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                >
+                  {copiedToast ? 'Link Copied!' : 'Share'}
                 </Button>
-                <Link href="#packages">
+
+                <a href="#packages">
                   <Button variant="primary" size="md" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                    Choose Package
+                    View Packages
                   </Button>
-                </Link>
+                </a>
               </div>
             </div>
 
-            {/* Bio & Gear Section */}
-            <div className="mt-8 pt-6 border-t border-contour-subtle grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-2">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">About the Artist</h2>
-                <p className="text-sm text-ink-secondary leading-relaxed">
-                  Specialized in natural light portraiture, corporate executive branding, and high-fashion editorial imagery. Sony Alpha Ambassador with 8+ years experience working with top publications, actors, and startup founders across Delhi NCR and Mumbai.
+            {/* Bio & Specialties Grid */}
+            <div className="mt-8 pt-6 border-t border-contour-subtle grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                  Professional Biography
+                </h2>
+                <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+                  {creator.bio}
                 </p>
               </div>
-              <div className="space-y-2">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Camera Equipment</h2>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2.5 py-1 rounded-card-sm text-xs font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle">
-                    Sony A7 IV & A7R V
-                  </span>
-                  <span className="px-2.5 py-1 rounded-card-sm text-xs font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle">
-                    GM 24-70mm f/2.8 II
-                  </span>
-                  <span className="px-2.5 py-1 rounded-card-sm text-xs font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle">
-                    GM 85mm f/1.4 Portrait
-                  </span>
-                  <span className="px-2.5 py-1 rounded-card-sm text-xs font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle">
-                    Profoto B10X Lighting
-                  </span>
+
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">
+                    Specialties
+                  </h2>
+                  <div className="flex flex-wrap gap-1.5">
+                    {creator.specialties.map((s) => (
+                      <span
+                        key={s}
+                        className="px-2.5 py-1 rounded-card-sm text-xs font-semibold bg-canvas-primary text-ink-primary border border-contour-subtle"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-1">
+                    Equipment Information
+                  </h2>
+                  <p className="text-xs text-ink-secondary font-medium">
+                    {creator.cameraGear}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* PACKAGES SELECTION SECTION */}
-          <div id="packages" className="mb-14">
-            <div className="text-center max-w-xl mx-auto mb-8 space-y-1">
-              <p className="text-xs uppercase font-extrabold tracking-wider text-brand">Upfront Pricing</p>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
-                Select Your Shoot Package
+          {/* PORTFOLIO GALLERY SECTION */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs uppercase font-extrabold tracking-wider text-brand">
+                  Visual Proof of Quality
+                </span>
+                <h2 className="text-2xl font-extrabold text-ink-primary">Portfolio Gallery</h2>
+              </div>
+              <span className="text-xs text-ink-muted font-medium">
+                Click any photograph to view in full resolution
+              </span>
+            </div>
+
+            {/* Gallery Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
+              {creator.fullPortfolio.map((img, index) => (
+                <div
+                  key={img.id}
+                  onClick={() => handleOpenLightbox(index)}
+                  className="group relative aspect-[4/3] rounded-card-sm overflow-hidden bg-canvas-secondary cursor-pointer shadow-subtle border border-contour-subtle"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={img.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-3 text-white text-center">
+                    <div>
+                      <p className="text-xs font-bold">{img.title}</p>
+                      <span className="text-[10px] text-gray-300 uppercase tracking-wider">
+                        {img.category}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SERVICE PACKAGES & PRICING */}
+          <div id="packages" className="space-y-6 pt-6">
+            <div>
+              <span className="text-xs uppercase font-extrabold tracking-wider text-brand">
+                Transparent Pricing
+              </span>
+              <h2 className="text-2xl font-extrabold text-ink-primary">
+                Service Packages & Deliverables
               </h2>
-              <p className="text-xs sm:text-sm text-ink-secondary">
-                All packages include shoot-start OTP handshake & 100% platform escrow protection.
+              <p className="text-xs sm:text-sm text-ink-secondary mt-1">
+                All packages include verified Shoot-Start OTP handshake & 100% platform escrow protection.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {PACKAGES.map((pkg) => (
+              {creator.servicePackages.map((pkg) => (
                 <Card
                   key={pkg.id}
                   hoverEffect
                   className={`flex flex-col justify-between relative ${
-                    pkg.popular ? 'border-brand ring-1 ring-brand' : ''
+                    pkg.isPopular ? 'border-brand ring-1 ring-brand' : ''
                   }`}
                 >
-                  {pkg.popular && (
+                  {pkg.isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge variant="brand" size="sm">
                         Most Popular
@@ -170,48 +287,119 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-bold text-ink-primary">{pkg.name}</h3>
-                      <p className="text-2xl font-extrabold text-brand mt-1">{pkg.price}</p>
+                      <p className="text-2xl font-black text-brand mt-1">
+                        ₹{pkg.priceInr.toLocaleString('en-IN')}
+                      </p>
+                      <p className="text-xs text-ink-muted mt-0.5">
+                        {pkg.duration} shoot • {pkg.photos}
+                      </p>
                     </div>
 
-                    <ul className="space-y-2.5 text-xs sm:text-sm text-ink-secondary">
-                      <li className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-brand shrink-0" />
-                        <span>{pkg.duration}</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-brand shrink-0" />
-                        <span>{pkg.photos}</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-brand shrink-0" />
-                        <span>{pkg.turnaround}</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-green-600 shrink-0" />
-                        <span>Escrow Protected Payment</span>
-                      </li>
+                    <ul className="space-y-2 text-xs sm:text-sm text-ink-secondary pt-2 border-t border-contour-subtle">
+                      {pkg.features.map((feat, i) => (
+                        <li key={i} className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
 
                   <div className="pt-6 mt-6 border-t border-contour-subtle">
-                    <Link href={`/login?redirect=/booking/checkout`}>
-                      <Button
-                        variant={pkg.popular ? 'primary' : 'secondary'}
-                        className="w-full"
-                        size="md"
-                      >
-                        Book {pkg.name}
-                      </Button>
-                    </Link>
+                    <Button
+                      variant={pkg.isPopular ? 'primary' : 'secondary'}
+                      className="w-full"
+                      size="md"
+                      onClick={() => handleInitiateBooking(pkg)}
+                    >
+                      Book {pkg.name}
+                    </Button>
                   </div>
                 </Card>
               ))}
             </div>
           </div>
+
+          {/* CUSTOMER REVIEWS (CLEARLY LABELED DEMONSTRATION DATA) */}
+          <div className="space-y-6 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+              <div>
+                <span className="text-xs uppercase font-extrabold tracking-wider text-brand">
+                  Client Feedback
+                </span>
+                <h2 className="text-2xl font-extrabold text-ink-primary">
+                  Customer Reviews ({creator.reviews.length})
+                </h2>
+              </div>
+              <span className="text-xs text-ink-muted">
+                (Sample demonstration feedback for preview)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {creator.reviews.map((rev) => (
+                <Card key={rev.id} className="p-6 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-base font-bold text-ink-primary">{rev.clientName}</h3>
+                      <p className="text-xs text-ink-muted">
+                        {rev.clientLocation} • {rev.sessionType}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                      <Star className="w-4 h-4 fill-amber-500" />
+                      <span>{rev.rating}.0</span>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+                    &ldquo;{rev.comment}&rdquo;
+                  </p>
+                  <p className="text-[10px] text-ink-muted pt-2 border-t border-contour-subtle">
+                    Delivered on {rev.date} via SnapShoot Escrow
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* CANCELLATION & TRUST BOX */}
+          <div className="p-6 bg-canvas-secondary rounded-card-md border border-contour-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-brand" />
+                <h3 className="text-sm font-bold text-ink-primary">
+                  SnapShoot Cancellation & Escrow Protection
+                </h3>
+              </div>
+              <p className="text-xs text-ink-secondary">
+                100% full refund up to 24 hours before shoot. Funds held safely in escrow until you approve the delivered photographs.
+              </p>
+            </div>
+            <Link href="/cancellation" className="text-xs font-bold text-brand hover:underline shrink-0">
+              Read Refund Policy →
+            </Link>
+          </div>
         </div>
       </main>
 
       <Footer />
+
+      {/* PORTFOLIO LIGHTBOX PREVIEW */}
+      <PortfolioLightbox
+        images={creator.fullPortfolio}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onSelectIndex={(idx) => setLightboxIndex(idx)}
+      />
+
+      {/* BOOKING MODAL */}
+      <BookingModal
+        isOpen={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+        photographerName={creator.name}
+        selectedPackage={selectedPackage}
+      />
     </>
   );
 }

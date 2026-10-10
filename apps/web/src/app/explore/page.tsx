@@ -1,200 +1,431 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import { MapPin, Search, Star, Filter, SlidersHorizontal, ArrowRight, ShieldCheck } from 'lucide-react';
+import { 
+  Search, 
+  MapPin, 
+  Calendar, 
+  Star, 
+  SlidersHorizontal, 
+  ArrowUpDown, 
+  RotateCcw, 
+  CheckCircle2, 
+  Heart, 
+  ArrowRight,
+  ShieldCheck,
+  Camera
+} from 'lucide-react';
+import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../../data/photographers';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 
-const EXPLORE_CREATORS = [
-  {
-    id: 'pro-1',
-    name: 'Kabir Varma',
-    city: 'Hauz Khas, New Delhi',
-    rating: 4.96,
-    reviewsCount: 148,
-    specialty: 'Editorial & Portrait Specialist',
-    price: '₹4,500',
-    distanceKm: '3.2 km away',
-    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    verified: true,
-  },
-  {
-    id: 'pro-2',
-    name: 'Ananya Deshmukh',
-    city: 'Bandra West, Mumbai',
-    rating: 4.98,
-    reviewsCount: 215,
-    specialty: 'Candid Weddings & 4K Cinema',
-    price: '₹8,000',
-    distanceKm: '5.1 km away',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-    verified: true,
-  },
-  {
-    id: 'pro-3',
-    name: 'Rohan Sengupta',
-    city: 'Indiranagar, Bengaluru',
-    rating: 4.92,
-    reviewsCount: 94,
-    specialty: 'Culinary, Cafes & Commercial',
-    price: '₹3,500',
-    distanceKm: '2.8 km away',
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    verified: true,
-  },
-  {
-    id: 'pro-4',
-    name: 'Tanvi Malik',
-    city: 'DLF Phase 5, Gurugram',
-    rating: 4.95,
-    reviewsCount: 82,
-    specialty: 'Fashion Lookbooks & Modeling Portfolios',
-    price: '₹6,000',
-    distanceKm: '7.4 km away',
-    image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
-    verified: true,
-  },
-];
-
 export default function ExplorePage() {
+  // Search & Filter State
+  const [searchLocation, setSearchLocation] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedBudget, setSelectedBudget] = useState('all');
+  const [selectedRating, setSelectedRating] = useState('all');
+  const [selectedAvailability, setSelectedAvailability] = useState('all');
+  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_low' | 'price_high'>('recommended');
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleResetFilters = () => {
+    setSearchLocation('');
+    setSelectedCategory('all');
+    setSelectedDate('');
+    setSelectedBudget('all');
+    setSelectedRating('all');
+    setSelectedAvailability('all');
+    setSortBy('recommended');
+  };
+
+  // Genuine Filtering & Sorting Logic
+  const filteredPhotographers = useMemo(() => {
+    let result = [...SAMPLE_PHOTOGRAPHERS];
+
+    // Location Filter
+    if (searchLocation.trim()) {
+      const q = searchLocation.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.locationCity.toLowerCase().includes(q) ||
+          p.locationArea.toLowerCase().includes(q)
+      );
+    }
+
+    // Category Filter
+    if (selectedCategory !== 'all') {
+      result = result.filter((p) => p.categories.includes(selectedCategory as any));
+    }
+
+    // Budget Filter
+    if (selectedBudget === 'under_5000') {
+      result = result.filter((p) => p.startingPriceInr < 5000);
+    } else if (selectedBudget === '5000_8000') {
+      result = result.filter((p) => p.startingPriceInr >= 5000 && p.startingPriceInr <= 8000);
+    } else if (selectedBudget === 'above_8000') {
+      result = result.filter((p) => p.startingPriceInr > 8000);
+    }
+
+    // Minimum Rating Filter
+    if (selectedRating === '4.95') {
+      result = result.filter((p) => p.rating >= 4.95);
+    } else if (selectedRating === '4.90') {
+      result = result.filter((p) => p.rating >= 4.90);
+    }
+
+    // Availability Filter
+    if (selectedAvailability === 'today') {
+      result = result.filter((p) => p.availabilityStatus === 'Available Today');
+    } else if (selectedAvailability === 'this_week') {
+      result = result.filter(
+        (p) =>
+          p.availabilityStatus === 'Available Today' ||
+          p.availabilityStatus === 'Available This Week'
+      );
+    }
+
+    // Sorting
+    if (sortBy === 'rating') {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'price_low') {
+      result.sort((a, b) => a.startingPriceInr - b.startingPriceInr);
+    } else if (sortBy === 'price_high') {
+      result.sort((a, b) => b.startingPriceInr - a.startingPriceInr);
+    } else {
+      // Recommended: Prioritize verified and high review count
+      result.sort((a, b) => b.reviewCount - a.reviewCount);
+    }
+
+    return result;
+  }, [
+    searchLocation,
+    selectedCategory,
+    selectedBudget,
+    selectedRating,
+    selectedAvailability,
+    sortBy,
+  ]);
+
+  const hasActiveFilters =
+    searchLocation !== '' ||
+    selectedCategory !== 'all' ||
+    selectedBudget !== 'all' ||
+    selectedRating !== 'all' ||
+    selectedAvailability !== 'all' ||
+    sortBy !== 'recommended';
+
   return (
     <>
       <Navbar />
 
-      <main className="flex-1 bg-canvas-primary py-8 md:py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+      <main className="flex-1 bg-canvas-primary py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          {/* Page Heading */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-subtle text-brand text-xs font-bold mb-2">
                 <MapPin className="w-3.5 h-3.5" />
-                <span>Geospatial Radar</span>
+                <span>Discovery Directory</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink-primary">
-                Explore Verified Creators Near You
+                Find & Compare Photographers
               </h1>
-              <p className="text-sm sm:text-base text-ink-secondary mt-1">
-                Showing vetted visual artists within a 15 km radius of your location.
+              <p className="text-xs sm:text-sm text-ink-secondary mt-1">
+                Explore verified visual artists across India. Filter by city, budget, rating, and immediate availability.
               </p>
             </div>
 
-            {/* View Mode Toggle / Filters */}
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" leftIcon={<SlidersHorizontal className="w-4 h-4" />}>
-                Filter Radius
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilters}
+                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+              >
+                Reset All Filters
               </Button>
-              <Button variant="primary" size="sm">
-                Instant Availability
-              </Button>
-            </div>
+            )}
           </div>
 
-          {/* SPLIT VIEW (List + Simulated Radar Map) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* List Column */}
-            <div className="lg:col-span-7 space-y-5">
-              {EXPLORE_CREATORS.map((c) => (
-                <Card key={c.id} hoverEffect className="p-4 sm:p-5">
-                  <div className="flex flex-col sm:flex-row gap-5">
-                    {/* Thumbnail */}
-                    <div className="sm:w-44 h-48 sm:h-auto rounded-card-sm overflow-hidden bg-canvas-secondary relative shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                      <div className="absolute top-2 left-2">
-                        <Badge variant="dark" size="sm">
-                          {c.distanceKm}
-                        </Badge>
-                      </div>
-                    </div>
+          {/* ADVANCED FILTER PANEL */}
+          <div className="bg-white p-5 rounded-card-md border border-contour-subtle shadow-subtle space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Location Input */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  Location / City
+                </label>
+                <div className="flex items-center gap-2 px-3 py-2 bg-canvas-primary rounded-card-sm border border-contour-subtle">
+                  <MapPin className="w-4 h-4 text-brand shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Delhi, Mumbai, Bengaluru"
+                    value={searchLocation}
+                    onChange={(e) => setSearchLocation(e.target.value)}
+                    className="w-full bg-transparent text-xs sm:text-sm font-semibold text-ink-primary placeholder:text-ink-muted focus:outline-none"
+                  />
+                </div>
+              </div>
 
-                    {/* Details */}
-                    <div className="flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <h2 className="text-lg font-bold text-ink-primary">{c.name}</h2>
-                            <ShieldCheck className="w-4 h-4 text-brand" />
-                          </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-ink-primary bg-canvas-secondary px-2 py-0.5 rounded-full">
-                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                            <span>{c.rating}</span>
-                          </div>
-                        </div>
+              {/* Category Selector */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  Photography Genre
+                </label>
+                <div className="flex items-center gap-2 px-3 py-2 bg-canvas-primary rounded-card-sm border border-contour-subtle">
+                  <Camera className="w-4 h-4 text-brand shrink-0" />
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full bg-transparent text-xs sm:text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">All Genres</option>
+                    <option value="portraits">Portraits & Headshots</option>
+                    <option value="reels">Reels & Creator Video</option>
+                    <option value="couples">Couples & Weddings</option>
+                    <option value="events">Events & Celebrations</option>
+                  </select>
+                </div>
+              </div>
 
-                        <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-ink-muted" />
-                          {c.city}
-                        </p>
+              {/* Budget Filter */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  Starting Budget
+                </label>
+                <select
+                  value={selectedBudget}
+                  onChange={(e) => setSelectedBudget(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-canvas-primary rounded-card-sm border border-contour-subtle text-xs sm:text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Any Budget</option>
+                  <option value="under_5000">Under ₹5,000</option>
+                  <option value="5000_8000">₹5,000 – ₹8,000</option>
+                  <option value="above_8000">Above ₹8,000</option>
+                </select>
+              </div>
 
-                        <p className="text-sm text-ink-secondary font-medium mt-2">
-                          {c.specialty}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-contour-subtle">
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-ink-muted">Packages from</p>
-                          <p className="text-base font-extrabold text-ink-primary">{c.price}</p>
-                        </div>
-                        <Link
-                          href={`/photographers/${c.id}`}
-                          className="inline-flex items-center gap-1 px-4 py-2 rounded-card-sm text-xs font-bold bg-brand hover:bg-brand-hover text-white transition-colors"
-                        >
-                          View Profile <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+              {/* Rating Filter */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  Minimum Rating
+                </label>
+                <select
+                  value={selectedRating}
+                  onChange={(e) => setSelectedRating(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-canvas-primary rounded-card-sm border border-contour-subtle text-xs sm:text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Ratings</option>
+                  <option value="4.95">★ 4.95 & Higher</option>
+                  <option value="4.90">★ 4.90 & Higher</option>
+                </select>
+              </div>
             </div>
 
-            {/* Radar / Geospatial Map Simulation Column */}
-            <div className="lg:col-span-5 sticky top-28">
-              <div className="bg-canvas-secondary rounded-card-lg border border-contour-subtle p-6 overflow-hidden relative shadow-card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-ink-primary">Live Radar Grid</span>
-                  </div>
-                  <span className="text-xs text-ink-secondary font-semibold">PostGIS 4326</span>
-                </div>
+            {/* Secondary Row: Availability & Sorting */}
+            <div className="pt-3 border-t border-contour-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-ink-muted mr-1">Availability:</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAvailability('all')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    selectedAvailability === 'all'
+                      ? 'bg-ink-primary text-white'
+                      : 'bg-canvas-primary text-ink-secondary hover:bg-canvas-secondary'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAvailability('today')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    selectedAvailability === 'today'
+                      ? 'bg-green-700 text-white'
+                      : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                  }`}
+                >
+                  ● Available Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAvailability('this_week')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    selectedAvailability === 'this_week'
+                      ? 'bg-ink-primary text-white'
+                      : 'bg-canvas-primary text-ink-secondary hover:bg-canvas-secondary'
+                  }`}
+                >
+                  This Week
+                </button>
+              </div>
 
-                {/* Map Mock Canvas */}
-                <div className="h-96 w-full rounded-card-md bg-canvas-tertiary border border-contour-strong relative flex items-center justify-center overflow-hidden">
-                  {/* Concentric Radar Rings */}
-                  <div className="absolute w-72 h-72 rounded-full border border-dashed border-contour-strong/80" />
-                  <div className="absolute w-48 h-48 rounded-full border border-contour-strong/80" />
-                  <div className="absolute w-24 h-24 rounded-full border border-brand/30 bg-brand/5" />
-
-                  {/* Client Center Marker */}
-                  <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold shadow-md z-10">
-                    📍
-                  </div>
-
-                  {/* Creator Points on Map */}
-                  <div className="absolute top-16 left-24 p-1.5 bg-white rounded-full shadow-card border border-contour-subtle flex items-center gap-1 text-[11px] font-bold text-ink-primary">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>Kabir (3.2km)</span>
-                  </div>
-                  <div className="absolute bottom-20 right-16 p-1.5 bg-white rounded-full shadow-card border border-contour-subtle flex items-center gap-1 text-[11px] font-bold text-ink-primary">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>Rohan (2.8km)</span>
-                  </div>
-                  <div className="absolute top-28 right-24 p-1.5 bg-white rounded-full shadow-card border border-contour-subtle flex items-center gap-1 text-[11px] font-bold text-ink-primary">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>Tanvi (7.4km)</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 p-3 rounded-card-sm bg-white border border-contour-subtle text-xs text-ink-secondary flex items-center justify-between">
-                  <span>Current search radius: <strong>15.0 km</strong></span>
-                  <span className="text-brand font-bold cursor-pointer hover:underline">Change Radius</span>
-                </div>
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-ink-muted" />
+                <span className="text-xs font-bold text-ink-muted">Sort by:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-canvas-primary px-3 py-1.5 rounded-card-sm border border-contour-subtle text-xs font-bold text-ink-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="recommended">Recommended</option>
+                  <option value="rating">Highest Rated</option>
+                  <option value="price_low">Lowest Price</option>
+                  <option value="price_high">Highest Price</option>
+                </select>
               </div>
             </div>
           </div>
+
+          {/* RESULTS HEADER */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-extrabold text-ink-primary">
+              Showing <span className="text-brand">{filteredPhotographers.length}</span> Verified Photographers
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+              <ShieldCheck className="w-4 h-4 text-green-600" />
+              <span>Identity & Gear Verified</span>
+            </div>
+          </div>
+
+          {/* EMPTY STATE */}
+          {filteredPhotographers.length === 0 ? (
+            <div className="bg-white rounded-card-lg border border-contour-subtle p-12 text-center max-w-lg mx-auto space-y-4 shadow-subtle">
+              <div className="w-12 h-12 rounded-full bg-brand-subtle flex items-center justify-center text-brand mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-ink-primary">No photographers found</h2>
+              <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+                We couldn&apos;t find any visual artists matching all your current filters. Try relaxing your location, budget, or rating filters.
+              </p>
+              <Button variant="primary" size="sm" onClick={handleResetFilters}>
+                Clear All Filters
+              </Button>
+            </div>
+          ) : (
+            /* RESULTS GRID */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPhotographers.map((creator) => {
+                const isFav = !!favorites[creator.id];
+                return (
+                  <Card
+                    key={creator.id}
+                    hoverEffect
+                    className="p-0 overflow-hidden flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Cover Photo */}
+                      <div className="relative aspect-[16/10] overflow-hidden bg-canvas-secondary">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={creator.portfolioPreviews[0]}
+                          alt={creator.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <Badge variant="dark" size="sm">
+                            {creator.experienceYears} Yrs Exp
+                          </Badge>
+                        </div>
+
+                        {/* Favorite button */}
+                        <button
+                          onClick={(e) => toggleFavorite(creator.id, e)}
+                          aria-label={isFav ? 'Remove from favorites' : 'Save to favorites'}
+                          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors ${
+                            isFav
+                              ? 'bg-white text-red-500 shadow-md'
+                              : 'bg-black/40 text-white hover:text-red-400'
+                          }`}
+                        >
+                          <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500' : ''}`} />
+                        </button>
+                      </div>
+
+                      {/* Info Body */}
+                      <div className="p-5 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h3 className="text-lg font-bold text-ink-primary">{creator.name}</h3>
+                              {creator.isVerified && (
+                                <span title="Government ID Verified">
+                                  <CheckCircle2 className="w-4 h-4 text-brand fill-brand-subtle shrink-0" />
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-ink-muted" />
+                              {creator.locationArea}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-xs font-bold text-ink-primary bg-canvas-secondary px-2.5 py-0.5 rounded-full">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <span>{creator.rating}</span>
+                            <span className="text-ink-muted font-normal">({creator.reviewCount})</span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-ink-secondary font-medium">
+                          {creator.tagline}
+                        </p>
+
+                        {/* 3 Micro-Previews */}
+                        <div className="grid grid-cols-3 gap-1.5 pt-1">
+                          {creator.portfolioPreviews.map((img, i) => (
+                            <div key={i} className="aspect-[4/3] rounded-card-sm overflow-hidden bg-canvas-secondary">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={img} alt="preview" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Availability Pill */}
+                        <div className="pt-2">
+                          <Badge variant="success" size="sm">
+                            {creator.availabilityStatus}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Footer: Price & CTA */}
+                    <div className="p-5 pt-3 border-t border-contour-subtle flex items-center justify-between bg-canvas-primary/40">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-ink-muted">Packages from</p>
+                        <p className="text-base font-extrabold text-ink-primary">
+                          ₹{creator.startingPriceInr.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+
+                      <Link
+                        href={`/photographers/${creator.id}`}
+                        className="inline-flex items-center gap-1 px-4 py-2 rounded-card-sm text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm transition-colors"
+                      >
+                        <span>View Profile</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
 

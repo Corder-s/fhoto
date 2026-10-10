@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -9,141 +12,126 @@ import {
   SlidersHorizontal, 
   ArrowUpDown, 
   CheckCircle2, 
-  Camera 
+  Camera,
+  Heart,
+  ArrowRight
 } from 'lucide-react';
+import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../../data/photographers';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 
-const DIRECTORY_CREATORS = [
-  {
-    id: 'pro-1',
-    name: 'Kabir Varma',
-    city: 'South Delhi, New Delhi',
-    rating: 4.96,
-    reviewsCount: 148,
-    specialty: 'Editorial & Portrait Specialist',
-    startingPrice: '₹4,500',
-    coverImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    tags: ['Sony Alpha 7 IV', 'Studio Lighting', 'Same Day Delivery'],
-    experience: '8 yrs exp',
-  },
-  {
-    id: 'pro-2',
-    name: 'Ananya Deshmukh',
-    city: 'Bandra West, Mumbai',
-    rating: 4.98,
-    reviewsCount: 215,
-    specialty: 'Candid Weddings & 4K Cinema',
-    startingPrice: '₹8,000',
-    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-    tags: ['Canon R5', 'Drone Certified', 'Color Grading'],
-    experience: '10 yrs exp',
-  },
-  {
-    id: 'pro-3',
-    name: 'Rohan Sengupta',
-    city: 'Indiranagar, Bengaluru',
-    rating: 4.92,
-    reviewsCount: 94,
-    specialty: 'Culinary, Cafes & Commercial Food',
-    startingPrice: '₹3,500',
-    coverImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    tags: ['Fujifilm GFX', 'Macro Lenses', 'Product Proofing'],
-    experience: '6 yrs exp',
-  },
-  {
-    id: 'pro-4',
-    name: 'Tanvi Malik',
-    city: 'DLF Phase 5, Gurugram',
-    rating: 4.95,
-    reviewsCount: 82,
-    specialty: 'Fashion Lookbooks & Modeling Portfolios',
-    startingPrice: '₹6,000',
-    coverImage: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
-    tags: ['Nikon Z9', 'Editorial Retouching', 'Agency Approved'],
-    experience: '7 yrs exp',
-  },
-  {
-    id: 'pro-5',
-    name: 'Vikramaditya Roy',
-    city: 'Koramangala, Bengaluru',
-    rating: 4.90,
-    reviewsCount: 110,
-    specialty: 'Automobile & Real Estate Architecture',
-    startingPrice: '₹5,500',
-    coverImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-    tags: ['HDR Bracketing', 'Matterport 3D', 'Wide Angle Specialist'],
-    experience: '9 yrs exp',
-  },
-  {
-    id: 'pro-6',
-    name: 'Meera Nambiar',
-    city: 'Juhu, Mumbai',
-    rating: 4.97,
-    reviewsCount: 165,
-    specialty: 'Maternity, Newborn & Family Stories',
-    startingPrice: '₹5,000',
-    coverImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
-    tags: ['Natural Light', 'Baby Safe Gear', 'Posed & Lifestyle'],
-    experience: '5 yrs exp',
-  },
-];
-
 export default function PhotographersDirectoryPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_low' | 'price_high'>('recommended');
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const filteredPhotographers = useMemo(() => {
+    let result = [...SAMPLE_PHOTOGRAPHERS];
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.locationCity.toLowerCase().includes(q) ||
+          p.locationArea.toLowerCase().includes(q)
+      );
+    }
+
+    if (selectedCategory !== 'all') {
+      result = result.filter((p) => p.categories.includes(selectedCategory as any));
+    }
+
+    if (sortBy === 'rating') {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'price_low') {
+      result.sort((a, b) => a.startingPriceInr - b.startingPriceInr);
+    } else if (sortBy === 'price_high') {
+      result.sort((a, b) => b.startingPriceInr - a.startingPriceInr);
+    } else {
+      result.sort((a, b) => b.reviewCount - a.reviewCount);
+    }
+
+    return result;
+  }, [searchTerm, selectedCategory, sortBy]);
+
   return (
     <>
       <Navbar />
 
       <main className="flex-1 bg-canvas-primary py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          {/* Top Headline */}
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-subtle text-brand text-xs font-bold mb-2">
+              <Camera className="w-3.5 h-3.5" />
+              <span>Artist Registry</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-ink-primary">
+              All Verified Photographers
+            </h1>
+            <p className="text-xs sm:text-sm text-ink-secondary mt-1">
+              Browse our complete roster of vetted visual storytellers across India.
+            </p>
+          </div>
+
           {/* SEARCH & FILTER TOP BAR */}
-          <div className="bg-white p-4 rounded-card-md border border-contour-subtle shadow-subtle mb-10">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="bg-white p-4 rounded-card-md border border-contour-subtle shadow-subtle">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-canvas-primary rounded-card-sm border border-contour-subtle">
-                <MapPin className="w-4 h-4 text-brand shrink-0" />
+                <Search className="w-4 h-4 text-brand shrink-0" />
                 <input
                   type="text"
-                  placeholder="City or pin code..."
-                  defaultValue="All Cities (India)"
+                  placeholder="Search by artist name or city..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-transparent text-sm font-semibold text-ink-primary focus:outline-none"
                 />
               </div>
 
               <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-canvas-primary rounded-card-sm border border-contour-subtle">
                 <Camera className="w-4 h-4 text-brand shrink-0" />
-                <select className="w-full bg-transparent text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer">
-                  <option value="">All Photography Genres</option>
-                  <option value="portrait">Portraits & Headshots</option>
-                  <option value="wedding">Weddings & Engagements</option>
-                  <option value="event">Birthdays & Private Events</option>
-                  <option value="commercial">Commercial & Products</option>
-                  <option value="fashion">Fashion & Model Shoots</option>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full bg-transparent text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Photography Genres</option>
+                  <option value="portraits">Portraits & Headshots</option>
+                  <option value="reels">Reels & Creator Video</option>
+                  <option value="couples">Couples & Weddings</option>
+                  <option value="events">Events & Celebrations</option>
                 </select>
               </div>
 
               <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-canvas-primary rounded-card-sm border border-contour-subtle">
                 <ArrowUpDown className="w-4 h-4 text-ink-secondary shrink-0" />
-                <select className="w-full bg-transparent text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full bg-transparent text-sm font-semibold text-ink-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="recommended">Sort: Recommended</option>
                   <option value="rating">Sort: Highest Rated</option>
-                  <option value="distance">Sort: Nearest Distance</option>
                   <option value="price_low">Sort: Price Low to High</option>
                   <option value="price_high">Sort: Price High to Low</option>
                 </select>
-              </div>
-
-              <div>
-                <Button className="w-full" size="md" leftIcon={<Search className="w-4 h-4" />}>
-                  Search Creators
-                </Button>
               </div>
             </div>
           </div>
 
           {/* RESULTS COUNT & META */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-ink-primary">
-              Showing <span className="text-brand">6</span> Verified Photographers
+              Showing <span className="text-brand">{filteredPhotographers.length}</span> Verified Creators
             </p>
             <div className="flex items-center gap-2 text-xs text-ink-muted">
               <span>Verified Identity Guaranteed</span>
@@ -153,79 +141,98 @@ export default function PhotographersDirectoryPage() {
 
           {/* GRID OF CREATORS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {DIRECTORY_CREATORS.map((creator) => (
-              <Card key={creator.id} hoverEffect className="p-0 overflow-hidden flex flex-col justify-between">
-                <div>
-                  {/* Cover Photo */}
-                  <div className="relative aspect-[16/10] overflow-hidden bg-canvas-secondary">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={creator.coverImage}
-                      alt={creator.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <Badge variant="dark" size="sm">
-                        {creator.experience}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Body Content */}
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h2 className="text-lg font-bold text-ink-primary">{creator.name}</h2>
-                          <CheckCircle2 className="w-4 h-4 text-brand fill-brand-subtle" />
-                        </div>
-                        <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-ink-muted" />
-                          {creator.city}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1 text-xs font-bold text-ink-primary bg-canvas-secondary px-2 py-0.5 rounded-full">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span>{creator.rating}</span>
-                        <span className="text-ink-muted font-normal">({creator.reviewsCount})</span>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-ink-secondary font-medium">
-                      {creator.specialty}
-                    </p>
-
-                    {/* Tag Pills */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {creator.tags.map((t) => (
-                        <span
-                          key={t}
-                          className="px-2 py-0.5 rounded-card-sm text-[11px] font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Pricing & CTA */}
-                <div className="p-5 pt-3 border-t border-contour-subtle flex items-center justify-between bg-canvas-primary/30">
+            {filteredPhotographers.map((creator) => {
+              const isFav = !!favorites[creator.id];
+              return (
+                <Card key={creator.id} hoverEffect className="p-0 overflow-hidden flex flex-col justify-between">
                   <div>
-                    <p className="text-[10px] uppercase font-bold text-ink-muted">Packages from</p>
-                    <p className="text-lg font-extrabold text-ink-primary">{creator.startingPrice}</p>
+                    {/* Cover Photo */}
+                    <div className="relative aspect-[16/10] overflow-hidden bg-canvas-secondary">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={creator.portfolioPreviews[0]}
+                        alt={creator.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <Badge variant="dark" size="sm">
+                          {creator.experienceYears} Yrs Exp
+                        </Badge>
+                      </div>
+
+                      <button
+                        onClick={(e) => toggleFavorite(creator.id, e)}
+                        className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors ${
+                          isFav ? 'bg-white text-red-500 shadow-md' : 'bg-black/40 text-white hover:text-red-400'
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Body Content */}
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h2 className="text-lg font-bold text-ink-primary">{creator.name}</h2>
+                            {creator.isVerified && (
+                              <span title="Verified Pro">
+                                <CheckCircle2 className="w-4 h-4 text-brand fill-brand-subtle shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3.5 h-3.5 text-ink-muted" />
+                            {creator.locationArea}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1 text-xs font-bold text-ink-primary bg-canvas-primary px-2 py-0.5 rounded-full border border-contour-subtle">
+                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          <span>{creator.rating}</span>
+                          <span className="text-ink-muted font-normal">({creator.reviewCount})</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-ink-secondary font-medium">
+                        {creator.tagline}
+                      </p>
+
+                      {/* Tag Pills */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {creator.categories.map((c) => (
+                          <span
+                            key={c}
+                            className="px-2 py-0.5 rounded-card-sm text-[11px] font-medium bg-canvas-secondary text-ink-secondary border border-contour-subtle uppercase"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  <Link
-                    href={`/photographers/${creator.id}`}
-                    className="inline-flex items-center px-4 py-2 rounded-card-sm text-xs font-bold bg-brand hover:bg-brand-hover text-white transition-colors"
-                  >
-                    View Packages
-                  </Link>
-                </div>
-              </Card>
-            ))}
+                  {/* Footer Pricing & CTA */}
+                  <div className="p-5 pt-3 border-t border-contour-subtle flex items-center justify-between bg-canvas-primary/30">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-ink-muted">Packages from</p>
+                      <p className="text-lg font-extrabold text-ink-primary">
+                        ₹{creator.startingPriceInr.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+
+                    <Link
+                      href={`/photographers/${creator.id}`}
+                      className="inline-flex items-center gap-1 px-4 py-2 rounded-card-sm text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm transition-colors"
+                    >
+                      <span>View Packages</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </main>
