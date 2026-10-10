@@ -90,13 +90,6 @@ export const UnifiedCustomerHomepageView: React.FC<UnifiedCustomerHomepageViewPr
     },
   ];
 
-  const scrollToBooking = () => {
-    const el = document.getElementById('booking-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   // Search submission handler
   const handleSearch = (filters: SearchFilters) => {
     let result = SAMPLE_PHOTOGRAPHERS;
@@ -147,37 +140,67 @@ export const UnifiedCustomerHomepageView: React.FC<UnifiedCustomerHomepageViewPr
   return (
     <div className="space-y-10 pb-16">
       {/* ========================================================= */}
-      {/* 1. DEMONSTRATION MODE NOTICE (Preserved from Dashboard) */}
+      {/* 1. DEMONSTRATION MODE NOTICE (Accurate notice preserved) */}
       {/* ========================================================= */}
       <CustomerNoticeBanner moduleName="Client Workspace Dashboard" />
 
       {/* ========================================================= */}
-      {/* 2. DASHBOARD WELCOME HEADER */}
+      {/* 2. COMPACT BOOKING HERO & SEARCH (RESTORED ON TOP) */}
       {/* ========================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A1816] tracking-tight flex items-center gap-2">
-            <span>Welcome back, {currentUserName}</span>
-            <span className="inline-block animate-bounce">👋</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-[#665E55]">
-            Track live shoot appointments, verify photographer OTPs, and access delivered 4K galleries.
-          </p>
+      <section className="relative pt-2 pb-4 space-y-6">
+        {/* Top Row: Left Content & Right Photography Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[280px]">
+          {/* Left Column: Eyebrow, Welcome Badge, Headline, Subtitle */}
+          <div className="lg:col-span-6 space-y-4">
+            {/* Eyebrow & Personalized Welcome Badge */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-[#FFF4EB] text-[#FF6E00] border border-[#FFD9B3] shadow-xs">
+                <span>Welcome back, {currentUserName} 👋</span>
+              </span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#8C847A] uppercase">
+                REAL PEOPLE · REAL STORIES · REMARKABLE PHOTOGRAPHY
+              </span>
+            </div>
+
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black tracking-tight text-[#1A1816] leading-[1.06]">
+              Book your <br />
+              photographer. <br />
+              <span className="text-[#FF6E00]">Capture the moment.</span>
+            </h1>
+
+            {/* Subtitle Copy */}
+            <p className="text-xs sm:text-sm text-[#665E55] max-w-lg leading-relaxed pt-1">
+              Find verified photographers near you for portraits, reels, events and more. Book in minutes.
+            </p>
+          </div>
+
+          {/* Right Column: Hero Photography Image */}
+          <div className="lg:col-span-6 relative w-full h-[240px] sm:h-[300px] lg:h-[340px] flex items-center justify-end">
+            <div className="relative w-full h-full max-w-[620px] rounded-3xl overflow-hidden shadow-subtle group border border-[#E8E1D6]">
+              <img
+                src="/reference-assets/hero_scene.jpg"
+                alt="Moments Beyond Time - Photographer shooting couple"
+                className="w-full h-full object-cover object-right group-hover:scale-102 transition-transform duration-700"
+              />
+              <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#FAF7F2] to-transparent pointer-events-none" />
+            </div>
+          </div>
         </div>
 
-        <button
-          onClick={scrollToBooking}
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#FF6E00] hover:bg-[#E05D00] text-white text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0 self-start sm:self-auto active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Book a Photographer</span>
-        </button>
-      </div>
+        {/* Bottom Row: Photographer Search & Trust Indicators (Clean, unclipped layout) */}
+        <div className="pt-2">
+          <HeroSearch
+            onSearch={handleSearch}
+            selectedCategory={selectedCategory}
+          />
+        </div>
+      </section>
 
       {/* ========================================================= */}
       {/* 3. CUSTOMER QUICK ACTIONS */}
       {/* ========================================================= */}
-      <section className="space-y-3">
+      <section className="space-y-3 pt-4 border-t border-[#E8E1D6]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C847A]">
             Quick Actions
@@ -188,17 +211,16 @@ export const UnifiedCustomerHomepageView: React.FC<UnifiedCustomerHomepageViewPr
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <button
-            type="button"
-            onClick={scrollToBooking}
-            className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EBE4DA] hover:border-[#FF6E00] hover:shadow-card transition-all flex flex-col items-center text-center group cursor-pointer w-full text-left"
+          <Link
+            href="/explore"
+            className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EBE4DA] hover:border-[#FF6E00] hover:shadow-card transition-all flex flex-col items-center text-center group cursor-pointer"
           >
             <div className="w-11 h-11 rounded-full bg-[#FAF7F2] group-hover:bg-[#FFF4E6] flex items-center justify-center text-[#FF6E00] mb-2.5 transition-colors shadow-xs">
               <Camera className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-[#1A1816]">Find a Photographer</span>
             <span className="text-[10px] text-[#8C847A] mt-0.5">Explore local creators</span>
-          </button>
+          </Link>
 
           <Link
             href="/customer/bookings"
@@ -427,58 +449,7 @@ export const UnifiedCustomerHomepageView: React.FC<UnifiedCustomerHomepageViewPr
       </section>
 
       {/* ========================================================= */}
-      {/* 7. COMPACT BOOKING HERO & PHOTOGRAPHER SEARCH (SO ON) */}
-      {/* ========================================================= */}
-      <section
-        id="booking-section"
-        className="scroll-mt-24 pt-8 border-t border-[#E8E1D6] space-y-6"
-      >
-        {/* Top Row: Left Headline & Copy, Right Hero Photography */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[280px]">
-          {/* Left Column: Eyebrow, Main Headline & Subtitle */}
-          <div className="lg:col-span-6 space-y-4">
-            {/* Eyebrow */}
-            <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#8C847A] uppercase">
-              REAL PEOPLE · REAL STORIES · REMARKABLE PHOTOGRAPHY
-            </p>
-
-            {/* Main Headline with Brand Orange Accent */}
-            <h2 className="text-4xl sm:text-5xl lg:text-[60px] font-black tracking-tight text-[#1A1816] leading-[1.06]">
-              Book your <br />
-              photographer. <br />
-              <span className="text-[#FF6E00]">Capture the moment.</span>
-            </h2>
-
-            {/* Subtitle Copy */}
-            <p className="text-xs sm:text-sm text-[#665E55] max-w-lg leading-relaxed pt-1">
-              Find verified photographers near you for portraits, reels, events and more. Book in minutes.
-            </p>
-          </div>
-
-          {/* Right Column: Hero Photography Image */}
-          <div className="lg:col-span-6 relative w-full h-[240px] sm:h-[300px] lg:h-[340px] flex items-center justify-end">
-            <div className="relative w-full h-full max-w-[620px] rounded-3xl overflow-hidden shadow-subtle group border border-[#E8E1D6]">
-              <img
-                src="/reference-assets/hero_scene.jpg"
-                alt="Moments Beyond Time - Photographer shooting couple"
-                className="w-full h-full object-cover object-right group-hover:scale-102 transition-transform duration-700"
-              />
-              <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#FAF7F2] to-transparent pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: Photographer Search & Trust Indicators */}
-        <div className="mt-4 md:mt-6">
-          <HeroSearch
-            onSearch={handleSearch}
-            selectedCategory={selectedCategory}
-          />
-        </div>
-      </section>
-
-      {/* ========================================================= */}
-      {/* 8. DISCOVERY & EXPLORE SECTIONS */}
+      {/* 7. DISCOVERY & EXPLORE SECTIONS */}
       {/* ========================================================= */}
       {showDiscoverySections && (
         <div className="space-y-12 pt-6">
