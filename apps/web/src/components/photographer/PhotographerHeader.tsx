@@ -204,7 +204,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                   <span>Studio Settings</span>
                 </Link>
                 <Link
-                  href="/photographers/p1"
+                  href="/photographers/pro-aman"
                   target="_blank"
                   onClick={() => setShowProfileMenu(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"

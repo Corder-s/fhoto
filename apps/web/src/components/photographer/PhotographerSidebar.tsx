@@ -199,7 +199,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         {/* Bottom Public Profile & Mode Switch */}
         <div className="p-3 border-t border-contour-subtle space-y-1 bg-white shrink-0">
           <Link
-            href="/photographers/p1"
+            href="/photographers/pro-aman"
             target="_blank"
             className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary rounded-card-sm transition-colors"
           >
