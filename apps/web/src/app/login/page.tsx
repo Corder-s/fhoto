@@ -17,6 +17,7 @@ import {
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { saveAuthSession } from '../../lib/auth';
 
 export default function LoginPage() {
   const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
@@ -81,9 +82,15 @@ export default function LoginPage() {
         setResendTimer(60);
         setCanResend(false);
       } else {
+        saveAuthSession({
+          id: 'cust-1',
+          name: 'Aman Sharma',
+          email: email,
+          role: 'customer',
+        });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/customer/dashboard';
+          window.location.href = '/';
         }, 1000);
       }
     }, 700);
@@ -123,9 +130,16 @@ export default function LoginPage() {
       setIsLoading(false);
       // Valid demonstration code is 123456
       if (entered === '123456') {
+        saveAuthSession({
+          id: 'cust-1',
+          name: 'Aman Sharma',
+          email: 'aman@snapshoot.local',
+          phone: phoneNumber ? `+91 ${phoneNumber}` : '+91 98112 34567',
+          role: 'customer',
+        });
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/customer/dashboard';
+          window.location.href = '/';
         }, 1000);
       } else {
         setAttempts((prev) => prev + 1);

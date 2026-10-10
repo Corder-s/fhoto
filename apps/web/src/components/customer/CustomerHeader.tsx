@@ -20,6 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { INITIAL_CUSTOMER_PROFILE, INITIAL_NOTIFICATIONS } from '../../data/customerDashboardData';
+import { clearAuthSession } from '../../lib/auth';
 
 export const CustomerHeader: React.FC = () => {
   const pathname = usePathname();
@@ -188,8 +189,11 @@ export const CustomerHeader: React.FC = () => {
                 </div>
                 <div className="border-t border-[#F0EAE1] pt-1 mt-1">
                   <Link
-                    href="/login"
-                    onClick={() => setShowProfileMenu(false)}
+                    href="/"
+                    onClick={() => {
+                      clearAuthSession();
+                      setShowProfileMenu(false);
+                    }}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <LogOut className="w-3.5 h-3.5" />

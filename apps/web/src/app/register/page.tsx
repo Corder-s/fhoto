@@ -15,6 +15,7 @@ import {
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { saveAuthSession } from '../../lib/auth';
 
 export default function RegisterPage() {
   const [role, setRole] = useState<'customer' | 'creator'>('customer');
@@ -63,7 +64,14 @@ export default function RegisterPage() {
         if (role === 'creator') {
           window.location.href = '/for-photographers';
         } else {
-          window.location.href = '/customer/dashboard';
+          saveAuthSession({
+            id: 'cust-new',
+            name: fullName,
+            email: email,
+            phone: `+91 ${phoneNumber}`,
+            role: 'customer',
+          });
+          window.location.href = '/';
         }
       }, 1200);
     }, 800);

@@ -1,51 +1,18 @@
 'use client';
 
 import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import { ZomatoHero } from '../components/home/ZomatoHero';
-import { ZomatoServiceCards } from '../components/home/ZomatoServiceCards';
-import { ZomatoFeaturedPhotographers } from '../components/home/ZomatoFeaturedPhotographers';
-import { ZomatoPopularLocations } from '../components/home/ZomatoPopularLocations';
-import { HowItWorksSection } from '../components/home/HowItWorksSection';
-import { RecruitmentBanner } from '../components/home/RecruitmentBanner';
-import { HomeFaqSection } from '../components/home/HomeFaqSection';
-import { FinalCtaBanner } from '../components/home/FinalCtaBanner';
+import { useAuth } from '../lib/auth';
+import { ZomatoPublicLanding } from '../components/home/ZomatoPublicLanding';
+import { OriginalAuthenticatedLanding } from '../components/home/OriginalAuthenticatedLanding';
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-[#FAF7F2] flex flex-col font-sans selection:bg-[#FF6E00] selection:text-white">
-      {/* A. TOP NAVIGATION */}
-      <Navbar />
+  const { isAuthenticated, isMounted } = useAuth();
 
-      <main className="flex-1">
-        {/* B & C. HERO SECTION & PHOTOGRAPHER SEARCH (Zomato-Style Search-Centric Hero) */}
-        <ZomatoHero />
+  // AFTER SUCCESSFUL LOGIN — Display ORIGINAL SnapShoot landing page
+  if (isMounted && isAuthenticated) {
+    return <OriginalAuthenticatedLanding />;
+  }
 
-        {/* D. SERVICE CATEGORY CARDS (3 Prominent Marketplace Cards) */}
-        <ZomatoServiceCards />
-
-        {/* E. FEATURED PHOTOGRAPHERS (Discover Photographers Near You) */}
-        <ZomatoFeaturedPhotographers />
-
-        {/* F. POPULAR LOCATIONS (Localities Discovery Grid) */}
-        <ZomatoPopularLocations />
-
-        {/* G. HOW IT WORKS (3 Simple Steps & Customer Protection) */}
-        <HowItWorksSection />
-
-        {/* H. PHOTOGRAPHER RECRUITMENT (Turn Your Photography Into Opportunity) */}
-        <RecruitmentBanner />
-
-        {/* FREQUENTLY ASKED QUESTIONS */}
-        <HomeFaqSection />
-
-        {/* I. FINAL CALL TO ACTION */}
-        <FinalCtaBanner />
-      </main>
-
-      {/* J. FOOTER */}
-      <Footer />
-    </div>
-  );
+  // BEFORE LOGIN (and during SSR) — Display Zomato-inspired public landing page
+  return <ZomatoPublicLanding />;
 }
