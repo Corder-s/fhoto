@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { CustomerHeader } from './CustomerHeader';
+import Navbar from '../Navbar';
+import Footer from '../Footer';
 
 export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -14,10 +15,11 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#1A1816] flex flex-col font-sans selection:bg-[#FF6E00] selection:text-white">
-      <CustomerHeader />
+      <Navbar />
       <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
+      <Footer />
     </div>
   );
 };

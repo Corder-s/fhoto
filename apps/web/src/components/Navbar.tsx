@@ -2,17 +2,50 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Camera, Search, ArrowRight, Menu, X, User, LogOut, Calendar, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Camera, Search, ArrowRight, Menu, X, User, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const pathname = usePathname() || '';
 
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);
   };
+
+  // Route matching helpers for active navigation highlight
+  const isDashboardActive =
+    pathname === '/customer/dashboard' ||
+    pathname.startsWith('/customer/dashboard/') ||
+    pathname === '/photographer/dashboard' ||
+    pathname.startsWith('/photographer/dashboard/');
+
+  const isExploreActive =
+    pathname === '/explore' ||
+    pathname.startsWith('/explore/') ||
+    pathname === '/photographers' ||
+    pathname.startsWith('/photographers/') ||
+    pathname === '/categories' ||
+    pathname.startsWith('/categories/');
+
+  const isBookingsActive =
+    pathname === '/customer/bookings' ||
+    pathname.startsWith('/customer/bookings/');
+
+  const isGalleryActive =
+    pathname === '/customer/gallery' ||
+    pathname.startsWith('/customer/gallery/');
+
+  const isHowItWorksActive =
+    pathname === '/how-it-works' ||
+    pathname.startsWith('/how-it-works/');
+
+  const isForPhotographersActive =
+    pathname === '/for-photographers' ||
+    pathname.startsWith('/for-photographers/');
 
   return (
     <header className="sticky top-0 z-50 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#EDE6DC] transition-all">
@@ -31,29 +64,78 @@ export default function Navbar() {
         <nav className="hidden lg:flex items-center gap-7 text-[14px] font-semibold text-[#5A544D]">
           {isAuthenticated ? (
             <>
-              <Link href="/customer/dashboard" className="hover:text-[#1A1816] transition-colors flex items-center gap-1.5 text-[#FF6E00]">
-                <Sparkles className="w-3.5 h-3.5" />
+              <Link
+                href="/customer/dashboard"
+                className={`transition-colors flex items-center gap-1.5 ${
+                  isDashboardActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
+                {isDashboardActive && <Sparkles className="w-3.5 h-3.5" />}
                 <span>Dashboard</span>
               </Link>
-              <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/explore"
+                className={`transition-colors ${
+                  isExploreActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 Explore photographers
               </Link>
-              <Link href="/customer/bookings" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/customer/bookings"
+                className={`transition-colors ${
+                  isBookingsActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 My Bookings
               </Link>
-              <Link href="/customer/gallery" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/customer/gallery"
+                className={`transition-colors ${
+                  isGalleryActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 Photo Gallery
               </Link>
             </>
           ) : (
             <>
-              <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/explore"
+                className={`transition-colors ${
+                  isExploreActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 Explore photographers
               </Link>
-              <Link href="/how-it-works" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/how-it-works"
+                className={`transition-colors ${
+                  isHowItWorksActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 How it works
               </Link>
-              <Link href="/for-photographers" className="hover:text-[#1A1816] transition-colors">
+              <Link
+                href="/for-photographers"
+                className={`transition-colors ${
+                  isForPhotographersActive
+                    ? 'text-[#FF6E00]'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
                 Become a photographer
               </Link>
             </>
@@ -141,29 +223,37 @@ export default function Navbar() {
                 <Link
                   href="/customer/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] text-[#FF6E00] flex items-center gap-1.5"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors flex items-center gap-1.5 ${
+                    isDashboardActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  {isDashboardActive && <Sparkles className="w-3.5 h-3.5" />}
                   <span>Dashboard</span>
                 </Link>
                 <Link
                   href="/explore"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isExploreActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
                   Explore photographers
                 </Link>
                 <Link
                   href="/customer/bookings"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isBookingsActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
                   My Bookings
                 </Link>
                 <Link
                   href="/customer/gallery"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isGalleryActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
                   Photo Gallery
                 </Link>
@@ -171,16 +261,29 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
+                  href="/explore"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isExploreActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
+                >
+                  Explore photographers
+                </Link>
+                <Link
                   href="/how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isHowItWorksActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
                   How it works
                 </Link>
                 <Link
                   href="/for-photographers"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isForPhotographersActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
                 >
                   Become a photographer
                 </Link>
