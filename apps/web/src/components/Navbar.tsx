@@ -29,25 +29,27 @@ export default function Navbar() {
 
         {/* Center/Right Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-7 text-[14px] font-semibold text-[#5A544D]">
-          <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
-            Explore photographers
-          </Link>
-          
           {isAuthenticated ? (
             <>
+              <Link href="/customer/dashboard" className="hover:text-[#1A1816] transition-colors flex items-center gap-1.5 text-[#FF6E00]">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </Link>
+              <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
+                Explore photographers
+              </Link>
               <Link href="/customer/bookings" className="hover:text-[#1A1816] transition-colors">
                 My Bookings
               </Link>
               <Link href="/customer/gallery" className="hover:text-[#1A1816] transition-colors">
                 Photo Gallery
               </Link>
-              <Link href="/customer/dashboard" className="hover:text-[#1A1816] transition-colors flex items-center gap-1.5 text-[#FF6E00]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Dashboard</span>
-              </Link>
             </>
           ) : (
             <>
+              <Link href="/explore" className="hover:text-[#1A1816] transition-colors">
+                Explore photographers
+              </Link>
               <Link href="/how-it-works" className="hover:text-[#1A1816] transition-colors">
                 How it works
               </Link>
@@ -134,16 +136,23 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-[#EDE6DC] bg-[#FAF7F2] px-4 pt-2 pb-6 space-y-4">
           <nav className="flex flex-col space-y-3 font-semibold text-sm text-[#1A1816]">
-            <Link
-              href="/explore"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
-            >
-              Explore photographers
-            </Link>
-
             {isAuthenticated ? (
               <>
+                <Link
+                  href="/customer/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] text-[#FF6E00] flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Dashboard</span>
+                </Link>
+                <Link
+                  href="/explore"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
+                >
+                  Explore photographers
+                </Link>
                 <Link
                   href="/customer/bookings"
                   onClick={() => setMobileMenuOpen(false)}
@@ -157,13 +166,6 @@ export default function Navbar() {
                   className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3]"
                 >
                   Photo Gallery
-                </Link>
-                <Link
-                  href="/customer/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] text-[#FF6E00]"
-                >
-                  Customer Dashboard
                 </Link>
               </>
             ) : (
