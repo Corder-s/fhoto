@@ -1,0 +1,365 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleType {
+  CUSTOMER
+  PHOTOGRAPHER
+  ADMIN
+  OWNER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum VerificationStatus {
+  UNSUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  ON_THE_WAY
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum BookingType {
+  INSTANT
+  SCHEDULED
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  IN_ESCROW
+  QUEUED
+  PROCESSED
+  FAILED
+  DISPUTED
+}
+
+model User {
+  id            String       @id @default(uuid())
+  phoneNumber   String       @unique
+  email         String?      @unique
+  fullName      String
+  avatarUrl     String?
+  status        UserStatus   @default(ACTIVE)
+  phoneVerified Boolean      @default(false)
+  emailVerified Boolean      @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  roles               UserRole[]
+  customerProfile     CustomerProfile?
+  photographerProfile PhotographerProfile?
+  statusLogsCreated   BookingStatusLog[]
+  auditLogs           AuditLog[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  role      RoleType
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+model CustomerProfile {
+  id                     String    @id @default(uuid())
+  userId                 String    @unique
+  defaultAddress         String?
+  preferredPaymentMethod String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+  reviews  Review[]
+}
+
+model PhotographerProfile {
+  id                          String             @id @default(uuid())
+  userId                      String             @unique
+  bio                         String?
+  experienceYears             Int                @default(1)
+  idDocumentUrl               String             // S3 private key
+  idDocumentType              String             // Aadhaar / Passport
+  verificationStatus          VerificationStatus @default(UNSUBMITTED)
+  verificationRejectionReason String?
+  baseCity                    String
+  travelRadiusKm              Int                @default(20)
+  isOnline                    Boolean            @default(false)
+  ratingAverage               Decimal            @default(5.00) @db.Decimal(3, 2)
+  ratingCount                 Int                @default(0)
+  bankAccountNumber           String?            // Encrypted
+  bankIfscCode                String?
+  payoutBeneficiaryId         String?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services       PhotographerService[]
+  portfolioItems PortfolioItem[]
+  slots          AvailabilitySlot[]
+  bookings       Booking[]
+  payouts        Payout[]
+  reviews        Review[]
+}
+
+model ServiceCategory {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  iconUrl     String?
+  isActive    Boolean  @default(true)
+
+  photographerServices PhotographerService[]
+  portfolioItems       PortfolioItem[]
+  commissionRules      CommissionRule[]
+}
+
+model PhotographerService {
+  id             String   @id @default(uuid())
+  photographerId String
+  categoryId     String
+  isActive       Boolean  @default(true)
+
+  photographer PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+  category     ServiceCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  packages     ServicePackage[]
+
+  @@unique([photographerId, categoryId])
+}
+
+model ServicePackage {
+  id                    String   @id @default(uuid())
+  photographerServiceId String
+  tierName              String   // Basic, Standard, Premium
+  description           String?
+  durationHours         Int
+  editedPhotosCount     Int
+  rawPhotosIncluded     Boolean  @default(false)
+  pricePaise            BigInt   // Smallest currency unit (paise)
+  createdAt             DateTime @default(now())
+
+  photographerService PhotographerService @relation(fields: [photographerServiceId], references: [id], onDelete: Cascade)
+  bookings            Booking[]
+}
+
+model PortfolioItem {
+  id             String   @id @default(uuid())
+  photographerId String
+  categoryId     String
+  mediaUrl       String
+  thumbnailUrl   String
+  isFeatured     Boolean  @default(false)
+  caption        String?
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  photographer PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+  category     ServiceCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+}
+
+model AvailabilitySlot {
+  id             String   @id @default(uuid())
+  photographerId String
+  startTime      DateTime
+  endTime        DateTime
+  isBlocked      Boolean  @default(false)
+
+  photographer PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Cascade)
+
+  @@unique([photographerId, startTime, endTime])
+}
+
+model Booking {
+  id                     String        @id @default(uuid())
+  bookingReference       String        @unique
+  customerId             String
+  photographerId         String?
+  packageId              String
+  bookingType            BookingType
+  status                 BookingStatus @default(REQUESTED)
+  shootAddress           String
+  latitude               Float
+  longitude              Float
+  scheduledStartTime     DateTime
+  scheduledEndTime       DateTime
+  actualStartTime        DateTime?
+  actualEndTime          DateTime?
+  shootStartOtpHash      String        // SHA-256
+  totalAmountPaise       BigInt
+  commissionRatePercent  Decimal       @db.Decimal(5, 2)
+  commissionAmountPaise  BigInt
+  photographerEarningPaise BigInt
+  cancellationReason     String?
+  cancelledByUserId      String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  customer         CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  photographer     PhotographerProfile? @relation(fields: [photographerId], references: [id], onDelete: Restrict)
+  package          ServicePackage      @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  statusLogs       BookingStatusLog[]
+  payment          Payment?
+  payout           Payout?
+  mediaDeliveries  MediaDelivery[]
+  review           Review?
+  disputes         Dispute[]
+
+  @@index([status])
+  @@index([customerId])
+  @@index([photographerId])
+}
+
+model BookingStatusLog {
+  id              String        @id @default(uuid())
+  bookingId       String
+  fromStatus      BookingStatus?
+  toStatus        BookingStatus
+  changedByUserId String
+  notes           String?
+  createdAt       DateTime      @default(now())
+
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  changedBy User    @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String        @unique
+  gatewayOrderId    String        @unique
+  gatewayPaymentId  String?       @unique
+  gatewaySignature  String?
+  amountPaise       BigInt
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  refunds Refund[]
+}
+
+model Payout {
+  id             String       @id @default(uuid())
+  bookingId      String       @unique
+  photographerId String
+  amountPaise    BigInt
+  status         PayoutStatus @default(IN_ESCROW)
+  gatewayPayoutId String?
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  booking      Booking             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  photographer PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Restrict)
+}
+
+model Refund {
+  id                  String   @id @default(uuid())
+  paymentId           String
+  amountPaise         BigInt
+  reason              String
+  gatewayRefundId     String?  @unique
+  processedByAdminId  String
+  createdAt           DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+}
+
+model MediaDelivery {
+  id                 String   @id @default(uuid())
+  bookingId          String
+  s3StorageKey       String
+  fileName           String
+  fileSizeBytes      BigInt
+  contentType        String
+  isApprovedByClient Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id             String   @id @default(uuid())
+  bookingId      String   @unique
+  customerId     String
+  photographerId String
+  rating         Int
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  booking      Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer     CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  photographer PhotographerProfile @relation(fields: [photographerId], references: [id], onDelete: Restrict)
+}
+
+model Dispute {
+  id              String   @id @default(uuid())
+  bookingId       String
+  raisedByUserId  String
+  reason          String
+  status          String   @default("OPEN")
+  resolutionNotes String?
+  resolvedByAdminId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+}
+
+model CommissionRule {
+  id            String           @id @default(uuid())
+  categoryId    String?
+  percentage    Decimal          @default(20.00) @db.Decimal(5, 2)
+  effectiveFrom DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+
+  category ServiceCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  action       String
+  resourceType String
+  resourceId   String?
+  ipAddress    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}

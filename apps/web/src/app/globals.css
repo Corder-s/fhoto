@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surface & Background (Warm Editorial Creams) */
+  --bg-primary: #FAF8F5;          /* Warm cream canvas */
+  --bg-secondary: #F4EFEB;        /* Soft stone surface */
+  --bg-tertiary: #ECE5DE;         /* Input & container fill */
+  --bg-card: #FFFFFF;             /* Crisp white card surface */
+
+  /* Brand Accents (Vibrant Sunset Orange) */
+  --primary: #FF5A1F;             /* Primary action & CTA */
+  --primary-hover: #E4480F;       /* Hover state */
+  --primary-active: #CA3C0A;      /* Pressed state */
+  --primary-subtle: #FFF0EB;      /* Subtle tint */
+  --primary-border: #FFD4C4;
+
+  /* Typography (High Contrast Charcoal & Warm Greys) */
+  --text-primary: #121212;        /* Near black */
+  --text-secondary: #57534E;      /* Editorial subtitle */
+  --text-muted: #8A8580;          /* Disabled states & placeholders */
+  --text-inverse: #FFFFFF;
+
+  /* Neutral Borders */
+  --border-subtle: #EBE5DF;
+  --border-strong: #D5CDC5;
+}
+
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D5CDC5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8A8580;
+}
