@@ -23,7 +23,6 @@ import {
   CreditCard,
   Search
 } from 'lucide-react';
-import { CustomerNoticeBanner } from './CustomerNoticeBanner';
 import { HeroSearch, SearchFilters } from '../home/HeroSearch';
 import { CategorySection } from '../home/CategorySection';
 import { FeaturedPhotographersSection } from '../home/FeaturedPhotographersSection';
@@ -506,9 +505,6 @@ export const UnifiedCustomerHomepageView: React.FC<UnifiedCustomerHomepageViewPr
 
   return (
     <div className="space-y-10 pb-16">
-      {/* 1. DEMONSTRATION MODE NOTICE */}
-      <CustomerNoticeBanner moduleName="Client Workspace Dashboard" />
-
       {/* RENDER ORDER BASED ON ROUTE/LAYOUT */}
       {layoutOrder === 'dashboard-first' ? (
         <>
