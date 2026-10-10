@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { OriginalAuthenticatedLanding } from '../components/home/OriginalAuthenticatedLanding';
+import { ZomatoPublicLanding } from '../components/home/ZomatoPublicLanding';
 
 export default function HomePage() {
-  return <OriginalAuthenticatedLanding />;
+  return <ZomatoPublicLanding />;
 }
