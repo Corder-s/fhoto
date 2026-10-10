@@ -109,7 +109,7 @@ export const INITIAL_CUSTOMER_BOOKINGS: CustomerBooking[] = [
   {
     id: 'SNP-2026-98124',
     photographerId: 'pro-aman',
-    photographerName: 'Aman Verma',
+    photographerName: 'Aman Sharma',
     photographerAvatar: '/reference-assets/avatar_aman.jpg',
     photographerRating: 4.9,
     photographerPhone: '+91 98101 23456',
