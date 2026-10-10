@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   MessageSquare,
   X,
@@ -43,8 +44,63 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+
+  const pathname = usePathname();
+  const prevPathnameRef = useRef(pathname);
 
   const isPhotographer = variant === 'photographer';
+
+  // Automatically close chatbot on route navigation
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      setIsOpen(false);
+    }
+  }, [pathname]);
+
+  // Reliable Click-Outside & Escape Key Detection
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      // 1. Clicks inside the chat panel must NOT close the chatbot
+      if (panelRef.current && panelRef.current.contains(target)) {
+        return;
+      }
+
+      // 2. Clicks on the launcher button must NOT trigger outside-close
+      if (launcherRef.current && launcherRef.current.contains(target)) {
+        return;
+      }
+
+      // 3. User clicked anywhere outside -> close chatbot without blocking event
+      setIsOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Escape key closes the open chat panel
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    // Attach document-level listeners
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Guaranteed cleanup on close or unmount to prevent memory leaks
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const defaultSuggestions = isPhotographer
     ? [
@@ -167,6 +223,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
       {/* Floating Trigger Button */}
       {!isOpen && (
         <button
+          ref={launcherRef}
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#FF6E00] hover:bg-[#E05D00] text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 group border border-white/20"
           aria-label="Open AI Assistant"
@@ -186,7 +243,10 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
 
       {/* Floating Chat Modal Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[420px] h-[580px] max-h-[85vh] bg-[#FFFFFF] rounded-2xl shadow-2xl flex flex-col border border-[#E8E2D9] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div
+          ref={panelRef}
+          className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[420px] h-[580px] max-h-[85vh] bg-[#FFFFFF] rounded-2xl shadow-2xl flex flex-col border border-[#E8E2D9] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+        >
           {/* Header */}
           <div className="px-5 py-4 bg-[#FAF7F2] border-b border-[#E8E2D9] flex items-center justify-between">
             <div className="flex items-center gap-3">
