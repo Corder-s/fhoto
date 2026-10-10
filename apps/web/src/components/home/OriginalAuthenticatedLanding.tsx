@@ -11,7 +11,7 @@ export const OriginalAuthenticatedLanding: React.FC = () => {
       <Navbar />
 
       <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <UnifiedCustomerHomepageView showDiscoverySections={true} />
+        <UnifiedCustomerHomepageView layoutOrder="hero-first" showDiscoverySections={true} />
       </main>
 
       <Footer />
