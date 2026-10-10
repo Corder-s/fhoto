@@ -15,6 +15,7 @@ import {
   Radio
 } from 'lucide-react';
 import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
+import { clearAuthSession } from '../../lib/auth';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -224,8 +225,11 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
 
               <div className="border-t border-contour-subtle pt-1 mt-1">
                 <Link
-                  href="/login"
-                  onClick={() => setShowProfileMenu(false)}
+                  href="/"
+                  onClick={() => {
+                    clearAuthSession();
+                    setShowProfileMenu(false);
+                  }}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="w-3.5 h-3.5" />

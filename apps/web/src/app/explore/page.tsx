@@ -24,6 +24,25 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 
+function matchesCategory(categories: string[], filter: string): boolean {
+  if (!filter || filter === 'all') return true;
+  const f = filter.toLowerCase().trim();
+  return categories.some((c) => {
+    const cl = c.toLowerCase();
+    if (cl === f) return true;
+    if (f === 'portraits' || f === 'portrait') return cl.includes('portrait');
+    if (f === 'reels' || f === 'reel') return cl.includes('reel') || cl.includes('video');
+    if (f === 'couples' || f === 'couple' || f === 'wedding' || f === 'weddings') {
+      return cl.includes('couple') || cl.includes('wedding');
+    }
+    if (f === 'events' || f === 'event') return cl.includes('event');
+    if (f === 'commercial' || f === 'corporate' || f === 'products') {
+      return cl.includes('commercial') || cl.includes('corporate') || cl.includes('product');
+    }
+    return cl.includes(f) || f.includes(cl);
+  });
+}
+
 function ExploreContent() {
   const searchParams = useSearchParams();
   const urlLocation = searchParams.get('location') || '';
@@ -78,12 +97,9 @@ function ExploreContent() {
       );
     }
 
-    // Category Filter (case-insensitive)
+    // Category Filter (case-insensitive & genre-aware)
     if (selectedCategory && selectedCategory !== 'all') {
-      const catLower = selectedCategory.toLowerCase();
-      result = result.filter((p) =>
-        p.categories.some((c) => c.toLowerCase() === catLower)
-      );
+      result = result.filter((p) => matchesCategory(p.categories, selectedCategory));
     }
 
     // Search Query (name, gear, specialties, categories, bio)

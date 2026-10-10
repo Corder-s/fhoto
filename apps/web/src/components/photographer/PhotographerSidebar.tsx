@@ -17,9 +17,11 @@ import {
   Settings,
   ExternalLink,
   Camera,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
+import { clearAuthSession } from '../../lib/auth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -215,6 +217,18 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
             className="block text-center text-[11px] font-semibold text-ink-muted hover:text-brand px-3 py-1.5 transition-colors"
           >
             Switch to Client Account →
+          </Link>
+
+          <Link
+            href="/"
+            onClick={() => {
+              clearAuthSession();
+              onClose();
+            }}
+            className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-card-sm px-3 py-1.5 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </Link>
         </div>
       </aside>

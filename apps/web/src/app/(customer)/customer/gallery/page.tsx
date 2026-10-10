@@ -47,7 +47,8 @@ export default function CustomerGalleryPage() {
   };
 
   const handleDownloadSingle = (photo: GalleryPhoto) => {
-    alert(`Simulated single photo download: "${photo.title}" (${photo.sizeMb} MB)`);
+    setDownloadSuccess(`Simulated 4K master download: "${photo.title}" (${photo.sizeMb} MB)`);
+    setTimeout(() => setDownloadSuccess(''), 4000);
   };
 
   return (

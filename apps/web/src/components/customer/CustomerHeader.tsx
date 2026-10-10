@@ -253,6 +253,17 @@ export const CustomerHeader: React.FC = () => {
             >
               Switch to Creator Studio
             </Link>
+            <Link
+              href="/"
+              onClick={() => {
+                clearAuthSession();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-full font-bold text-xs text-red-600 bg-red-50 border border-red-200"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </Link>
           </div>
         </div>
       )}
