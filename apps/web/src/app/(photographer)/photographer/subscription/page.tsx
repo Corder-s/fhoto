@@ -15,7 +15,9 @@ import {
   Layers,
   Calendar,
   CheckCircle2,
-  X
+  X,
+  FileText,
+  Download,
 } from 'lucide-react';
 import {
   PlanTier,
@@ -43,6 +45,30 @@ export default function PhotographerSubscriptionPage() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [statusNotification, setStatusNotification] = useState('');
 
+  // Authoritative Billing Invoices History (strictly decoupled from customer booking payments)
+  const [invoices, setInvoices] = useState([
+    {
+      id: 'inv-001',
+      invoiceNumber: 'INV-2026-009',
+      planName: 'Pro Studio Monthly',
+      billingPeriod: '01 Oct 2026 – 01 Nov 2026',
+      amountInr: 999,
+      status: 'PAID',
+      date: '01 Oct 2026',
+      gstNumber: '07AAACS1429B1Z8',
+    },
+    {
+      id: 'inv-002',
+      invoiceNumber: 'INV-2026-008',
+      planName: 'Pro Studio Monthly',
+      billingPeriod: '01 Sep 2026 – 01 Oct 2026',
+      amountInr: 999,
+      status: 'PAID',
+      date: '01 Sep 2026',
+      gstNumber: '07AAACS1429B1Z8',
+    },
+  ]);
+
   useEffect(() => {
     const handleSubChange = () => {
       setSubscription(getStoredSubscription());
@@ -59,11 +85,64 @@ export default function PhotographerSubscriptionPage() {
     setIsConfirmModalOpen(true);
   };
 
+  const handleDownloadInvoice = (inv: typeof invoices[0]) => {
+    const invoiceContent =
+      `=======================================================\n` +
+      `SNAPSHOOT SAAS SUBSCRIPTION TAX INVOICE\n` +
+      `=======================================================\n` +
+      `Invoice Number:  ${inv.invoiceNumber}\n` +
+      `Date of Issue:   ${inv.date}\n` +
+      `Billed To:       Aman Sharma (Studio Pro ID: pro-aman)\n` +
+      `Plan Tier:       ${inv.planName}\n` +
+      `Billing Cycle:   ${inv.billingPeriod}\n` +
+      `Amount Paid:     INR ${inv.amountInr.toLocaleString('en-IN')}\n` +
+      `Payment Status:  ${inv.status} (Verified Gateway)\n` +
+      `Platform GSTIN:  ${inv.gstNumber}\n` +
+      `=======================================================\n` +
+      `This is a computer-generated tax receipt. No physical signature required.\n`;
+
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SnapShoot_Invoice_${inv.invoiceNumber}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleConfirmPlanChange = () => {
     if (!selectedPlanForModal) return;
     const updated = changeSubscriptionPlan(selectedPlanForModal.tier, billingInterval);
     setSubscription(updated);
     setIsConfirmModalOpen(false);
+
+    // If upgrading to paid tier, generate new invoice
+    if (selectedPlanForModal.tier !== PlanTier.FREE) {
+      const price =
+        billingInterval === BillingInterval.ANNUAL
+          ? selectedPlanForModal.priceAnnualInr
+          : selectedPlanForModal.priceMonthlyInr;
+      const newInv = {
+        id: `inv-${Date.now().toString().slice(-4)}`,
+        invoiceNumber: `INV-2026-${(invoices.length + 10).toString().padStart(3, '0')}`,
+        planName: `${selectedPlanForModal.name} ${
+          billingInterval === BillingInterval.ANNUAL ? 'Annual' : 'Monthly'
+        }`,
+        billingPeriod: `Active Cycle (${new Date().toLocaleDateString('en-GB')})`,
+        amountInr: price,
+        status: 'PAID',
+        date: new Date().toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }),
+        gstNumber: '07AAACS1429B1Z8',
+      };
+      setInvoices([newInv, ...invoices]);
+    }
+
     setStatusNotification(
       `Plan successfully updated to ${selectedPlanForModal.name}! Your new features and entitlements are active immediately.`
     );
@@ -419,6 +498,70 @@ export default function PhotographerSubscriptionPage() {
           <p className="text-[11px] text-[#665E55] leading-relaxed">
             Support for UPI AutoPay, Rupay, Mastercard, Visa, and business NetBanking with instant GST invoices.
           </p>
+        </div>
+      </div>
+
+      {/* BILLING HISTORY & GST INVOICES */}
+      <div className="bg-white rounded-3xl border border-[#E8E1D6] p-6 sm:p-8 shadow-subtle space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E1D6] pb-4">
+          <div>
+            <h2 className="text-xl font-black text-[#1A1816]">Billing History &amp; GST Tax Invoices</h2>
+            <p className="text-xs text-[#665E55] mt-0.5">
+              Authoritative SaaS subscription billing receipts (strictly separate from customer booking transactions).
+            </p>
+          </div>
+          <Badge variant="brand" size="sm">
+            GST Verified Receipts
+          </Badge>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#E8E1D6] text-[#8C847A] uppercase text-[10px] font-bold">
+                <th className="py-3 px-4">Invoice #</th>
+                <th className="py-3 px-4">Billing Date</th>
+                <th className="py-3 px-4">Plan &amp; Cycle</th>
+                <th className="py-3 px-4">Amount Paid</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0EAE1]">
+              {invoices.map((inv) => (
+                <tr key={inv.id} className="hover:bg-[#FAF7F2]/60 transition-colors">
+                  <td className="py-3.5 px-4 font-mono font-bold text-[#1A1816] flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#FF6E00]" />
+                    <span>{inv.invoiceNumber}</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-[#665E55]">{inv.date}</td>
+                  <td className="py-3.5 px-4 font-semibold text-[#1A1816]">
+                    <div>{inv.planName}</div>
+                    <div className="text-[10px] text-[#8C847A] font-normal">{inv.billingPeriod}</div>
+                  </td>
+                  <td className="py-3.5 px-4 font-black text-[#1A1816]">
+                    ₹{inv.amountInr.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadInvoice(inv)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-[#FF6E00] hover:bg-[#FFF9F3] border border-[#FF6E00]/30 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Receipt</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

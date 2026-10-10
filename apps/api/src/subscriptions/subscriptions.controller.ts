@@ -3,20 +3,26 @@ import {
   Get,
   Post,
   Body,
+  Headers,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
+import {
+  SubscriptionsService,
+  VerifyCheckoutDto,
+} from './subscriptions.service';
 import {
   JwtAuthGuard,
   RolesGuard,
   Roles,
   CurrentUser,
   AuthenticatedUser,
+  Public,
 } from '../common/auth.guard';
 import { RoleType, PlanTier, BillingInterval } from '@snapshoot/shared';
 
-export class ChangePlanDto {
+export class CreateCheckoutSessionDto {
   tier: PlanTier;
   billingInterval?: BillingInterval;
 }
@@ -25,13 +31,14 @@ export class ChangePlanDto {
 export class SubscriptionsController {
   constructor(private readonly service: SubscriptionsService) {}
 
-  // Public: List available plans
+  // 1. Public: List available plans
+  @Public()
   @Get('plans')
   async getPlans() {
     return this.service.getPlans();
   }
 
-  // Creator: Read current active subscription & entitlements
+  // 2. Creator: Read current active subscription & entitlements
   @Get('current')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.PHOTOGRAPHER)
@@ -42,25 +49,53 @@ export class SubscriptionsController {
     return this.service.getCurrentSubscription(user.photographerId);
   }
 
-  // Creator: Request plan change
-  @Post('change-plan')
+  // 3. Creator: Initiate Checkout Session
+  @Post('checkout-session')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.PHOTOGRAPHER)
-  async changePlan(
+  async createCheckoutSession(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() body: ChangePlanDto,
+    @Body() body: CreateCheckoutSessionDto,
   ) {
     if (!user.photographerId) {
       throw new ForbiddenException('Photographer business account required.');
     }
-    return this.service.changePlan(
+    if (!body.tier) {
+      throw new BadRequestException('Target plan tier is required.');
+    }
+    return this.service.createCheckoutSession(
       user.photographerId,
       body.tier,
       body.billingInterval || BillingInterval.MONTHLY,
     );
   }
 
-  // Creator: Read billing receipts
+  // 4. Creator: Cryptographic Payment Verification & Activation
+  @Post('verify-checkout')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.PHOTOGRAPHER)
+  async verifyCheckout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: VerifyCheckoutDto,
+  ) {
+    if (!user.photographerId) {
+      throw new ForbiddenException('Photographer business account required.');
+    }
+    return this.service.verifyCheckout(user.photographerId, body);
+  }
+
+  // 5. Creator: Toggle Auto-Renewal Cancellation
+  @Post('toggle-cancel')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.PHOTOGRAPHER)
+  async toggleCancel(@CurrentUser() user: AuthenticatedUser) {
+    if (!user.photographerId) {
+      throw new ForbiddenException('Photographer business account required.');
+    }
+    return this.service.toggleCancelSubscription(user.photographerId);
+  }
+
+  // 6. Creator: Read billing receipts & invoice history
   @Get('invoices')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.PHOTOGRAPHER)
@@ -69,5 +104,18 @@ export class SubscriptionsController {
       throw new ForbiddenException('Photographer business account required.');
     }
     return this.service.getInvoices(user.photographerId);
+  }
+
+  // 7. Public Webhook: Verified Razorpay Webhook Endpoint
+  @Public()
+  @Post('webhook')
+  async handleWebhook(
+    @Headers('x-razorpay-signature') signature: string,
+    @Body() body: any,
+  ) {
+    if (!signature) {
+      throw new BadRequestException('Missing x-razorpay-signature header.');
+    }
+    return this.service.processWebhook(body, signature);
   }
 }

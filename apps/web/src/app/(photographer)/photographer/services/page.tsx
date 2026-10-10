@@ -24,13 +24,22 @@ import {
   INITIAL_SERVICES,
   PhotographerServicePackage
 } from '../../../../data/photographerDashboardData';
+import {
+  getStoredSubscription,
+  getPlanDetails
+} from '../../../../lib/subscriptionService';
+import Link from 'next/link';
 
 export default function PhotographerServicesPage() {
   const [services, setServices] = useState<PhotographerServicePackage[]>(INITIAL_SERVICES);
+  const [subscription, setSubscription] = useState(getStoredSubscription);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<PhotographerServicePackage | null>(null);
   const [previewService, setPreviewService] = useState<PhotographerServicePackage | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const plan = getPlanDetails(subscription.tier);
+  const isAtQuota = services.length >= plan.maxServicePackages;
 
   // Form State for Add / Edit
   const [formData, setFormData] = useState({
@@ -46,6 +55,10 @@ export default function PhotographerServicesPage() {
   const [formError, setFormError] = useState('');
 
   const handleOpenAdd = () => {
+    if (isAtQuota) {
+      alert(`Package limit reached (${plan.maxServicePackages} packages on ${plan.name} plan). Please upgrade your subscription to create more packages.`);
+      return;
+    }
     setFormData({
       title: '',
       category: 'Portrait',
@@ -155,6 +168,16 @@ export default function PhotographerServicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand/10 text-brand">
+              Tier Quota: {services.length} / {plan.maxServicePackages} Active Packages ({plan.name})
+            </span>
+            {isAtQuota && (
+              <Link href="/photographer/subscription" className="text-xs text-brand font-bold hover:underline">
+                Upgrade Plan for More →
+              </Link>
+            )}
+          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
             Service Packages & Rate Card
           </h1>

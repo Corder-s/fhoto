@@ -96,6 +96,7 @@ export interface PhotographerSubscriptionDto {
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  gatewaySubscriptionId?: string;
 }
 
 export interface PhotographerClientDto {

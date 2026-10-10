@@ -18,8 +18,11 @@ import {
   UserPlus,
   Trash2,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Zap,
+  Lock
 } from 'lucide-react';
+import Link from 'next/link';
 import { PhotographerClientDto } from '@snapshoot/shared';
 import {
   getStoredClients,
@@ -27,9 +30,16 @@ import {
   updateClient,
   deleteClient
 } from '../../../../lib/clientService';
+import {
+  hasEntitlement,
+  getStoredSubscription,
+  getPlanDetails
+} from '../../../../lib/subscriptionService';
 
 export default function PhotographerClientsPage() {
   const [clients, setClients] = useState<PhotographerClientDto[]>([]);
+  const [subscription, setSubscription] = useState(getStoredSubscription);
+  const [hasCrm, setHasCrm] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'VIP'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -48,14 +58,22 @@ export default function PhotographerClientsPage() {
 
   const refreshClients = () => {
     setClients(getStoredClients());
+    setSubscription(getStoredSubscription());
+    setHasCrm(hasEntitlement('hasClientCrm'));
   };
 
   useEffect(() => {
     refreshClients();
     const handleSync = () => refreshClients();
     window.addEventListener('snapshoot:clients-change', handleSync);
-    return () => window.removeEventListener('snapshoot:clients-change', handleSync);
+    window.addEventListener('snapshoot:subscription-change', handleSync);
+    return () => {
+      window.removeEventListener('snapshoot:clients-change', handleSync);
+      window.removeEventListener('snapshoot:subscription-change', handleSync);
+    };
   }, []);
+
+  const plan = getPlanDetails(subscription.tier);
 
   const filteredClients = clients.filter((c) => {
     const matchesSearch =
@@ -140,6 +158,32 @@ export default function PhotographerClientsPage() {
           <span>Add New Client</span>
         </button>
       </div>
+
+      {/* SaaS Entitlement Gate Banner if on FREE */}
+      {!hasCrm && (
+        <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-ink-primary">
+                Client CRM &amp; Private Directory (PRO Entitlement)
+              </h4>
+              <p className="text-xs text-ink-secondary">
+                You are previewing the CRM on the <span className="font-bold">{plan.name}</span> plan. Upgrade to PRO or STUDIO to save unlimited private client profiles, shoot notes, and custom rates.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/photographer/subscription"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-card-sm bg-brand text-white text-xs font-bold shadow-sm hover:bg-brand-dark transition-all shrink-0"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Upgrade to PRO</span>
+          </Link>
+        </div>
+      )}
 
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

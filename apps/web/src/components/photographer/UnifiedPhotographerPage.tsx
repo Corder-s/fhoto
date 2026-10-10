@@ -31,7 +31,12 @@ import {
   Filter,
   Plus,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Briefcase,
+  Layers,
+  BarChart3,
+  CreditCard,
+  Users,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -509,17 +514,20 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
         {/* SECTION G — QUICK ACTIONS (Creator Mode) */}
         {currentMode === 'creator' && (
           <div className="space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-ink-muted">
-              Quick Workspace Actions
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-ink-muted">
+                SaaS Workspace Modules
+              </h3>
+              <span className="text-[11px] text-ink-muted">Unified creator management suite</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               <Link
-                href="/photographer/settings"
+                href="/photographer/business"
                 className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
               >
-                <User className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
-                <span className="text-xs font-bold text-ink-primary">Edit Profile</span>
-                <span className="text-[10px] text-ink-muted">Studio info</span>
+                <Briefcase className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
+                <span className="text-xs font-bold text-ink-primary">My Business</span>
+                <span className="text-[10px] text-ink-muted">Studio branding</span>
               </Link>
 
               <Link
@@ -527,8 +535,8 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                 className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
               >
                 <ImageIcon className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
-                <span className="text-xs font-bold text-ink-primary">Manage Portfolio</span>
-                <span className="text-[10px] text-ink-muted">Add/order shots</span>
+                <span className="text-xs font-bold text-ink-primary">Portfolio</span>
+                <span className="text-[10px] text-ink-muted">Public gallery</span>
               </Link>
 
               <Link
@@ -536,8 +544,8 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                 className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
               >
                 <Package className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
-                <span className="text-xs font-bold text-ink-primary">Manage Packages</span>
-                <span className="text-[10px] text-ink-muted">Pricing &amp; rates</span>
+                <span className="text-xs font-bold text-ink-primary">Services</span>
+                <span className="text-[10px] text-ink-muted">Packages &amp; rates</span>
               </Link>
 
               <Link
@@ -546,7 +554,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
               >
                 <Clock className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
                 <span className="text-xs font-bold text-ink-primary">Availability</span>
-                <span className="text-[10px] text-ink-muted">Working hours</span>
+                <span className="text-[10px] text-ink-muted">Calendar slots</span>
               </Link>
 
               <Link
@@ -554,8 +562,44 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                 className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
               >
                 <Calendar className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
-                <span className="text-xs font-bold text-ink-primary">View Bookings</span>
-                <span className="text-[10px] text-ink-muted">All active shoots</span>
+                <span className="text-xs font-bold text-ink-primary">Bookings &amp; OTP</span>
+                <span className="text-[10px] text-ink-muted">Live appointments</span>
+              </Link>
+
+              <Link
+                href="/photographer/clients"
+                className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
+              >
+                <Users className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
+                <span className="text-xs font-bold text-ink-primary">Client CRM</span>
+                <span className="text-[10px] text-ink-muted">Private contacts</span>
+              </Link>
+
+              <Link
+                href="/photographer/galleries"
+                className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
+              >
+                <Layers className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
+                <span className="text-xs font-bold text-ink-primary">Client Galleries</span>
+                <span className="text-[10px] text-ink-muted">PIN deliverable</span>
+              </Link>
+
+              <Link
+                href="/photographer/analytics"
+                className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
+              >
+                <BarChart3 className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
+                <span className="text-xs font-bold text-ink-primary">Analytics</span>
+                <span className="text-[10px] text-ink-muted">Revenue &amp; views</span>
+              </Link>
+
+              <Link
+                href="/photographer/subscription"
+                className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
+              >
+                <CreditCard className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
+                <span className="text-xs font-bold text-ink-primary">SaaS Billing</span>
+                <span className="text-[10px] text-ink-muted">PRO Tier active</span>
               </Link>
 
               <Link
@@ -563,8 +607,8 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                 className="p-3.5 bg-white rounded-xl border border-contour-subtle hover:border-brand hover:shadow-subtle transition-all text-center flex flex-col items-center group"
               >
                 <Settings className="w-4 h-4 text-ink-muted group-hover:text-brand mb-1" />
-                <span className="text-xs font-bold text-ink-primary">Studio Settings</span>
-                <span className="text-[10px] text-ink-muted">Payouts &amp; KYC</span>
+                <span className="text-xs font-bold text-ink-primary">Settings</span>
+                <span className="text-[10px] text-ink-muted">Studio &amp; gear</span>
               </Link>
             </div>
           </div>

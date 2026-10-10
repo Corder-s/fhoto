@@ -21,6 +21,9 @@ import {
   LogOut,
   Users,
   CreditCard,
+  Briefcase,
+  Layers,
+  BarChart3,
 } from 'lucide-react';
 import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
 import { clearAuthSession } from '../../lib/auth';
@@ -33,11 +36,31 @@ interface SidebarProps {
 export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
 
-  const navItems = [
+  const primaryNavItems = [
     {
       label: 'Overview',
       href: '/photographer/dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      label: 'My Business',
+      href: '/photographer/business',
+      icon: Briefcase,
+    },
+    {
+      label: 'Portfolio',
+      href: '/photographer/portfolio',
+      icon: Image,
+    },
+    {
+      label: 'Services & Packages',
+      href: '/photographer/services',
+      icon: Package,
+    },
+    {
+      label: 'Availability',
+      href: '/photographer/availability',
+      icon: Clock,
     },
     {
       label: 'Bookings',
@@ -47,43 +70,43 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       badgeColor: 'bg-brand text-white',
     },
     {
-      label: 'Client CRM',
+      label: 'Clients',
       href: '/photographer/clients',
       icon: Users,
       badge: '5 Active',
       badgeColor: 'bg-emerald-100 text-emerald-800',
     },
     {
-      label: 'Availability & Slots',
-      href: '/photographer/availability',
-      icon: Clock,
+      label: 'Galleries',
+      href: '/photographer/galleries',
+      icon: Layers,
+      badge: '3 Delivered',
+      badgeColor: 'bg-blue-100 text-blue-800',
     },
     {
-      label: 'Services & Pricing',
-      href: '/photographer/services',
-      icon: Package,
+      label: 'Analytics',
+      href: '/photographer/analytics',
+      icon: BarChart3,
     },
     {
-      label: 'Portfolio Gallery',
-      href: '/photographer/portfolio',
-      icon: Image,
-    },
-    {
-      label: 'Earnings',
-      href: '/photographer/earnings',
-      icon: TrendingUp,
-    },
-    {
-      label: 'Payouts & UPI',
-      href: '/photographer/payouts',
-      icon: DollarSign,
-    },
-    {
-      label: 'SaaS Plan & Billing',
+      label: 'Subscription',
       href: '/photographer/subscription',
       icon: CreditCard,
       badge: 'PRO',
       badgeColor: 'bg-amber-100 text-amber-800 border border-amber-200',
+    },
+    {
+      label: 'Settings',
+      href: '/photographer/settings',
+      icon: Settings,
+    },
+  ];
+
+  const secondaryNavItems = [
+    {
+      label: 'Payouts & UPI',
+      href: '/photographer/payouts',
+      icon: DollarSign,
     },
     {
       label: 'Client Reviews',
@@ -103,11 +126,6 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       label: 'Onboarding Flow',
       href: '/photographer/onboarding',
       icon: UserCheck,
-    },
-    {
-      label: 'Studio Settings',
-      href: '/photographer/settings',
-      icon: Settings,
     },
   ];
 
@@ -178,40 +196,82 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">
-            Creator Navigation
-          </div>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => onClose()}
-                className={`flex items-center justify-between px-3 py-2 rounded-card-sm text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-brand text-white shadow-sm'
-                    : 'text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-muted'}`} />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${
-                      isActive ? 'bg-white/20 text-white' : item.badgeColor
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+          <div>
+            <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">
+              SaaS Business Suite
+            </div>
+            <div className="space-y-1">
+              {primaryNavItems.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => onClose()}
+                    className={`flex items-center justify-between px-3 py-2 rounded-card-sm text-xs font-bold transition-all ${
+                      isActive
+                        ? 'bg-brand text-white shadow-sm'
+                        : 'text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary'
                     }`}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-muted'}`} />
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span
+                        className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${
+                          isActive ? 'bg-white/20 text-white' : item.badgeColor
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">
+              Finance &amp; Operations
+            </div>
+            <div className="space-y-1">
+              {secondaryNavItems.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => onClose()}
+                    className={`flex items-center justify-between px-3 py-2 rounded-card-sm text-xs font-bold transition-all ${
+                      isActive
+                        ? 'bg-brand text-white shadow-sm'
+                        : 'text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-muted'}`} />
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span
+                        className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${
+                          isActive ? 'bg-white/20 text-white' : item.badgeColor
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </nav>
 
         {/* Bottom Public Profile & Mode Switch */}
