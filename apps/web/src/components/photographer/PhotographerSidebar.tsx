@@ -36,97 +36,34 @@ interface SidebarProps {
 export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
 
-  const primaryNavItems = [
+  const navItems = [
+    { label: 'Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
+    { label: 'My Profile', href: '/photographer/settings', icon: UserCheck },
+    { label: 'Portfolio', href: '/photographer/portfolio', icon: Image },
+    { label: 'Packages & Pricing', href: '/photographer/services', icon: Package },
+    { label: 'Availability', href: '/photographer/availability', icon: Clock },
     {
-      label: 'Overview',
-      href: '/photographer/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      label: 'My Business',
-      href: '/photographer/business',
-      icon: Briefcase,
-    },
-    {
-      label: 'Portfolio',
-      href: '/photographer/portfolio',
-      icon: Image,
-    },
-    {
-      label: 'Services & Packages',
-      href: '/photographer/services',
-      icon: Package,
-    },
-    {
-      label: 'Availability',
-      href: '/photographer/availability',
-      icon: Clock,
-    },
-    {
-      label: 'Bookings',
+      label: 'Booking Requests',
       href: '/photographer/bookings',
       icon: Calendar,
-      badge: '1 Live',
-      badgeColor: 'bg-brand text-white',
+      badge: '5',
+      badgeColor: 'bg-[#FF4D4D] text-white',
     },
+    { label: 'My Bookings', href: '/photographer/bookings', icon: Calendar },
+    { label: 'Clients', href: '/photographer/clients', icon: Users },
+    { label: 'Earnings & Payouts', href: '/photographer/payouts', icon: DollarSign },
+    { label: 'Subscription', href: '/photographer/subscription', icon: CreditCard },
+    { label: 'Analytics', href: '/photographer/analytics', icon: BarChart3 },
+    { label: 'Reviews', href: '/photographer/reviews', icon: Star },
     {
-      label: 'Clients',
-      href: '/photographer/clients',
-      icon: Users,
-      badge: '5 Active',
-      badgeColor: 'bg-emerald-100 text-emerald-800',
+      label: 'Messages',
+      href: '/photographer/dashboard',
+      icon: ExternalLink,
+      badge: '3',
+      badgeColor: 'bg-[#FF4D4D] text-white',
     },
-    {
-      label: 'Galleries',
-      href: '/photographer/galleries',
-      icon: Layers,
-      badge: '3 Delivered',
-      badgeColor: 'bg-blue-100 text-blue-800',
-    },
-    {
-      label: 'Analytics',
-      href: '/photographer/analytics',
-      icon: BarChart3,
-    },
-    {
-      label: 'Subscription',
-      href: '/photographer/subscription',
-      icon: CreditCard,
-      badge: 'PRO',
-      badgeColor: 'bg-amber-100 text-amber-800 border border-amber-200',
-    },
-    {
-      label: 'Settings',
-      href: '/photographer/settings',
-      icon: Settings,
-    },
-  ];
-
-  const secondaryNavItems = [
-    {
-      label: 'Payouts & UPI',
-      href: '/photographer/payouts',
-      icon: DollarSign,
-    },
-    {
-      label: 'Client Reviews',
-      href: '/photographer/reviews',
-      icon: Star,
-      badge: '4.96 ★',
-      badgeColor: 'bg-canvas-secondary text-ink-primary border border-contour-subtle',
-    },
-    {
-      label: 'Verification Status',
-      href: '/photographer/verification',
-      icon: ShieldCheck,
-      badge: 'Under Review',
-      badgeColor: 'bg-amber-100 text-amber-800',
-    },
-    {
-      label: 'Onboarding Flow',
-      href: '/photographer/onboarding',
-      icon: UserCheck,
-    },
+    { label: 'Settings', href: '/photographer/settings', icon: Settings },
+    { label: 'Help & Support', href: '/photographer/settings', icon: ShieldCheck },
   ];
 
   return (
@@ -196,101 +133,65 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
-          <div>
-            <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">
-              SaaS Business Suite
-            </div>
-            <div className="space-y-1">
-              {primaryNavItems.map((item) => {
-                const isActive = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => onClose()}
-                    className={`flex items-center justify-between px-3 py-2 rounded-card-sm text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-brand text-white shadow-sm'
-                        : 'text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary'
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => onClose()}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                    : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#F7F3ED]'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? 'text-[#FF6E00]' : 'text-[#8C847A]'
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ${
+                      item.badgeColor
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-muted'}`} />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span
-                        className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${
-                          isActive ? 'bg-white/20 text-white' : item.badgeColor
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">
-              Finance &amp; Operations
-            </div>
-            <div className="space-y-1">
-              {secondaryNavItems.map((item) => {
-                const isActive = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => onClose()}
-                    className={`flex items-center justify-between px-3 py-2 rounded-card-sm text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-brand text-white shadow-sm'
-                        : 'text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-muted'}`} />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span
-                        className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${
-                          isActive ? 'bg-white/20 text-white' : item.badgeColor
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Bottom Public Profile & Mode Switch */}
+        {/* Upgrade to Pro Card */}
+        <div className="p-3.5 m-3 rounded-2xl bg-[#FFF8F2] border border-[#FFDFC6] space-y-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👑</span>
+            <span className="text-xs font-black text-[#1A1816]">Upgrade to Pro</span>
+          </div>
+          <p className="text-[11px] text-[#736B63] leading-relaxed">
+            Get more bookings, better visibility and premium features.
+          </p>
+          <Link
+            href="/photographer/subscription"
+            className="block w-full py-2 px-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs font-bold text-center transition-colors shadow-2xs"
+          >
+            View Plans →
+          </Link>
+        </div>
+
+        {/* Bottom Actions */}
         <div className="p-3 border-t border-contour-subtle space-y-1 bg-white shrink-0">
           <Link
-            href="/photographers/pro-aman"
-            target="_blank"
-            className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary rounded-card-sm transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <Camera className="w-3.5 h-3.5 text-brand" />
-              <span>View Public Profile</span>
-            </span>
-            <ExternalLink className="w-3.5 h-3.5 text-ink-muted" />
-          </Link>
-
-          <Link
             href="/customer/dashboard"
-            className="block text-center text-[11px] font-semibold text-ink-muted hover:text-brand px-3 py-1.5 transition-colors"
+            className="block text-center text-[11px] font-semibold text-ink-muted hover:text-brand px-3 py-1 transition-colors"
           >
             Switch to Client Account →
           </Link>
@@ -301,7 +202,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
               clearAuthSession();
               onClose();
             }}
-            className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-card-sm px-3 py-1.5 transition-colors"
+            className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg px-3 py-1 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
