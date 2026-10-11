@@ -177,6 +177,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
       const res = await fetch('/api/v1/ai/chat', {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify({
           message: text,
           history,

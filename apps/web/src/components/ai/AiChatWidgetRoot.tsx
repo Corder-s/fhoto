@@ -2,17 +2,50 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '../../lib/auth';
 import { SnapShootAiChatWidget } from './SnapShootAiChatWidget';
 
 export const AiChatWidgetRoot: React.FC = () => {
-  const pathname = usePathname();
+  const pathname = usePathname() || '/';
+  const { user, isAuthenticated, isMounted } = useAuth();
 
-  // Determine whether this route is for photographer workspace or customer marketplace
+  // 1. Unmounted or unauthenticated visitors: Render absolutely nothing (zero DOM footprint)
+  if (!isMounted || !isAuthenticated || !user) {
+    return null;
+  }
+
+  // 2. Unauthenticated or public landing page:
+  // If user is not authenticated or if on root '/' without an active workspace session, do not render launcher
+  if (pathname === '/' && (!isAuthenticated || !user)) {
+    return null;
+  }
+
   const isPhotographerRoute = pathname.startsWith('/photographer');
 
-  return (
-    <SnapShootAiChatWidget
-      variant={isPhotographerRoute ? 'photographer' : 'customer'}
-    />
-  );
+  // 3. Authenticated Photographer Studio: Restrict to verified creator/photographer/admin/owner roles
+  if (isPhotographerRoute) {
+    const isAuthorizedCreator =
+      user.role === 'creator' ||
+      user.role === 'photographer' ||
+      user.role === 'admin' ||
+      user.role === 'owner';
+
+    if (!isAuthorizedCreator) {
+      return null;
+    }
+
+    return <SnapShootAiChatWidget variant="photographer" />;
+  }
+
+  // 4. Authenticated Customer Experience: Restricted to customers/admins/owners
+  const isAuthorizedCustomer =
+    user.role === 'customer' ||
+    user.role === 'admin' ||
+    user.role === 'owner';
+
+  if (!isAuthorizedCustomer) {
+    return null;
+  }
+
+  return <SnapShootAiChatWidget variant="customer" />;
 };

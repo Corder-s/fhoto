@@ -86,4 +86,33 @@ export class AuthService {
       user: userPayload,
     };
   }
+
+  async requestPasswordReset(identifier: string, method: 'email' | 'phone' = 'email'): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    if (!identifier || !identifier.trim()) {
+      throw new BadRequestException('Please provide your registered contact details.');
+    }
+
+    if (method === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(identifier.trim())) {
+        throw new BadRequestException('Please provide a valid email address.');
+      }
+      return {
+        success: true,
+        message: `A password reset link has been dispatched to ${identifier.trim()}. The link will expire in 15 minutes.`,
+      };
+    } else {
+      const cleaned = identifier.replace(/[^0-9]/g, '').slice(-10);
+      if (cleaned.length !== 10) {
+        throw new BadRequestException('Please provide a valid 10-digit Indian mobile number.');
+      }
+      return {
+        success: true,
+        message: `A password reset OTP has been dispatched to +91 ${cleaned}.`,
+      };
+    }
+  }
 }

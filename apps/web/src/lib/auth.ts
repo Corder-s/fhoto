@@ -37,7 +37,7 @@ export function getStoredSession(): AuthUser | null {
   return null;
 }
 
-export function saveAuthSession(user: AuthUser): void {
+export function saveAuthSession(user: AuthUser, token?: string): void {
   if (typeof window === 'undefined') return;
 
   try {
@@ -45,6 +45,10 @@ export function saveAuthSession(user: AuthUser): void {
     localStorage.setItem(STORAGE_KEY, serialized);
     // 7-day cookie for session retention
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(serialized)}; path=/; max-age=604800; SameSite=Lax`;
+    if (token) {
+      localStorage.setItem('auth_token', token);
+      document.cookie = `snapshoot_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
+    }
     window.dispatchEvent(new Event('snapshoot:auth-change'));
   } catch (err) {
     console.error('Error saving auth session:', err);
@@ -56,7 +60,9 @@ export function clearAuthSession(): void {
 
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('auth_token');
     document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
+    document.cookie = `snapshoot_token=; path=/; max-age=0; SameSite=Lax`;
     window.dispatchEvent(new Event('snapshoot:auth-change'));
   } catch (err) {
     console.error('Error clearing auth session:', err);

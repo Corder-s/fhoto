@@ -280,11 +280,11 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-5xl my-auto bg-[#FAF7F2] rounded-[28px] sm:rounded-[34px] border border-[#E8E2D8] shadow-[0_25px_60px_-15px_rgba(26,24,22,0.35)] z-10 text-left flex flex-col lg:flex-row overflow-hidden max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)]">
+    <div className="relative w-full max-w-5xl my-auto bg-[#FAF7F2] rounded-[28px] sm:rounded-[34px] border border-[#E8E2D8] shadow-[0_25px_60px_-15px_rgba(26,24,22,0.35)] z-10 text-left flex flex-col lg:flex-row overflow-hidden p-2 sm:p-2.5 max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
       {/* ========================================================= */}
       {/* LEFT PANEL: BRANDING & EDITORIAL PHOTOGRAPHY EXPERIENCE   */}
       {/* ========================================================= */}
-      <div className="hidden lg:flex lg:w-[53%] relative flex-col justify-between p-7 sm:p-8 bg-[#FBF7F0] overflow-hidden select-none">
+      <div className="hidden lg:flex lg:w-[52%] min-w-0 relative flex-col justify-between p-7 sm:p-8 rounded-[20px] sm:rounded-[26px] bg-[#FBF7F0] overflow-hidden select-none">
         {/* Background Photographer Image with Golden-Hour Atmosphere */}
         <div
           className="absolute inset-0 bg-cover bg-right-top transition-transform duration-700 hover:scale-[1.02]"
@@ -493,7 +493,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       {/* ========================================================= */}
       <div
         ref={rightScrollRef}
-        className="w-full lg:w-[47%] bg-white rounded-[24px] sm:rounded-[30px] lg:m-2 p-5 sm:p-7 md:p-8 flex flex-col justify-between overflow-y-auto overscroll-contain shadow-xs [scrollbar-width:thin] [scrollbar-color:#E0D8CB_transparent]"
+        className="w-full lg:w-[48%] min-w-0 bg-white rounded-[20px] sm:rounded-[26px] p-5 sm:p-7 md:p-8 flex flex-col justify-between overflow-y-auto overscroll-contain shadow-xs [scrollbar-width:thin] [scrollbar-color:#E0D8CB_transparent]"
       >
         {/* Header Row: Title & Close Button */}
         <div>

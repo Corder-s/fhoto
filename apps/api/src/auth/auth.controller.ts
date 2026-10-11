@@ -69,6 +69,12 @@ export class AuthController {
     return this.authService.loginWithPassword(body.email, body.role);
   }
 
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { identifier: string; method?: 'email' | 'phone' }) {
+    return this.authService.requestPasswordReset(body.identifier, body.method || 'email');
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: AuthenticatedUser) {
