@@ -51,3 +51,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #8C857E;
 }
+
+.font-script {
+  font-family: 'Caveat', cursive, sans-serif;
+}
+
