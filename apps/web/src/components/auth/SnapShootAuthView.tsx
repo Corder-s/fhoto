@@ -97,7 +97,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
     setTimeout(() => {
       if (onClose) onClose();
-      router.push(target);
+      router.replace(target);
     }, 700);
   };
 
@@ -294,7 +294,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
         setSuccessMessage('Creator profile created! Taking you to onboarding studio...');
         setTimeout(() => {
           if (onClose) onClose();
-          router.push('/photographer/onboarding');
+          router.replace('/photographer/onboarding');
         }, 800);
       } else {
         handleAuthSuccess(newUser, '/customer/dashboard');

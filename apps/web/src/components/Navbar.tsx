@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Camera, ArrowRight, Menu, X, User, Sparkles, LogOut } from 'lucide-react';
+import { Camera, ArrowRight, Menu, X, User, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useAuthModal } from './auth/AuthModalContext';
 import { getRoleDashboard } from '../lib/safeRedirect';
@@ -11,7 +11,7 @@ import { getRoleDashboard } from '../lib/safeRedirect';
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
   const pathname = usePathname() || '';
 
@@ -48,12 +48,6 @@ export default function Navbar() {
   const isForPhotographersActive =
     pathname === '/for-photographers' ||
     pathname.startsWith('/for-photographers/');
-
-  const handleLogout = () => {
-    logout();
-    setMobileMenuOpen(false);
-    router.push('/');
-  };
 
   const userSettingsHref =
     user?.role === 'creator' || user?.role === 'photographer'
@@ -185,26 +179,16 @@ export default function Navbar() {
         {/* Right Desktop Auth Actions */}
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href={userSettingsHref}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
-                title="User Profile & Settings"
-              >
-                <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
-                  {user?.name ? user.name[0] : 'U'}
-                </div>
-                <span>{user?.name || 'User Profile'}</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] transition-colors cursor-pointer"
-                title="Log Out"
-                aria-label="Log Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            <Link
+              href={userSettingsHref}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
+              title="User Profile & Settings"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
+                {user?.name ? user.name[0] : 'U'}
+              </div>
+              <span>{user?.name || 'User Profile'}</span>
+            </Link>
           ) : (
             <>
               <Link
@@ -235,14 +219,13 @@ export default function Navbar() {
         {/* Mobile Hamburger Button */}
         <div className="flex lg:hidden items-center gap-2">
           {isAuthenticated ? (
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden cursor-pointer"
-              aria-label="Log Out"
-              title="Log Out"
+            <Link
+              href={userSettingsHref}
+              className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden"
+              aria-label="User Profile & Settings"
             >
-              <LogOut className="w-4 h-4" />
-            </button>
+              <User className="w-4 h-4" />
+            </Link>
           ) : (
             <Link
               href="/login"
@@ -364,25 +347,16 @@ export default function Navbar() {
 
           <div className="pt-2 border-t border-[#EDE6DC] flex flex-col gap-2.5">
             {isAuthenticated ? (
-              <>
-                <Link
-                  href={userSettingsHref}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] hover:bg-[#EAE2D7] transition-all flex items-center justify-center gap-2"
-                >
-                  <div className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[9px]">
-                    {user?.name ? user.name[0] : 'U'}
-                  </div>
-                  <span>{user?.name || 'User Profile'}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-center py-2 rounded-full font-bold text-xs text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
-                </button>
-              </>
+              <Link
+                href={userSettingsHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] hover:bg-[#EAE2D7] transition-all flex items-center justify-center gap-2"
+              >
+                <div className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[9px]">
+                  {user?.name ? user.name[0] : 'U'}
+                </div>
+                <span>{user?.name || 'User Profile'}</span>
+              </Link>
             ) : (
               <>
                 <Link
