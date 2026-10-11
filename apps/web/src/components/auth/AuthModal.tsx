@@ -56,6 +56,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, options }
   const [successMessage, setSuccessMessage] = useState('');
 
   const modalRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize tab and roles when opened
   useEffect(() => {
@@ -73,6 +74,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, options }
       setPhoneStep('phone');
       setIsLoading(false);
       document.body.style.overflow = 'hidden';
+
+      // Always reset scroll container to top when modal opens
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -301,10 +307,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, options }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 flex justify-center p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       {/* Blurred Backdrop */}
       <div
@@ -316,73 +327,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, options }
       {/* Modal Dialog Card */}
       <div
         ref={modalRef}
-        className="relative w-full max-w-lg bg-[#FAF7F2] rounded-3xl border border-[#E8E2D8] shadow-[0_25px_60px_-15px_rgba(26,24,22,0.3)] p-6 sm:p-8 z-10 text-left animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg my-auto bg-[#FAF7F2] rounded-3xl border border-[#E8E2D8] shadow-[0_25px_60px_-15px_rgba(26,24,22,0.3)] z-10 text-left animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)] overflow-hidden"
       >
         {/* Close Button */}
         <button
           onClick={onClose}
           type="button"
           aria-label="Close authentication modal"
-          className="absolute top-5 right-5 p-2 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] focus:outline-none focus:ring-2 focus:ring-[#FF6E00] transition-colors"
+          className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 p-2 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] focus:outline-none focus:ring-2 focus:ring-[#FF6E00] transition-colors z-20 cursor-pointer bg-[#FAF7F2]/80 backdrop-blur-sm border border-[#E8E2D8]/40 shadow-xs"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Brand Header */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-sm">
-            <Camera className="w-5 h-5 stroke-[2.2]" />
+        {/* Scrollable Modal Content Container */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-y-auto overscroll-contain p-5 sm:p-8 flex-1 [scrollbar-width:thin] [scrollbar-color:#E0D8CB_transparent]"
+        >
+          {/* Brand Header */}
+          <div className="flex items-center gap-2.5 mb-3 sm:mb-4 pr-10">
+            <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-sm shrink-0">
+              <Camera className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-[#1A1816]">
+              SNAP<span className="text-[#FF6E00]">SHOOT</span>
+            </span>
           </div>
-          <span className="text-xl font-black tracking-tight text-[#1A1816]">
-            SNAP<span className="text-[#FF6E00]">SHOOT</span>
-          </span>
-        </div>
 
-        {/* Modal Title & Description */}
-        <div className="space-y-1.5 mb-6">
-          <h2
-            id="auth-modal-title"
-            className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight"
-          >
-            Welcome to SnapShoot
-          </h2>
-          <p className="text-xs sm:text-sm text-[#5A544D] leading-relaxed">
-            {options.message ||
-              'Log in or create your account to discover photographers, manage bookings, and access your personalized workspace.'}
-          </p>
-        </div>
+          {/* Modal Title & Description */}
+          <div className="space-y-1.5 mb-5 sm:mb-6 pr-6">
+            <h2
+              id="auth-modal-title"
+              className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight leading-tight"
+            >
+              Welcome to SnapShoot
+            </h2>
+            <p className="text-xs sm:text-sm text-[#5A544D] leading-relaxed">
+              {options.message ||
+                'Log in or create your account to discover photographers, manage bookings, and access your personalized workspace.'}
+            </p>
+          </div>
 
-        {/* Tab Switcher: Log In vs Create Account */}
-        <div className="grid grid-cols-2 p-1 bg-[#F2ECE3] rounded-2xl mb-6">
-          <button
-            type="button"
-            onClick={() => {
-              setTab('login');
-              setErrorMessage('');
-            }}
-            className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              tab === 'login'
-                ? 'bg-white text-[#1A1816] shadow-sm'
-                : 'text-[#8C847A] hover:text-[#1A1816]'
-            }`}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTab('register');
-              setErrorMessage('');
-            }}
-            className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              tab === 'register'
-                ? 'bg-white text-[#1A1816] shadow-sm'
-                : 'text-[#8C847A] hover:text-[#1A1816]'
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
+          {/* Tab Switcher: Log In vs Create Account */}
+          <div className="grid grid-cols-2 p-1 bg-[#F2ECE3] rounded-2xl mb-5 sm:mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setTab('login');
+                setErrorMessage('');
+                if (scrollContainerRef.current) {
+                  scrollContainerRef.current.scrollTop = 0;
+                }
+              }}
+              className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                tab === 'login'
+                  ? 'bg-white text-[#1A1816] shadow-sm'
+                  : 'text-[#8C847A] hover:text-[#1A1816]'
+              }`}
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('register');
+                setErrorMessage('');
+                if (scrollContainerRef.current) {
+                  scrollContainerRef.current.scrollTop = 0;
+                }
+              }}
+              className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                tab === 'register'
+                  ? 'bg-white text-[#1A1816] shadow-sm'
+                  : 'text-[#8C847A] hover:text-[#1A1816]'
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
 
         {/* Error Feedback */}
         {errorMessage && (
@@ -745,5 +767,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, options }
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

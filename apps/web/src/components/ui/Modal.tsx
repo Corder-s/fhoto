@@ -42,7 +42,14 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex justify-center p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-ink-primary/50 backdrop-blur-sm transition-opacity"
@@ -52,11 +59,10 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Dialog Content */}
       <div
-        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-card-lg border border-contour-subtle shadow-elevated p-6 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200`}
-        role="dialog"
-        aria-modal="true"
+        className={`relative w-full ${maxWidthClasses[maxWidth]} my-auto bg-white rounded-card-lg border border-contour-subtle shadow-elevated p-6 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col overflow-hidden`}
+        role="document"
       >
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 shrink-0">
           <div>
             {title && <h3 className="text-xl font-bold text-ink-primary tracking-tight">{title}</h3>}
             {description && <p className="text-xs text-ink-secondary mt-1">{description}</p>}
@@ -70,7 +76,7 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        <div>{children}</div>
+        <div className="overflow-y-auto overscroll-contain flex-1">{children}</div>
       </div>
     </div>
   );

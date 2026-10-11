@@ -77,7 +77,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex justify-center p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) resetAndClose();
+      }}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-ink-primary/60 backdrop-blur-sm transition-opacity"
@@ -87,12 +92,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
       {/* Modal Dialog */}
       <div
-        className="relative w-full max-w-lg bg-white rounded-card-lg border border-contour-subtle shadow-elevated p-6 sm:p-8 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg my-auto bg-white rounded-card-lg border border-contour-subtle shadow-elevated p-6 sm:p-8 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
       >
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 shrink-0">
           <div>
             <span className="text-[10px] uppercase font-extrabold tracking-wider text-brand">
               Initiate Shoot Booking
@@ -110,6 +115,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </button>
         </div>
 
+        <div className="overflow-y-auto overscroll-contain flex-1 pr-0.5">
         {bookingConfirmed ? (
           <div className="space-y-5 text-center py-4">
             <div className="w-14 h-14 rounded-full bg-green-50 border border-green-200 text-green-600 flex items-center justify-center mx-auto">
@@ -247,6 +253,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </Button>
           </form>
         )}
+        </div>
       </div>
     </div>
   );
