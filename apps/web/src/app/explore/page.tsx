@@ -200,8 +200,6 @@ function ExploreContent() {
 
   return (
     <>
-      <Navbar />
-
       <main className="flex-1 bg-canvas-primary py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           {/* Page Heading */}
@@ -538,9 +536,12 @@ function ExploreContent() {
 
 export default function ExplorePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
-      <ExploreContent />
-    </Suspense>
+    <>
+      <Navbar />
+      <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
+        <ExploreContent />
+      </Suspense>
+    </>
   );
 }
 

@@ -14,6 +14,8 @@ export default function Navbar() {
   const pathname = usePathname() || '';
 
   // Route matching helpers for active navigation highlight
+  const isHomeActive = pathname === '/';
+
   const isDashboardActive =
     pathname === '/customer/dashboard' ||
     pathname.startsWith('/customer/dashboard/') ||
@@ -47,25 +49,35 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#EDE6DC] transition-all">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-card-sm bg-[#FF6E00] flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
+        {/* Brand Logo (Non-navigational branding) */}
+        <div className="flex items-center gap-2.5 cursor-default select-none" aria-label="SnapShoot Brand">
+          <div className="w-9 h-9 rounded-card-sm bg-[#FF6E00] flex items-center justify-center text-white shadow-sm">
             <Camera className="w-5 h-5 fill-white/20 stroke-[2.2]" />
           </div>
           <span className="text-xl sm:text-2xl font-black tracking-tight text-[#1A1816]">
             SNAPSHOOT
           </span>
-        </Link>
+        </div>
 
         {/* Center/Right Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-7 text-[14px] font-semibold text-[#5A544D]">
           {isAuthenticated ? (
             <>
               <Link
+                href="/"
+                className={`transition-colors ${
+                  isHomeActive
+                    ? 'text-[#FF6E00] font-bold'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
+                Home
+              </Link>
+              <Link
                 href="/customer/dashboard"
                 className={`transition-colors flex items-center gap-1.5 ${
                   isDashboardActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
@@ -76,17 +88,17 @@ export default function Navbar() {
                 href="/explore"
                 className={`transition-colors ${
                   isExploreActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                Explore photographers
+                Explore Photographers
               </Link>
               <Link
                 href="/customer/bookings"
                 className={`transition-colors ${
                   isBookingsActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
@@ -96,7 +108,7 @@ export default function Navbar() {
                 href="/customer/gallery"
                 className={`transition-colors ${
                   isGalleryActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
@@ -105,6 +117,16 @@ export default function Navbar() {
             </>
           ) : (
             <>
+              <Link
+                href="/"
+                className={`transition-colors ${
+                  isHomeActive
+                    ? 'text-[#FF6E00] font-bold'
+                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                }`}
+              >
+                Home
+              </Link>
               <Link
                 href="/explore"
                 onClick={(e) => {
@@ -118,31 +140,31 @@ export default function Navbar() {
                 }}
                 className={`transition-colors ${
                   isExploreActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                Explore photographers
+                Explore Photographers
               </Link>
               <Link
                 href="/how-it-works"
                 className={`transition-colors ${
                   isHowItWorksActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                How it works
+                How It Works
               </Link>
               <Link
                 href="/for-photographers"
                 className={`transition-colors ${
                   isForPhotographersActive
-                    ? 'text-[#FF6E00]'
+                    ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                Become a photographer
+                Become a Photographer
               </Link>
             </>
           )}
@@ -224,6 +246,15 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isHomeActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
                   href="/customer/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors flex items-center gap-1.5 ${
@@ -240,7 +271,7 @@ export default function Navbar() {
                     isExploreActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  Explore photographers
+                  Explore Photographers
                 </Link>
                 <Link
                   href="/customer/bookings"
@@ -264,6 +295,15 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
+                    isHomeActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
                   href="/explore"
                   onClick={(e) => {
                     setMobileMenuOpen(false);
@@ -279,7 +319,7 @@ export default function Navbar() {
                     isExploreActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  Explore photographers
+                  Explore Photographers
                 </Link>
                 <Link
                   href="/how-it-works"
@@ -288,7 +328,7 @@ export default function Navbar() {
                     isHowItWorksActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  How it works
+                  How It Works
                 </Link>
                 <Link
                   href="/for-photographers"
@@ -297,7 +337,7 @@ export default function Navbar() {
                     isForPhotographersActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  Become a photographer
+                  Become a Photographer
                 </Link>
               </>
             )}
