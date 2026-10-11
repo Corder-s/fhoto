@@ -39,7 +39,6 @@ export const FinalCtaBanner: React.FC = () => {
                   if (!isAuthenticated) {
                     e.preventDefault();
                     openAuthModal({
-                      returnUrl: '/explore',
                       message: 'Join SnapShoot to discover and book the perfect photographer.',
                     });
                   }

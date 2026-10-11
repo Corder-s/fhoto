@@ -2,25 +2,28 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Camera, Search, ArrowRight, Menu, X, User, Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Camera, ArrowRight, Menu, X, User, Sparkles, LogOut } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useAuthModal } from './auth/AuthModalContext';
+import { getRoleDashboard } from '../lib/safeRedirect';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
   const { openAuthModal } = useAuthModal();
   const pathname = usePathname() || '';
+
+  // Role-appropriate dashboard URL
+  const dashboardHref = getRoleDashboard(user?.role);
 
   // Route matching helpers for active navigation highlight
   const isHomeActive = pathname === '/';
 
   const isDashboardActive =
-    pathname === '/customer/dashboard' ||
-    pathname.startsWith('/customer/dashboard/') ||
-    pathname === '/photographer/dashboard' ||
-    pathname.startsWith('/photographer/dashboard/');
+    pathname === dashboardHref ||
+    pathname.startsWith(`${dashboardHref}/`);
 
   const isExploreActive =
     pathname === '/explore' ||
@@ -46,10 +49,25 @@ export default function Navbar() {
     pathname === '/for-photographers' ||
     pathname.startsWith('/for-photographers/');
 
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+    router.push('/');
+  };
+
+  const userSettingsHref =
+    user?.role === 'creator' || user?.role === 'photographer'
+      ? '/photographer/settings'
+      : user?.role === 'admin'
+      ? '/admin/dashboard'
+      : user?.role === 'owner'
+      ? '/owner/dashboard'
+      : '/customer/settings';
+
   return (
     <header className="sticky top-0 z-50 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#EDE6DC] transition-all">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Brand Logo (Non-navigational branding) */}
+        {/* Brand Logo (Non-navigational branding per design specification) */}
         <div className="flex items-center gap-2.5 cursor-default select-none" aria-label="SnapShoot Brand">
           <div className="w-9 h-9 rounded-card-sm bg-[#FF6E00] flex items-center justify-center text-white shadow-sm">
             <Camera className="w-5 h-5 fill-white/20 stroke-[2.2]" />
@@ -62,19 +80,12 @@ export default function Navbar() {
         {/* Center/Right Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-7 text-[14px] font-semibold text-[#5A544D]">
           {isAuthenticated ? (
+            /* AUTHENTICATED CUSTOMER NAVBAR:
+               Order: Dashboard | Explore Photographers | My Bookings | Photo Gallery
+               Note: 'Home' is strictly absent from authenticated navigation */
             <>
               <Link
-                href="/"
-                className={`transition-colors ${
-                  isHomeActive
-                    ? 'text-[#FF6E00] font-bold'
-                    : 'text-[#5A544D] hover:text-[#1A1816]'
-                }`}
-              >
-                Home
-              </Link>
-              <Link
-                href="/customer/dashboard"
+                href={dashboardHref}
                 className={`transition-colors flex items-center gap-1.5 ${
                   isDashboardActive
                     ? 'text-[#FF6E00] font-bold'
@@ -116,6 +127,8 @@ export default function Navbar() {
               </Link>
             </>
           ) : (
+            /* PUBLIC NAVBAR (LOGGED OUT):
+               Order: Home | Explore Photographers | How It Works | Become a Photographer */
             <>
               <Link
                 href="/"
@@ -133,7 +146,6 @@ export default function Navbar() {
                   if (!isAuthenticated) {
                     e.preventDefault();
                     openAuthModal({
-                      returnUrl: '/explore',
                       message: 'Join SnapShoot to discover and book the perfect photographer.',
                     });
                   }
@@ -173,16 +185,26 @@ export default function Navbar() {
         {/* Right Desktop Auth Actions */}
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
-            <Link
-              href="/customer/settings"
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
-              title="Account Settings"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
-                {user?.name ? user.name[0] : 'A'}
-              </div>
-              <span>{user?.name || 'Aman Sharma'}</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={userSettingsHref}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
+                title="User Profile & Settings"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
+                  {user?.name ? user.name[0] : 'U'}
+                </div>
+                <span>{user?.name || 'User Profile'}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] transition-colors cursor-pointer"
+                title="Log Out"
+                aria-label="Log Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           ) : (
             <>
               <Link
@@ -213,16 +235,21 @@ export default function Navbar() {
         {/* Mobile Hamburger Button */}
         <div className="flex lg:hidden items-center gap-2">
           {isAuthenticated ? (
-            <Link
-              href="/customer/settings"
-              className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden"
-              aria-label="Settings"
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden cursor-pointer"
+              aria-label="Log Out"
+              title="Log Out"
             >
-              <User className="w-4 h-4" />
-            </Link>
+              <LogOut className="w-4 h-4" />
+            </button>
           ) : (
             <Link
               href="/login"
+              onClick={(e) => {
+                e.preventDefault();
+                openAuthModal({ initialTab: 'login' });
+              }}
               className="p-2 rounded-full text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] sm:hidden"
               aria-label="Account"
             >
@@ -244,18 +271,10 @@ export default function Navbar() {
         <div className="lg:hidden border-b border-[#EDE6DC] bg-[#FAF7F2] px-4 pt-2 pb-6 space-y-4">
           <nav className="flex flex-col space-y-3 font-semibold text-sm text-[#1A1816]">
             {isAuthenticated ? (
+              /* Authenticated mobile navigation - Dashboard is first, NO Home */
               <>
                 <Link
-                  href="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
-                    isHomeActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
-                  }`}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/customer/dashboard"
+                  href={dashboardHref}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors flex items-center gap-1.5 ${
                     isDashboardActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
@@ -293,6 +312,7 @@ export default function Navbar() {
                 </Link>
               </>
             ) : (
+              /* Public mobile navigation - Home is present */
               <>
                 <Link
                   href="/"
@@ -310,7 +330,6 @@ export default function Navbar() {
                     if (!isAuthenticated) {
                       e.preventDefault();
                       openAuthModal({
-                        returnUrl: '/explore',
                         message: 'Join SnapShoot to discover and book the perfect photographer.',
                       });
                     }
@@ -345,16 +364,25 @@ export default function Navbar() {
 
           <div className="pt-2 border-t border-[#EDE6DC] flex flex-col gap-2.5">
             {isAuthenticated ? (
-              <Link
-                href="/customer/settings"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] hover:bg-[#EAE2D7] transition-all flex items-center justify-center gap-2"
-              >
-                <div className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[9px]">
-                  {user?.name ? user.name[0] : 'A'}
-                </div>
-                <span>{user?.name || 'Aman Sharma'} (Settings)</span>
-              </Link>
+              <>
+                <Link
+                  href={userSettingsHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 rounded-full font-bold text-xs text-[#1A1816] bg-[#F2ECE3] border border-[#E5DDD2] hover:bg-[#EAE2D7] transition-all flex items-center justify-center gap-2"
+                >
+                  <div className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[9px]">
+                    {user?.name ? user.name[0] : 'U'}
+                  </div>
+                  <span>{user?.name || 'User Profile'}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-center py-2 rounded-full font-bold text-xs text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out</span>
+                </button>
+              </>
             ) : (
               <>
                 <Link

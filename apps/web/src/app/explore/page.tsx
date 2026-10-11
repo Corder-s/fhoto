@@ -78,11 +78,10 @@ function ExploreContent() {
   useEffect(() => {
     if (isMounted && !isAuthenticated) {
       openAuthModal({
-        returnUrl: currentFullUrl,
         message: 'Join SnapShoot to discover and book the perfect photographer.',
       });
     }
-  }, [isMounted, isAuthenticated, currentFullUrl, openAuthModal]);
+  }, [isMounted, isAuthenticated, openAuthModal]);
 
   useEffect(() => {
     if (urlLocation) setSearchLocation(urlLocation);
@@ -389,14 +388,14 @@ function ExploreContent() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 pt-3">
                 <button
-                  onClick={() => openAuthModal({ returnUrl: currentFullUrl, initialTab: 'login' })}
+                  onClick={() => openAuthModal({ initialTab: 'login' })}
                   className="flex-1 py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>Log In</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => openAuthModal({ returnUrl: currentFullUrl, initialTab: 'register' })}
+                  onClick={() => openAuthModal({ initialTab: 'register' })}
                   className="flex-1 py-3 px-6 rounded-2xl bg-[#FAF7F2] hover:bg-[#F2ECE3] border border-[#E8E2D8] text-[#1A1816] text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Create Account

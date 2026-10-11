@@ -51,7 +51,7 @@ export const CustomerHeader: React.FC = () => {
   }, [pathname]);
 
   const navLinks = [
-    { label: 'Home', href: '/', icon: Sparkles },
+    { label: 'Dashboard', href: '/customer/dashboard', icon: Sparkles },
     { label: 'Explore', href: '/explore', icon: Camera },
     { label: 'Bookings', href: '/customer/bookings', icon: Calendar },
     { label: 'Messages', href: '/customer/bookings?tab=messages', icon: MessageSquare },

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Camera, ShieldCheck, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
-import { sanitizeRedirectUrl } from '../../../lib/safeRedirect';
+import { resolvePostAuthRedirect } from '../../../lib/safeRedirect';
 
 function AuthVerifyForm() {
   const searchParams = useSearchParams();
@@ -54,7 +54,7 @@ function AuthVerifyForm() {
       if (code === '123456') {
         setIsSuccess(true);
         setTimeout(() => {
-          const dest = sanitizeRedirectUrl(redirectParam, '/customer/dashboard');
+          const dest = resolvePostAuthRedirect('customer', redirectParam);
           window.location.href = dest;
         }, 1000);
       } else {

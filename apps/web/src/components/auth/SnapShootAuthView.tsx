@@ -22,7 +22,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { saveAuthSession, AuthUser } from '../../lib/auth';
-import { sanitizeRedirectUrl } from '../../lib/safeRedirect';
+import { resolvePostAuthRedirect } from '../../lib/safeRedirect';
 
 export interface SnapShootAuthViewProps {
   isModal?: boolean;
@@ -88,25 +88,21 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     return () => clearInterval(interval);
   }, [isOtpSent, resendCountdown]);
 
-  const resolvedReturnUrl = sanitizeRedirectUrl(returnUrl, '/explore');
-
-  // Successful Auth Handler
-  const handleAuthSuccess = (user: AuthUser, destinationUrl: string) => {
+  // Successful Auth Handler - ALWAYS redirects to verified role dashboard
+  const handleAuthSuccess = (user: AuthUser, explicitDestination?: string) => {
     saveAuthSession(user);
     setSuccessMessage(`Welcome back, ${user.name}! Redirecting you...`);
 
+    const target = resolvePostAuthRedirect(user.role, explicitDestination || returnUrl);
+
     setTimeout(() => {
       if (onClose) onClose();
-      let target = destinationUrl;
-      if (user.role === 'customer' && target.startsWith('/photographer')) {
-        target = '/customer/dashboard';
-      }
       router.push(target);
     }, 700);
   };
 
   // Quick Demo Logins
-  const handleQuickDemoLogin = (role: 'customer' | 'creator') => {
+  const handleQuickDemoLogin = (role: 'customer' | 'creator' | 'admin' | 'owner') => {
     setErrorMessage('');
     setIsLoading(true);
 
@@ -121,6 +117,24 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           role: 'creator',
         };
         handleAuthSuccess(creatorUser, '/photographer/dashboard');
+      } else if (role === 'admin') {
+        const adminUser: AuthUser = {
+          id: 'admin-demo-1',
+          name: 'Ops Desk Admin',
+          email: 'admin@snapshoot.local',
+          phone: '+91 98111 00001',
+          role: 'admin',
+        };
+        handleAuthSuccess(adminUser, '/admin/dashboard');
+      } else if (role === 'owner') {
+        const ownerUser: AuthUser = {
+          id: 'owner-demo-1',
+          name: 'Platform Owner',
+          email: 'owner@snapshoot.local',
+          phone: '+91 98111 00000',
+          role: 'owner',
+        };
+        handleAuthSuccess(ownerUser, '/owner/dashboard');
       } else {
         const customerUser: AuthUser = {
           id: 'cust-demo-1',
@@ -129,7 +143,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           phone: '+91 98112 34567',
           role: 'customer',
         };
-        handleAuthSuccess(customerUser, resolvedReturnUrl);
+        handleAuthSuccess(customerUser, '/customer/dashboard');
       }
     }, 600);
   };
@@ -183,7 +197,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               phone: `+91 ${loginPhone.trim()}`,
               role: 'customer',
             };
-            handleAuthSuccess(user, resolvedReturnUrl);
+            handleAuthSuccess(user, '/customer/dashboard');
           } else {
             setErrorMessage('Invalid verification code entered. (Test OTP code is 123456)');
           }
@@ -202,16 +216,32 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       setIsLoading(true);
       setTimeout(() => {
         setIsLoading(false);
-        const isCreator =
-          loginEmail.toLowerCase().includes('creator') ||
-          loginEmail.toLowerCase().includes('photographer');
+        const emailLower = loginEmail.toLowerCase().trim();
+        let role: AuthUser['role'] = 'customer';
+        let name = loginEmail.split('@')[0];
+
+        if (emailLower.includes('admin')) {
+          role = 'admin';
+          name = 'Ops Desk Admin';
+        } else if (emailLower.includes('owner')) {
+          role = 'owner';
+          name = 'Platform Owner';
+        } else if (
+          emailLower.includes('creator') ||
+          emailLower.includes('photographer') ||
+          emailLower.includes('seller')
+        ) {
+          role = 'creator';
+          name = 'Rajat Kapoor';
+        }
+
         const user: AuthUser = {
-          id: isCreator ? 'creator-email-1' : 'cust-email-1',
-          name: isCreator ? 'Rajat Kapoor' : loginEmail.split('@')[0],
+          id: `${role}-email-${Date.now()}`,
+          name,
           email: loginEmail.trim(),
-          role: isCreator ? 'creator' : 'customer',
+          role,
         };
-        handleAuthSuccess(user, isCreator ? '/photographer/dashboard' : resolvedReturnUrl);
+        handleAuthSuccess(user);
       }, 600);
     }
   };
@@ -267,7 +297,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           router.push('/photographer/onboarding');
         }, 800);
       } else {
-        handleAuthSuccess(newUser, resolvedReturnUrl);
+        handleAuthSuccess(newUser, '/customer/dashboard');
       }
     }, 700);
   };
@@ -873,22 +903,38 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                 <span className="text-[10px] uppercase font-bold text-[#736B63] block">
                   Instant Demo Accounts:
                 </span>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleQuickDemoLogin('customer')}
-                    className="py-1.5 px-2 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[11px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
+                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
                     <User className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Customer (Aman)</span>
+                    <span>Customer</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleQuickDemoLogin('creator')}
-                    className="py-1.5 px-2 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[11px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
+                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
                     <Camera className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Creator (Rajat)</span>
+                    <span>Creator</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemoLogin('admin')}
+                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <ShieldCheck className="w-3 h-3 text-[#FF6E00]" />
+                    <span>Admin</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemoLogin('owner')}
+                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Lock className="w-3 h-3 text-[#FF6E00]" />
+                    <span>Owner</span>
                   </button>
                 </div>
               </div>

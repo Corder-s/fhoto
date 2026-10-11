@@ -85,14 +85,14 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       >
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-contour-subtle shrink-0">
-          <Link href="/" className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="SnapShoot Brand">
             <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white shadow-sm">
               <Camera className="w-4 h-4" />
             </div>
             <span className="text-xl font-black tracking-tight text-ink-primary">
               Snap<span className="text-brand">Shoot</span>
             </span>
-          </Link>
+          </div>
 
           <button
             onClick={onClose}

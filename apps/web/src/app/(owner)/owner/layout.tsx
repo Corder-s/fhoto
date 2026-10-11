@@ -91,14 +91,14 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       <aside className="w-full md:w-64 bg-ink-primary text-white flex flex-col justify-between shrink-0">
         <div>
           <div className="p-6 border-b border-ink-secondary/30 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
+            <div className="flex items-center gap-2 select-none cursor-default" aria-label="SnapShoot Brand">
               <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white">
                 <Camera className="w-4 h-4" />
               </div>
               <span className="text-xl font-bold tracking-tight text-white">
                 Snap<span className="text-brand">Shoot</span>
               </span>
-            </Link>
+            </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand text-white">
               OWNER
             </span>

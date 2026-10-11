@@ -126,7 +126,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="sticky top-0 z-40 bg-white border-b border-[#E8E2D8] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         {/* Left Branding */}
         <div className="flex items-center gap-3 shrink-0">
-          <Link href="/admin/dashboard" className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="SnapShoot Brand">
             <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-2xs">
               <Camera className="w-5 h-5 stroke-[2.2]" />
             </div>
@@ -138,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Moments. People. Stories.
               </p>
             </div>
-          </Link>
+          </div>
         </div>
 
         {/* Center Search Input with Ctrl + K */}
