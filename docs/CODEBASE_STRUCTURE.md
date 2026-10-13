@@ -33,6 +33,10 @@ fhoto/
 │       ├── prisma/               Prisma schema (legacy model; client must be generated)
 │       └── test/                 node:test suites run from compiled dist/
 ├── packages/shared/              @snapshoot/shared: plan catalogue and DTO types used by the API and the web app
+│   ├── src/                      enums, constants (SAAS_PLANS), DTO types
+│   └── dist/                     compiled output, not committed. Consumers resolve the package through it,
+│                                 so it must be built first: `npm run build:shared` (the `prepare` hook and the
+│                                 apps' `prebuild` steps do this automatically)
 ├── supabase/
 │   ├── migrations/               ordered SQL: master schema, storage + RLS, security hardening
 │   └── tests/rls-policies.test.mjs   PGlite-based RLS suite (npm run test:db)

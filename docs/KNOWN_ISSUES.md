@@ -45,5 +45,5 @@ Numbers are referenced from other documents. Keep them stable.
 21. **Smoke script signed-in checks are opt-in.** `scratch/test-apis.js` runs anonymous checks by default. Set `SMOKE_COOKIE` and `SMOKE_CREATOR_ID` to run the booking and deliverable checks.
 22. **Google Drive links are format-checked only.** The route validates the URL pattern. It does not confirm that the file is shared.
 23. **Owner area is closed.** The database has no owner role, so `/owner/*` cannot be entered.
-24. **The `/api/v1/*` rewrite requires the NestJS service on port 4000.** Without it, those requests fail. The web app's own features do not depend on it.
+24. **The `/api/v1/*` proxy needs `NEST_API_BASE_URL` and a running NestJS service.** When the variable is unset no rewrite is registered and those paths return 404; when it is set but the service is down, they fail with a connection error. The web app's own features do not depend on either.
 25. **`/api/photographers` depends on the server service key for full access.** Without `SUPABASE_SERVICE_ROLE_KEY` it uses the browser client, which RLS limits to approved creators. Behaviour is correct but the set of columns and performance depend on RLS.

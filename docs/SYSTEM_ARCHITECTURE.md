@@ -9,7 +9,7 @@ Browser
 Next.js 14 app (apps/web)  ── port 3000
   │  app/**/page.tsx                 UI routes
   │  app/api/**/route.ts             server route handlers (primary API)
-  │  next.config rewrite /api/v1/*   ──►  NestJS API (apps/api) ── port 4000
+  │  next.config rewrite /api/v1/*   ──►  NestJS API (apps/api) ── NEST_API_BASE_URL (port 4000 locally)
   ▼
 Supabase project
   │  Auth           email + password sessions (cookies managed by @supabase/ssr)
@@ -28,7 +28,7 @@ Optional providers (not wired for real traffic yet)
 3. **Database access.** Handlers use one of two Supabase clients:
    - the **service-role** client (`lib/supabase/admin.ts`), after `authorize()` has passed and the handler has checked ownership or role, or in public read endpoints that apply explicit, server-side filters and a column list (for example `/api/photographers`);
    - the **browser/anon** client with RLS, where the handler is public or the browser writes its own rows (for example, avatar upload and settings).
-4. **NestJS.** Requests to `/api/v1/*` are proxied by Next to `http://localhost:4000` (server-side rewrite; browsers never call that address). The NestJS app has its own guards. Its auth endpoints are mock-only and return 503 unless `ENABLE_MOCK_AUTH=true` outside production. Its subscription webhook verifies an HMAC signature. The NestJS app needs a generated Prisma client and a `DATABASE_URL`, which is why its data paths are not runtime-verified in this sandbox (see TEST_RESULTS.md).
+4. **NestJS.** Requests to `/api/v1/*` are proxied by Next to the origin in `NEST_API_BASE_URL` (server-side rewrite; browsers never call the API origin directly). It defaults to nothing: when the variable is unset, no rewrite is registered and those paths return 404. Locally the value is `http://localhost:4000`. The NestJS app has its own guards. Its auth endpoints are mock-only and return 503 unless `ENABLE_MOCK_AUTH=true` outside production. Its subscription webhook verifies an HMAC signature. The NestJS app needs a generated Prisma client and a `DATABASE_URL`, which is why its data paths are not runtime-verified in this sandbox (see TEST_RESULTS.md).
 
 ## Trust boundaries
 
@@ -49,4 +49,4 @@ Optional providers (not wired for real traffic yet)
 
 ## Deployment shape
 
-Two processes plus Supabase: `next start` (or a Node host for Next.js) and optionally `node dist/main` for the NestJS service. The NestJS service is only needed for the `/api/v1/*` rewrite and for the subscription pages. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+Two processes plus Supabase: `next start` (or a Node host for Next.js) and optionally `node dist/src/main.js` for the NestJS service. The NestJS service is only needed for the `/api/v1/*` rewrite and for the subscription pages. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).

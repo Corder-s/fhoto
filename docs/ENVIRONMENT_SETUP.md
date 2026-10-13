@@ -14,10 +14,13 @@ git clone <repo> fhoto && cd fhoto
 npm install
 ```
 
+`npm install` runs the `prepare` hook of `packages/shared`, which compiles `@snapshoot/shared` into `packages/shared/dist`. Both apps import that package by name and resolve to the compiled files, so the directory has to exist before any `next build`, `nest build`, or `tsc -p` in the apps. The scripts keep it current (`prebuild` in both apps, `build:shared` at the root). Rebuild it by hand with `npm run build:shared`.
+
 ## Web app environment (`apps/web/.env.local`)
 
 ```bash
 cp apps/web/.env.local.example apps/web/.env.local
+npm run env:check          # validates the values and lists what is missing
 ```
 
 | Variable | Required | Side | Notes |
@@ -25,12 +28,16 @@ cp apps/web/.env.local.example apps/web/.env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | public | Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | public | Anon key. RLS protects data. |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes for admin and public listing | **server only** | Never prefix with `NEXT_PUBLIC_` |
+| `NEST_API_BASE_URL` | no | server only | Origin of `apps/api` (for example `http://localhost:4000` locally). Enables the `/api/v1/*` proxy from `next.config.mjs`. `API_BASE_URL` is accepted as an alias, with or without a trailing `/api/v1`. Unset means `/api/v1/*` returns 404 instead of a connection error. |
 | `PAYMENT_PROVIDER_SECRET_KEY` | no | server only | When set, gateway order creation is not implemented, so create-intent returns 501 and sandbox confirmation returns 403 |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | no | public by design | Must be a `pk.*` token |
 | `MAPBOX_ACCESS_TOKEN` | no | server only | Geocoding |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | no | server only | AI chat. Without the key the route returns a configuration message with error code `GEMINI_API_KEY_MISSING`. |
+| `STRICT_ENV_CHECK` | no | build time | `true` makes `env:check` (and therefore `npm run build`) fail instead of warn on missing required values. Recommended for production deployments. |
 
 If `NEXT_PUBLIC_SUPABASE_URL` or the anon key is missing, `/api/auth/session` reports `configured: false` and sign-in is unavailable.
+
+`npm run env:check` reads `.env.local` and `.env` (real environment variables win), prints what is configured and what is missing per Vercel scope, and always fails on unsafe values: a `service_role` key in `NEXT_PUBLIC_SUPABASE_ANON_KEY`, a `sk.*` token in `NEXT_PUBLIC_MAPBOX_TOKEN`, or any `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`. Hosted deployments configure the same names in the platform dashboard; see README.md → "Deploying to Vercel".
 
 ## NestJS environment (`apps/api/.env`)
 
@@ -65,7 +72,7 @@ Migrations: `20261012000001_master_instantshoot_schema.sql`, `20261012000002_sto
 ## Running
 
 ```bash
-npm run dev:web            # http://localhost:3000
+npm run dev:web            # http://localhost:3000 (builds packages/shared first)
 npm run dev:api            # http://localhost:4000/api/v1 (needs prisma generate first)
 ```
 
@@ -81,5 +88,7 @@ See TESTING_STRATEGY.md. The short form:
 npm run test:unit          # 19 policy unit tests
 npm run test:db            # 30 RLS and trigger tests (PGlite)
 npm test --workspace=apps/api
-cd apps/web && npx tsc --noEmit && npx next lint && npx next build
+cd apps/web && npx tsc --noEmit && npx next lint && npm run build
 ```
+
+`tsc --noEmit` and the API tests resolve `@snapshoot/shared` through `packages/shared/dist`. Run `npm run build:shared` if that directory is missing (for example after a manual clean); the build and test scripts do it automatically.

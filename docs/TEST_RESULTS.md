@@ -72,3 +72,25 @@ Production server (`next start`) with placeholder Supabase settings:
 ## Reproduce
 
 See TESTING_STRATEGY.md. The smoke script also takes `SMOKE_BASE_URL`, and it needs the production server started with `npx next start -H 0.0.0.0 -p 3000`.
+
+## 2026-10-13 — Deployment fix verification (branch `arena/67428ada-fhoto`)
+
+Sandbox: Node 22.22.3, npm 10.9.8, same limits as above (no Docker, no Postgres server, no outbound access to Supabase, Vercel, or the Prisma engine host). Prisma Client was present in `node_modules/.prisma/client`, so the API suites that were blocked in the previous run loaded this time.
+
+| Check | Command | Result | Notes |
+| --- | --- | --- | --- |
+| Failure reproduced | `npm run build` (apps/web, no `packages/shared/dist`) | **exit 1** | Same error as the Vercel log: `Module not found: Can't resolve '@snapshoot/shared'` in `subscription/page.tsx` and `subscriptionService.ts` |
+| Same command after the shared build | `npx tsc -p ../../packages/shared/tsconfig.json` then `npm run build` | **exit 0** | Confirms the cause and the fix |
+| Fresh install builds the shared package | `rm -rf node_modules packages/shared/dist && npm ci` | **exit 0** | The `prepare` hook created `packages/shared/dist/index.js` |
+| Fresh build with the artifact deleted | `rm -rf packages/shared/dist && npm run build` (in `apps/web`, the way Vercel invokes the workspace) | **exit 0** | `prebuild` rebuilt the shared package; `Compiled successfully`, 52 static pages |
+| Root build | `npm run build` (repository root) | **exit 0** | Shared package, then the web app |
+| API build | `rm -rf packages/shared/dist && npm run build --workspace=apps/api` | **exit 0** | `prebuild` ran; emitted `apps/api/dist/src/main.js` |
+| Web type check | `npx tsc --noEmit` (apps/web) | **exit 0** | With `packages/shared/dist` present |
+| Web lint | `npx next lint` (apps/web) | **exit 0**, warnings only | Same pre-existing `no-img-element` and hooks warnings |
+| API tests | `npm test --workspace=apps/api` | **39 tests pass, 0 fail** | `pretest` built the shared package first |
+| Policy unit tests | `npm run test:unit` | **19 / 19 pass** | |
+| RLS and trigger tests | `npm run test:db` | **30 / 30 pass** | PGlite |
+| Environment check, empty environment | `node scripts/check-env.mjs` (apps/web) | **exit 0**, report printed | Lists the three required Supabase values as missing; warnings do not fail the build |
+| Environment check, unsafe values | same script with a `service_role` key in the anon variable, an `sk.*` Mapbox token, `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`, and a localhost API URL on Vercel | **exit 1** | Five errors reported, as intended |
+
+Not verified here: the Vercel build itself (no network access to Vercel), and the runtime behaviour of `NEST_API_BASE_URL` against a running NestJS service.

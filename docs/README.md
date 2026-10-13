@@ -1,6 +1,6 @@
 # Instantshoot / SnapShoot documentation index
 
-Last updated: 2026-10-13. Branch `arena/217a1005-fhoto`.
+Last updated: 2026-10-13. Branch `arena/67428ada-fhoto`.
 
 Start here:
 
@@ -22,7 +22,7 @@ Start here:
 | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | What each test suite covers and what it cannot cover |
 | [TEST_RESULTS.md](TEST_RESULTS.md) | Results of the verification run on this branch |
 | [SECURITY_REVIEW.md](SECURITY_REVIEW.md) | Security findings, fixes made, and open risks |
-| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Deploying the web app, the API, and the database |
+| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Build order, deploying the web app to Vercel, the environment variables to set in the dashboard, the API, and the database |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures and their causes |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | Open defects, gaps, and product decisions |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in the 2026-10-13 hardening pass |
