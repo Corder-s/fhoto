@@ -229,7 +229,7 @@ export default function CustomerSettingsPage() {
         const filePath = `${user.id}/${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from('profile-avatars')
-          .upload(filePath, file, { upsert: true });
+          .upload(filePath, file, { contentType: file.type || undefined });
 
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage

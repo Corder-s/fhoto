@@ -1,100 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authorize, jsonError } from '@/lib/server/session';
+import { cleanText, isSafeHttpsUrl, matchesSessionUser } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/profile/me?userId=<UUID>
- * Retrieves authenticated user's profile, creator profile (if any), and real dashboard stats from Supabase.
+ * GET /api/profile/me
+ * Returns the authenticated user's profile, creator profile (if any) and dashboard
+ * statistics computed from the database. Identity comes from the session only.
+ * An optional `userId` query parameter is accepted for backward compatibility but
+ * must match the session user, otherwise the request is rejected.
  */
 export async function GET(req: NextRequest) {
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  const requested = new URL(req.url).searchParams.get('userId');
+  if (!matchesSessionUser(user.id, requested)) {
+    return jsonError(403, 'You can only access your own profile.');
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
-    }
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    // 1. Fetch user profile from public.profiles
-    const { data: profile, error: profileErr } = await client
+    const { data: profile, error: profileErr } = await admin
       .from('profiles')
       .select('id, full_name, email, phone_number, avatar_url, account_status, created_at, updated_at')
-      .eq('id', userId)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (profileErr) {
-      console.error('Error fetching profile:', profileErr);
-      return NextResponse.json({ success: false, error: profileErr.message }, { status: 500 });
+      console.error('Error fetching profile:', profileErr.message);
+      return jsonError(500, 'Could not load profile.');
     }
 
-    // 2. Fetch role from public.user_roles
-    const { data: roleRecord } = await client
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    // 3. Fetch creator profile ONLY if user is a creator
-    let creatorProfile = null;
-    const isCreatorRole = roleRecord?.role === 'creator' || roleRecord?.role === 'photographer';
-    
-    const { data: dbCreatorProfile, error: creatorErr } = await client
+    const { data: creatorProfile, error: creatorErr } = await admin
       .from('creator_profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (creatorErr) {
-      console.error('Error fetching creator profile:', creatorErr);
-    } else if (dbCreatorProfile) {
-      creatorProfile = dbCreatorProfile;
+      console.error('Error fetching creator profile:', creatorErr.message);
     }
 
-    const determinedRole = roleRecord?.role || (creatorProfile ? 'creator' : 'customer');
-
-    // 4. Compute real dashboard stats from database
-    let totalBookings = 0;
-    let newRequests = 0;
-    let upcomingShoots = 0;
-    let monthEarnings = 0;
-    let totalReviews = creatorProfile?.total_reviews || 0;
-    let averageRating = creatorProfile?.average_rating ? Number(creatorProfile.average_rating) : 5.0;
+    const stats = {
+      totalBookings: 0,
+      newRequests: 0,
+      upcomingShoots: 0,
+      monthEarnings: 0,
+      totalReviews: creatorProfile?.total_reviews || 0,
+      averageRating: creatorProfile?.average_rating ? Number(creatorProfile.average_rating) : 5.0,
+      profileViews: 0,
+    };
 
     if (creatorProfile?.id) {
-      // Calculate real bookings stats from public.bookings
-      const { data: bookings } = await client
+      const { data: bookings } = await admin
         .from('bookings')
         .select('id, booking_status, payment_status, agreed_service_price, event_date, created_at')
         .eq('creator_id', creatorProfile.id);
 
       if (bookings && bookings.length > 0) {
-        totalBookings = bookings.length;
-        newRequests = bookings.filter((b) => b.booking_status === 'pending' || b.booking_status === 'requested').length;
-        upcomingShoots = bookings.filter((b) =>
-          b.booking_status === 'confirmed' ||
-          b.booking_status === 'accepted' ||
-          b.booking_status === 'in_progress'
+        stats.totalBookings = bookings.length;
+        stats.newRequests = bookings.filter((b) => b.booking_status === 'pending').length;
+        stats.upcomingShoots = bookings.filter((b) =>
+          b.booking_status === 'confirmed' || b.booking_status === 'in_progress'
         ).length;
 
-        // Calculate current month earnings from completed bookings
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        monthEarnings = bookings
+        stats.monthEarnings = bookings
           .filter((b) => {
             if (b.booking_status !== 'completed') return false;
             const bDate = new Date(b.event_date || b.created_at);
-            return bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear;
+            return bDate.getMonth() === now.getMonth() && bDate.getFullYear() === now.getFullYear();
           })
           .reduce((sum, b) => sum + (Number(b.agreed_service_price) || 0), 0);
       }
@@ -102,113 +79,152 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      role: determinedRole,
+      role: user.role,
+      roles: user.roles,
       profile: profile || null,
       creatorProfile: creatorProfile || null,
-      stats: {
-        totalBookings,
-        newRequests,
-        upcomingShoots,
-        monthEarnings,
-        totalReviews,
-        averageRating,
-        profileViews: 0,
-      },
+      stats,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error in /api/profile/me GET:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return jsonError(500, 'Could not load profile.');
   }
 }
 
 /**
  * PATCH /api/profile/me
- * Authoritatively updates user profile and/or creator profile in Supabase.
+ * Updates the authenticated user's profile. Creator fields require the creator
+ * role. Verification status, ratings and account status are never writable here.
  */
 export async function PATCH(req: NextRequest) {
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  let body: Record<string, any>;
   try {
-    const body = await req.json();
-    const { userId, profileData, creatorData } = body;
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON payload.');
+  }
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+  if (!matchesSessionUser(user.id, body.userId)) {
+    return jsonError(403, 'You can only update your own profile.');
+  }
+
+  const { profileData, creatorData } = body;
+  const nowIso = new Date().toISOString();
+
+  // Validate everything before writing anything.
+  const profileUpdate: Record<string, unknown> = {};
+  if (profileData && typeof profileData === 'object') {
+    if (profileData.fullName !== undefined) {
+      const name = cleanText(profileData.fullName, 120);
+      if (!name) return jsonError(400, 'Full name cannot be empty.');
+      profileUpdate.full_name = name;
     }
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
+    if (profileData.phone !== undefined) {
+      const phone = typeof profileData.phone === 'string' ? profileData.phone.trim().slice(0, 20) : '';
+      if (phone && !/^[+0-9 ()-]{6,20}$/.test(phone)) {
+        return jsonError(400, 'Please provide a valid phone number.');
+      }
+      profileUpdate.phone_number = phone || null;
     }
+    if (profileData.avatarUrl !== undefined) {
+      if (profileData.avatarUrl === null || profileData.avatarUrl === '') {
+        profileUpdate.avatar_url = null;
+      } else if (isSafeHttpsUrl(profileData.avatarUrl)) {
+        profileUpdate.avatar_url = profileData.avatarUrl;
+      } else {
+        return jsonError(400, 'Avatar must be an https URL.');
+      }
+    }
+  }
 
-    const nowIso = new Date().toISOString();
+  const creatorUpdate: Record<string, unknown> = {};
+  if (creatorData && typeof creatorData === 'object' && Object.keys(creatorData).length > 0) {
+    if (!user.roles.includes('creator')) {
+      return jsonError(403, 'Only photographer accounts can update creator details.');
+    }
+    if (creatorData.professionalName !== undefined) {
+      const v = cleanText(creatorData.professionalName, 120);
+      if (!v) return jsonError(400, 'Professional name cannot be empty.');
+      creatorUpdate.professional_name = v;
+    }
+    if (creatorData.biography !== undefined) {
+      creatorUpdate.biography = cleanText(creatorData.biography, 2000) || '';
+    }
+    if (creatorData.experienceYears !== undefined) {
+      const years = Number(creatorData.experienceYears);
+      if (!Number.isInteger(years) || years < 0 || years > 80) {
+        return jsonError(400, 'Experience must be a whole number of years between 0 and 80.');
+      }
+      creatorUpdate.experience_years = years;
+    }
+    if (creatorData.city !== undefined) {
+      const v = cleanText(creatorData.city, 80);
+      if (!v) return jsonError(400, 'City cannot be empty.');
+      creatorUpdate.city = v;
+    }
+    if (creatorData.state !== undefined) {
+      creatorUpdate.state = cleanText(creatorData.state, 80) || 'Delhi';
+    }
+    if (creatorData.serviceRadius !== undefined) {
+      const radius = Number(creatorData.serviceRadius);
+      if (!Number.isInteger(radius) || radius < 1 || radius > 500) {
+        return jsonError(400, 'Service radius must be between 1 and 500 km.');
+      }
+      creatorUpdate.service_radius = radius;
+    }
+    if (creatorData.portfolioUrl !== undefined) {
+      if (creatorData.portfolioUrl === null || creatorData.portfolioUrl === '') {
+        creatorUpdate.portfolio_url = null;
+      } else if (isSafeHttpsUrl(creatorData.portfolioUrl)) {
+        creatorUpdate.portfolio_url = creatorData.portfolioUrl;
+      } else {
+        return jsonError(400, 'Portfolio link must be an https URL.');
+      }
+    }
+  }
 
-    // 1. Update public.profiles if profileData is supplied
+  try {
     let updatedProfile = null;
-    if (profileData && Object.keys(profileData).length > 0) {
-      const updatePayload: Record<string, any> = {
-        updated_at: nowIso,
-      };
-
-      if (profileData.fullName !== undefined) updatePayload.full_name = profileData.fullName.trim();
-      if (profileData.phone !== undefined) updatePayload.phone_number = profileData.phone.trim();
-      if (profileData.avatarUrl !== undefined) updatePayload.avatar_url = profileData.avatarUrl;
-
-      const { data, error: pErr } = await client
+    if (Object.keys(profileUpdate).length > 0) {
+      const { data, error } = await admin
         .from('profiles')
-        .update(updatePayload)
-        .eq('id', userId)
+        .update({ ...profileUpdate, updated_at: nowIso })
+        .eq('id', user.id)
         .select()
         .single();
-
-      if (pErr) {
-        console.error('Failed to update profiles table:', pErr);
-        return NextResponse.json({ success: false, error: pErr.message }, { status: 500 });
+      if (error) {
+        console.error('Failed to update profiles table:', error.message);
+        return jsonError(500, 'Could not update profile.');
       }
       updatedProfile = data;
 
-      // Also update auth user metadata so session remains in sync
-      if (admin) {
-        await admin.auth.admin.updateUserById(userId, {
+      // Keep auth metadata (display name, avatar) in step with the profile row.
+      await admin.auth.admin
+        .updateUserById(user.id, {
           user_metadata: {
-            full_name: updatePayload.full_name,
-            phone: updatePayload.phone_number,
-            avatar_url: updatePayload.avatar_url,
+            full_name: profileUpdate.full_name,
+            phone: profileUpdate.phone_number,
+            avatar_url: profileUpdate.avatar_url,
           },
-        }).catch((e) => console.warn('Could not sync auth metadata:', e));
-      }
+        })
+        .catch((e) => console.warn('Could not sync auth metadata:', e));
     }
 
-    // 2. Update public.creator_profiles if creatorData is supplied
     let updatedCreatorProfile = null;
-    if (creatorData && Object.keys(creatorData).length > 0) {
-      const creatorPayload: Record<string, any> = {
-        updated_at: nowIso,
-      };
-
-      if (creatorData.professionalName !== undefined) creatorPayload.professional_name = creatorData.professionalName.trim();
-      if (creatorData.biography !== undefined) creatorPayload.biography = creatorData.biography.trim();
-      if (creatorData.experienceYears !== undefined) creatorPayload.experience_years = Number(creatorData.experienceYears) || 1;
-      if (creatorData.city !== undefined) creatorPayload.city = creatorData.city.trim();
-      if (creatorData.state !== undefined) creatorPayload.state = creatorData.state.trim();
-      if (creatorData.serviceRadius !== undefined) creatorPayload.service_radius = Number(creatorData.serviceRadius) || 25;
-      if (creatorData.portfolioUrl !== undefined) creatorPayload.portfolio_url = creatorData.portfolioUrl;
-
-      const { data, error: cErr } = await client
+    if (Object.keys(creatorUpdate).length > 0) {
+      const { data, error } = await admin
         .from('creator_profiles')
-        .upsert(
-          {
-            user_id: userId,
-            ...creatorPayload,
-          },
-          { onConflict: 'user_id' }
-        )
+        .update({ ...creatorUpdate, updated_at: nowIso })
+        .eq('user_id', user.id)
         .select()
         .single();
-
-      if (cErr) {
-        console.error('Failed to update creator_profiles table:', cErr);
-        return NextResponse.json({ success: false, error: cErr.message }, { status: 500 });
+      if (error) {
+        console.error('Failed to update creator_profiles table:', error.message);
+        return jsonError(500, 'Could not update creator profile.');
       }
       updatedCreatorProfile = data;
     }
@@ -217,10 +233,10 @@ export async function PATCH(req: NextRequest) {
       success: true,
       profile: updatedProfile,
       creatorProfile: updatedCreatorProfile,
-      message: 'Profile updated successfully in Supabase.',
+      message: 'Profile updated successfully.',
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error in /api/profile/me PATCH:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return jsonError(500, 'Could not update profile.');
   }
 }

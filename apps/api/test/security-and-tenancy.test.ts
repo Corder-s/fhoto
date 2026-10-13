@@ -12,6 +12,10 @@ import { JwtService } from '@nestjs/jwt';
 import { RoleType, PlanTier } from '@snapshoot/shared';
 import { AuthenticatedUser } from '../src/common/auth.guard';
 
+// Test environment: enable the development-only mock login so the OTP assertions below exercise it.
+// Mock auth is refused when NODE_ENV=production, and the assertions are unchanged.
+process.env.ENABLE_MOCK_AUTH = 'true';
+
 describe('SnapShoot Backend Security, Tenancy & Authorization Test Suite', () => {
   const prismaMock = new PrismaService();
   const jwtService = new JwtService({ secret: 'test-secret-key' });

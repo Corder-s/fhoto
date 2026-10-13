@@ -1,74 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authorize, jsonError } from '@/lib/server/session';
+import { cleanText, isSafeHttpsUrl, matchesSessionUser } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET /api/photographers/onboarding
+ * Returns the onboarding state for the signed-in user: active categories, their
+ * profile, creator profile, portfolio and active packages.
+ */
 export async function GET(req: NextRequest) {
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  if (!matchesSessionUser(user.id, new URL(req.url).searchParams.get('userId'))) {
+    return jsonError(403, 'You can only view your own onboarding data.');
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    // 1. Fetch available platform service categories
-    const { data: categories } = await client
+    const { data: categories } = await admin
       .from('service_categories')
       .select('id, name, slug')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
-    if (!userId) {
-      return NextResponse.json({
-        success: true,
-        isNew: true,
-        categories: categories || [],
-        profile: null,
-        creatorProfile: null,
-        portfolioItems: [],
-        services: [],
-      });
-    }
-
-    // 2. Fetch user profile
-    const { data: profile } = await client
+    const { data: profile } = await admin
       .from('profiles')
       .select('id, full_name, email, phone_number, avatar_url')
-      .eq('id', userId)
+      .eq('id', user.id)
       .maybeSingle();
 
-    // 3. Fetch creator profile
-    const { data: creatorProfile } = await client
+    const { data: creatorProfile } = await admin
       .from('creator_profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     let portfolioItems: any[] = [];
     let services: any[] = [];
 
     if (creatorProfile?.id) {
-      // 4. Fetch creator portfolio items
-      const { data: portfolioData } = await client
+      const { data: portfolioData } = await admin
         .from('creator_portfolio_items')
         .select('*')
         .eq('creator_id', creatorProfile.id)
         .order('display_order', { ascending: true });
-
       portfolioItems = portfolioData || [];
 
-      // 5. Fetch creator services
-      const { data: servicesData } = await client
+      const { data: servicesData } = await admin
         .from('creator_services')
         .select('*, service_categories(name)')
         .eq('creator_id', creatorProfile.id)
         .eq('is_active', true);
-
       services = servicesData || [];
     }
 
@@ -80,144 +64,158 @@ export async function GET(req: NextRequest) {
       portfolioItems,
       services,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error fetching creator onboarding data:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return jsonError(500, 'Could not load onboarding data.');
   }
 }
 
+/**
+ * POST /api/photographers/onboarding
+ * Submits (or re-submits) the photographer application for the signed-in user.
+ * The application moves to 'pending' for platform review. An already approved
+ * creator keeps their approval when they edit their details.
+ */
 export async function POST(req: NextRequest) {
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  let body: Record<string, any>;
   try {
-    const body = await req.json();
-    const {
-      userId,
-      personal,
-      professional,
-      portfolioItems = [],
-      services = [],
-      verification,
-    } = body;
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON payload.');
+  }
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'User ID is required to submit creator onboarding.' }, { status: 400 });
-    }
+  if (!matchesSessionUser(user.id, body.userId)) {
+    return jsonError(403, 'You can only submit your own application.');
+  }
 
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
+  const { personal, professional, portfolioItems = [], services = [] } = body;
+  if (!Array.isArray(portfolioItems) || !Array.isArray(services)) {
+    return jsonError(400, 'portfolioItems and services must be lists.');
+  }
 
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database service unavailable' }, { status: 503 });
-    }
-
-    // 1. Update Profile Information (Full Name, Phone)
-    if (personal?.name || personal?.phone) {
-      await client
+  try {
+    const fullName = cleanText(personal?.name, 120);
+    const phone = typeof personal?.phone === 'string' ? personal.phone.trim().slice(0, 20) : undefined;
+    if (fullName || phone) {
+      const { error: profileErr } = await admin
         .from('profiles')
         .update({
-          full_name: personal.name,
-          phone_number: personal.phone,
+          ...(fullName ? { full_name: fullName } : {}),
+          ...(phone !== undefined ? { phone_number: phone || null } : {}),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', userId);
+        .eq('id', user.id);
+      if (profileErr) return jsonError(500, 'Could not save personal details.');
     }
 
-    // 2. Ensure Role is 'creator' in user_roles
-    await client
+    // Grant the creator role (idempotent). Approval itself is never set here.
+    const { error: roleErr } = await admin
       .from('user_roles')
-      .upsert(
-        { user_id: userId, role: 'creator' },
-        { onConflict: 'user_id, role' }
-      );
+      .upsert({ user_id: user.id, role: 'creator' }, { onConflict: 'user_id,role' });
+    if (roleErr) return jsonError(500, 'Could not register the photographer role.');
 
-    // 3. Upsert Creator Profile in creator_profiles
-    const creatorPayload: any = {
-      user_id: userId,
-      professional_name: personal?.name || 'Professional Creator',
-      biography: professional?.bio || '',
-      experience_years: Number(professional?.experienceYears) || 1,
-      city: personal?.city || 'Delhi NCR',
+    const { data: existing } = await admin
+      .from('creator_profiles')
+      .select('id, verification_status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const nextStatus = existing?.verification_status === 'approved' ? 'approved' : 'pending';
+
+    const creatorPayload = {
+      user_id: user.id,
+      professional_name: cleanText(personal?.name, 120) || 'Professional Creator',
+      biography: cleanText(professional?.bio, 2000) || '',
+      experience_years: Math.min(Math.max(Number.parseInt(professional?.experienceYears, 10) || 1, 0), 80),
+      city: cleanText(personal?.city, 80) || 'Delhi NCR',
       state: 'Delhi',
       service_radius: 25,
-      verification_status: 'pending', // transitioned to pending approval
+      verification_status: nextStatus,
       is_available: true,
       updated_at: new Date().toISOString(),
     };
 
-    const { data: creatorProfile, error: creatorErr } = await client
+    const { data: creatorProfile, error: creatorErr } = await admin
       .from('creator_profiles')
       .upsert(creatorPayload, { onConflict: 'user_id' })
       .select('id')
       .single();
 
-    if (creatorErr) {
-      console.error('Error saving creator profile:', creatorErr);
-      return NextResponse.json({ success: false, error: creatorErr.message }, { status: 500 });
+    if (creatorErr || !creatorProfile) {
+      console.error('Error saving creator profile:', creatorErr?.message);
+      return jsonError(500, 'Could not save your photographer profile.');
     }
-
     const creatorId = creatorProfile.id;
 
-    // 4. Sync Portfolio Items (Replace or Insert)
-    if (Array.isArray(portfolioItems)) {
-      // Clear existing items for this creator to avoid stale duplicates
-      await client
-        .from('creator_portfolio_items')
-        .delete()
-        .eq('creator_id', creatorId);
-
-      if (portfolioItems.length > 0) {
-        const portfolioInserts = portfolioItems.map((item: any, idx: number) => ({
-          creator_id: creatorId,
-          title: item.title || `Portfolio Sample #${idx + 1}`,
-          description: item.category || 'Portfolio Showcase',
-          media_type: 'photo',
-          preview_url: item.imageUrl || item.preview_url,
-          display_order: idx,
-          is_published: true,
-        }));
-
-        await client
-          .from('creator_portfolio_items')
-          .insert(portfolioInserts);
-      }
+    // Portfolio: replace this creator's items (no foreign keys reference them).
+    const portfolioRows = portfolioItems
+      .map((item: any, idx: number) => ({ item, idx }))
+      .filter(({ item }) => isSafeHttpsUrl(item?.imageUrl || item?.preview_url))
+      .map(({ item, idx }) => ({
+        creator_id: creatorId,
+        title: cleanText(item.title, 150) || `Portfolio Sample #${idx + 1}`,
+        description: cleanText(item.category, 500) || 'Portfolio Showcase',
+        media_type: 'photo',
+        preview_url: item.imageUrl || item.preview_url,
+        display_order: idx,
+        is_published: true,
+      }));
+    const { error: clearPortfolioErr } = await admin.from('creator_portfolio_items').delete().eq('creator_id', creatorId);
+    if (clearPortfolioErr) return jsonError(500, 'Could not update portfolio.');
+    if (portfolioRows.length > 0) {
+      const { error } = await admin.from('creator_portfolio_items').insert(portfolioRows);
+      if (error) return jsonError(500, 'Could not save portfolio items.');
     }
 
-    // 5. Sync Services
-    if (Array.isArray(services)) {
-      await client
+    // Packages: packages referenced by bookings are deactivated rather than deleted.
+    const { data: currentServices } = await admin
+      .from('creator_services')
+      .select('id')
+      .eq('creator_id', creatorId)
+      .eq('is_active', true);
+    if (currentServices && currentServices.length > 0) {
+      const { error: deactivateErr } = await admin
         .from('creator_services')
-        .delete()
-        .eq('creator_id', creatorId);
-
-      if (services.length > 0) {
-        const serviceInserts = services.map((srv: any) => ({
-          creator_id: creatorId,
-          title: srv.title || 'Standard Shoot Package',
-          description: srv.description || 'Professional photography coverage with high-resolution digital delivery.',
-          base_price: Number(srv.priceInr || srv.base_price) || 4999,
-          currency: 'INR',
-          duration_minutes: (Number(srv.durationHours) || 2) * 60,
-          delivery_time_hours: 48,
-          service_type: 'scheduled',
-          instant_booking_enabled: true,
-          is_active: true,
-        }));
-
-        await client
-          .from('creator_services')
-          .insert(serviceInserts);
-      }
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('creator_id', creatorId)
+        .eq('is_active', true);
+      if (deactivateErr) return jsonError(500, 'Could not update packages.');
     }
-
-    const referenceCode = `ONB-${userId.slice(0, 8).toUpperCase()}`;
+    const serviceRows = services
+      .filter((srv: any) => srv && Number.isFinite(Number(srv.priceInr ?? srv.base_price)))
+      .map((srv: any) => ({
+        creator_id: creatorId,
+        title: cleanText(srv.title, 150) || 'Standard Shoot Package',
+        description: cleanText(srv.description, 2000) || 'Professional photography coverage with high-resolution digital delivery.',
+        base_price: Math.max(0, Number(srv.priceInr ?? srv.base_price)),
+        currency: 'INR',
+        duration_minutes: Math.max(1, Math.round((Number(srv.durationHours) || 2) * 60)),
+        delivery_time_hours: 48,
+        service_type: 'scheduled',
+        instant_booking_enabled: true,
+        is_active: true,
+      }));
+    if (serviceRows.length > 0) {
+      const { error } = await admin.from('creator_services').insert(serviceRows);
+      if (error) return jsonError(500, 'Could not save packages.');
+    }
 
     return NextResponse.json({
       success: true,
       creatorId,
-      referenceCode,
-      message: 'Creator onboarding application submitted to Supabase successfully.',
+      verificationStatus: nextStatus,
+      referenceCode: `ONB-${user.id.slice(0, 8).toUpperCase()}`,
+      message:
+        nextStatus === 'approved'
+          ? 'Your photographer profile has been updated.'
+          : 'Your photographer application was submitted for review.',
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error submitting creator onboarding:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return jsonError(500, 'Could not submit your application.');
   }
 }

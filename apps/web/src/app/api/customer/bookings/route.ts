@@ -1,28 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authorize, jsonError } from '@/lib/server/session';
+import { canCustomerCancel, cleanText, matchesSessionUser } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
-    }
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    const { data: bookings, error } = await client
-      .from('bookings')
-      .select(`
+const BOOKING_LIST_SELECT = `
         id,
         booking_reference,
         event_title,
@@ -57,87 +39,109 @@ export async function GET(req: NextRequest) {
           title,
           duration_minutes
         )
-      `)
-      .eq('customer_id', userId)
-      .order('event_date', { ascending: false });
+      `;
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
+/**
+ * GET /api/customer/bookings
+ * Lists the authenticated customer's own bookings.
+ */
+export async function GET(req: NextRequest) {
+  const auth = await authorize({ roles: ['customer'] });
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
 
-    return NextResponse.json({ success: true, bookings: bookings || [] });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  const requested = new URL(req.url).searchParams.get('userId');
+  if (!matchesSessionUser(user.id, requested)) {
+    return jsonError(403, 'You can only view your own bookings.');
   }
+
+  const { data: bookings, error } = await admin
+    .from('bookings')
+    .select(BOOKING_LIST_SELECT)
+    .eq('customer_id', user.id)
+    .order('event_date', { ascending: false });
+
+  if (error) {
+    console.error('Could not load customer bookings:', error.message);
+    return jsonError(500, 'Could not load bookings.');
+  }
+
+  return NextResponse.json({ success: true, bookings: bookings || [] });
 }
 
+/**
+ * PATCH /api/customer/bookings
+ * Body: { bookingId, action: 'cancel', reason? }
+ * Only the booking's customer may cancel, and only before the shoot has started.
+ */
 export async function PATCH(req: NextRequest) {
+  const auth = await authorize({ roles: ['customer'] });
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  let body: Record<string, any>;
   try {
-    const body = await req.json();
-    const { bookingId, action, reason, userId } = body;
-
-    if (!bookingId || !action) {
-      return NextResponse.json({ success: false, error: 'Missing bookingId or action' }, { status: 400 });
-    }
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    // Verify booking belongs to customer
-    const { data: booking, error: fetchErr } = await client
-      .from('bookings')
-      .select('id, customer_id, booking_status')
-      .eq('id', bookingId)
-      .single();
-
-    if (fetchErr || !booking) {
-      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
-    }
-
-    if (userId && booking.customer_id !== userId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized to modify this booking' }, { status: 403 });
-    }
-
-    if (action === 'cancel') {
-      if (booking.booking_status === 'in_progress' || booking.booking_status === 'completed') {
-        return NextResponse.json(
-          { success: false, error: 'Shoots that are already in progress or completed cannot be cancelled.' },
-          { status: 400 }
-        );
-      }
-
-      const { data: updated, error: updateErr } = await client
-        .from('bookings')
-        .update({
-          booking_status: 'cancelled',
-          cancellation_reason: reason || 'Cancelled by customer',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', bookingId)
-        .select()
-        .single();
-
-      if (updateErr) {
-        return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
-      }
-
-      await client.from('booking_status_history').insert({
-        booking_id: bookingId,
-        previous_status: booking.booking_status,
-        new_status: 'cancelled',
-        changed_by: userId || null,
-        change_reason: `Customer cancelled booking: ${reason || 'Customer request'}`,
-      });
-
-      return NextResponse.json({ success: true, booking: updated });
-    }
-
-    return NextResponse.json({ success: false, error: `Invalid action: ${action}` }, { status: 400 });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON payload.');
   }
+
+  const { bookingId, action } = body;
+  if (!bookingId || !action) {
+    return jsonError(400, 'Missing bookingId or action');
+  }
+  if (!matchesSessionUser(user.id, body.userId)) {
+    return jsonError(403, 'Unauthorized to modify this booking');
+  }
+
+  const { data: booking, error: fetchErr } = await admin
+    .from('bookings')
+    .select('id, customer_id, booking_status')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  if (fetchErr) return jsonError(500, 'Could not load booking.');
+  // Same response for "not found" and "not yours" so IDs cannot be probed.
+  if (!booking || booking.customer_id !== user.id) {
+    return jsonError(404, 'Booking not found');
+  }
+
+  if (action !== 'cancel') {
+    return jsonError(400, `Invalid action: ${action}`);
+  }
+  if (!canCustomerCancel(booking.booking_status)) {
+    return jsonError(
+      400,
+      `Bookings in status "${booking.booking_status}" cannot be cancelled.`
+    );
+  }
+
+  const reason = cleanText(body.reason, 500) || 'Customer request';
+  const { data: updated, error: updateErr } = await admin
+    .from('bookings')
+    .update({
+      booking_status: 'cancelled',
+      cancellation_reason: `Customer cancelled booking: ${reason}`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId)
+    .eq('customer_id', user.id)
+    .select()
+    .single();
+
+  if (updateErr || !updated) {
+    console.error('Could not cancel booking:', updateErr?.message);
+    return jsonError(500, 'Could not cancel the booking.');
+  }
+
+  const { error: historyErr } = await admin.from('booking_status_history').insert({
+    booking_id: bookingId,
+    previous_status: booking.booking_status,
+    new_status: 'cancelled',
+    changed_by: user.id,
+    change_reason: `Customer cancelled booking: ${reason}`,
+  });
+  if (historyErr) console.error('Could not record cancellation history:', historyErr.message);
+
+  return NextResponse.json({ success: true, booking: updated });
 }

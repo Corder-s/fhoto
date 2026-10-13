@@ -28,11 +28,14 @@ import {
   Cpu
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
+import { useServerSession } from '../../../lib/useServerSession';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/admin/dashboard';
   const { user, isAuthenticated, isMounted, logout } = useAuth();
+  // Authorization is decided by the server session, not by the localStorage copy of the user.
+  const serverSession = useServerSession();
   const { openAuthModal } = useAuthModal();
 
   // Collapsible menu states matching Reference Image B
@@ -87,7 +90,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const isAdminOrOwner = user.role === 'admin' || user.role === 'owner';
+  if (serverSession.status === 'loading') {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  const isAdminOrOwner = serverSession.status === 'authenticated' && serverSession.user.roles.includes('admin');
   if (!isAdminOrOwner) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
@@ -323,7 +333,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     Customers
                   </Link>
                   <Link
-                    href="/admin/photographers"
+                    href="/admin/dashboard#pending-photographers"
                     className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
                   >
                     Photographers
@@ -447,25 +457,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {settingsOpen && (
                 <div className="pl-9 pr-2 py-1 space-y-1">
                   <Link
-                    href="/admin/settings"
+                    href="/admin/dashboard"
                     className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
                   >
                     General Settings
                   </Link>
                   <Link
-                    href="/admin/settings"
+                    href="/admin/dashboard"
                     className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
                   >
                     Email &amp; Notifications
                   </Link>
                   <Link
-                    href="/admin/settings"
+                    href="/admin/dashboard"
                     className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
                   >
                     Payment Settings
                   </Link>
                   <Link
-                    href="/admin/settings"
+                    href="/admin/dashboard"
                     className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
                   >
                     AI &amp; Integrations

@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
+import { useServerSession } from '../../../lib/useServerSession';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { user, isAuthenticated, isMounted, logout } = useAuth();
   const { openAuthModal } = useAuthModal();
+  const serverSession = useServerSession();
 
   const handleLogout = async () => {
     await logout();
@@ -73,7 +75,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (user.role !== 'owner') {
+  // No 'owner' role exists in the database (see docs/AUTHORIZATION_AND_ROLE_ACCESS.md), so this stays closed.
+  if (serverSession.status !== 'authenticated' || !serverSession.user.roles.includes('owner')) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">

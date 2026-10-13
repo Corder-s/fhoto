@@ -4,13 +4,14 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guard';
 import { EntitlementGuard } from '../common/entitlement.guard';
+import { getJwtSecret } from './auth-config';
 
 @Global()
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET || 'snapshoot_jwt_super_secret_key_production_grade',
-      signOptions: { expiresIn: '7d' },
+      secret: getJwtSecret(),
+      signOptions: { expiresIn: '1h' },
     }),
   ],
   controllers: [AuthController],

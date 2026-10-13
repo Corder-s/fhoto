@@ -7,6 +7,7 @@ import { Camera, Lock, ShieldAlert, ArrowRight, UserCheck, ShieldCheck, Home } f
 import { PhotographerSidebar } from './PhotographerSidebar';
 import { PhotographerHeader } from './PhotographerHeader';
 import { useAuth } from '../../lib/auth';
+import { useServerSession } from '../../lib/useServerSession';
 import { useAuthModal } from '../auth/AuthModalContext';
 
 export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -14,6 +15,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   const router = useRouter();
   const { user, isAuthenticated, isMounted, logout } = useAuth();
   const { openAuthModal } = useAuthModal();
+  const serverSession = useServerSession();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -24,6 +26,17 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
       router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
     }
   }, [isMounted, isAuthenticated, pathname, router]);
+
+  // Role gate uses the server-verified roles (never the localStorage copy).
+  const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
+  const isAuthorizedRole = serverRoles.includes('creator') || serverRoles.includes('admin');
+
+  // Customers cannot enter the photographer workspace; send them to the customer dashboard.
+  useEffect(() => {
+    if (isMounted && isAuthenticated && serverSession.status === 'authenticated' && !isAuthorizedRole) {
+      router.replace('/customer/dashboard');
+    }
+  }, [isMounted, isAuthenticated, serverSession.status, isAuthorizedRole, router]);
 
   // Loading skeleton while reading storage/cookies
   if (!isMounted) {
@@ -46,19 +59,13 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
     );
   }
 
-  // 2. Role-Based Authorization Gate: Customers cannot enter photographer-only workspace
-  const isAuthorizedRole =
-    user.role === 'creator' ||
-    user.role === 'photographer' ||
-    user.role === 'admin' ||
-    user.role === 'owner';
-
-  // Automatically deny access and redirect customers to customer dashboard
-  useEffect(() => {
-    if (isMounted && isAuthenticated && user && !isAuthorizedRole) {
-      router.replace('/customer/dashboard');
-    }
-  }, [isMounted, isAuthenticated, user, isAuthorizedRole, router]);
+  if (serverSession.status === 'loading') {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthorizedRole) {
     return (

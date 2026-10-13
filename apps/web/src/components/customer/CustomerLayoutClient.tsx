@@ -6,6 +6,7 @@ import { Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import Navbar from '../Navbar';
 import Footer from '../Footer';
 import { useAuth } from '../../lib/auth';
+import { useServerSession } from '../../lib/useServerSession';
 import { useAuthModal } from '../auth/AuthModalContext';
 
 export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -13,8 +14,10 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
   const router = useRouter();
   const { user, isAuthenticated, isMounted } = useAuth();
   const { openAuthModal } = useAuthModal();
+  const serverSession = useServerSession();
 
-  const isCreatorRole = user?.role === 'creator' || user?.role === 'photographer';
+  // Creators also hold the customer role; the server-verified 'creator' role decides the redirect.
+  const isCreatorRole = serverSession.status === 'authenticated' && serverSession.user.roles.includes('creator');
 
   // If a photographer visits a customer dashboard route, redirect them to photographer studio
   useEffect(() => {

@@ -18,6 +18,7 @@ import {
   Check
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
+import { getSupabaseBrowserClient, isSupabaseConfigured } from '../../lib/supabase/client';
 import Footer from '../../components/Footer';
 
 export default function ForgotPasswordPage() {
@@ -58,36 +59,32 @@ export default function ForgotPasswordPage() {
       }
     }
 
+    if (method !== 'email') {
+      setErrorMessage('Mobile number recovery is not available yet. Please reset your password with your registered email.');
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !isSupabaseConfigured()) {
+      setErrorMessage('Password reset is unavailable because the authentication service is not configured.');
+      return;
+    }
+
     setIsLoading(true);
-
     try {
-      const res = await fetch('/api/v1/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: value,
-          method,
-        }),
+      // Supabase Auth sends the recovery e-mail and validates the link when the user returns.
+      const { error } = await supabase.auth.resetPasswordForEmail(value, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(data.message || 'Unable to process recovery request. Please try again.');
+      if (error) {
+        setErrorMessage(error.message || 'Unable to process recovery request. Please try again.');
       } else {
         setSuccessMessage(
-          method === 'email'
-            ? `We've sent a password reset link to ${value}. Please check your inbox and spam folder.`
-            : `A verification code has been dispatched to +91 ${value}.`
+          `If an account exists for ${value}, a password reset link has been sent. Please check your inbox and spam folder.`
         );
       }
-    } catch {
-      // Fallback in case backend gateway is unreachable locally
-      setSuccessMessage(
-        method === 'email'
-          ? `We've sent a secure reset link to ${value}. The link will expire in 15 minutes.`
-          : `A verification code has been dispatched to your mobile number.`
-      );
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Unable to process recovery request. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -345,7 +342,7 @@ export default function ForgotPasswordPage() {
                   Forgot Password?
                 </h2>
                 <p className="text-xs sm:text-[13px] text-[#736B63] leading-relaxed">
-                  No worries! Enter your email address or mobile number and we'll send you a link to reset your password.
+                  No worries! Enter your email address or mobile number and we&apos;ll send you a link to reset your password.
                 </p>
               </div>
 
@@ -482,7 +479,7 @@ export default function ForgotPasswordPage() {
                 <div>
                   <h4 className="text-xs font-bold text-[#1A1816]">Keep your account safe</h4>
                   <p className="text-[11px] text-[#736B63] mt-0.5 leading-relaxed">
-                    We'll send a secure link to your {method === 'email' ? 'email address' : 'mobile number'}. The link will expire in 15 minutes.
+                    We&apos;ll send a secure reset link to your {method === 'email' ? 'email address' : 'mobile number'}. Links expire after a limited time.
                   </p>
                 </div>
               </div>

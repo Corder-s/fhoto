@@ -6,9 +6,12 @@ dotenv.config({ path: '.env' });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const seedPassword = process.env.SEED_CREATOR_PASSWORD;
 
-if (!url || !serviceKey) {
-  console.error('Missing Supabase URL or service key');
+if (!url || !serviceKey || !seedPassword || seedPassword.length < 12) {
+  console.error(
+    'Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SEED_CREATOR_PASSWORD (12+ characters) before running this seed.'
+  );
   process.exit(1);
 }
 
@@ -18,7 +21,7 @@ async function seedVikram() {
   console.log('Seeding Vikramaditya Rathore into Supabase...');
 
   const email = 'vikram.rathore.creator@instantshoot.in';
-  const password = 'CreatorPass2026!#';
+  const password = seedPassword;
 
   // 1. Create or retrieve auth user
   const { data: userList } = await admin.auth.admin.listUsers();

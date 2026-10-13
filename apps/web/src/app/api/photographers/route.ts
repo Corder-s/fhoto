@@ -41,6 +41,9 @@ export async function GET(request: Request) {
       `)
       .order('average_rating', { ascending: false });
 
+    // Only platform-approved photographers are publicly discoverable or bookable.
+    queryBuilder = queryBuilder.eq('verification_status', 'approved');
+
     if (creatorId) {
       const { isUuid: isIdUuid, searchTerm } = resolveSlugSearchTerm(creatorId);
       if (isIdUuid) {
@@ -58,7 +61,7 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Error fetching creators from Supabase:', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Could not load photographers.' }, { status: 500 });
     }
 
     const creators = data || [];
@@ -88,6 +91,7 @@ export async function GET(request: Request) {
     let portfolioQuery = client
       .from('creator_portfolio_items')
       .select('*')
+      .eq('is_published', true)
       .order('display_order', { ascending: true });
 
     if (creatorIds.length > 0) {
@@ -169,9 +173,6 @@ export async function GET(request: Request) {
     });
   } catch (err: any) {
     console.error('API Error:', err);
-    return NextResponse.json(
-      { error: err?.message || 'Failed to fetch photographers' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Could not load photographers.' }, { status: 500 });
   }
 }

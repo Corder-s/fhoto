@@ -10,6 +10,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { RoleType } from '@snapshoot/shared';
+import { getJwtSecret } from '../auth/auth-config';
 
 export interface AuthenticatedUser {
   id: string;
@@ -75,7 +76,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_ACCESS_SECRET || 'snapshoot_jwt_super_secret_key_production_grade',
+        secret: getJwtSecret(),
       });
       request.user = payload as AuthenticatedUser;
       return true;
