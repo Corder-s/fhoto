@@ -184,7 +184,13 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
         }),
       });
 
-      const data = await res.json();
+      let data: any = null;
+      const textResp = await res.text();
+      try {
+        data = JSON.parse(textResp);
+      } catch {
+        throw new Error(textResp && textResp.length < 120 ? textResp : `HTTP ${res.status}`);
+      }
 
       const assistantMsg: ChatMessage = {
         id: `asst-${Date.now()}`,
@@ -202,7 +208,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: `⚠️ Network error: Could not reach SnapShoot AI service. Please check that the backend gateway is running. (${err.message})`,
+        content: `⚠️ AI Service Note: ${err.message || 'Could not communicate with chatbot service.'}`,
         isConfigured: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
@@ -316,7 +322,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                       <div>
                         <strong className="block font-semibold">Server Configuration Notice</strong>
                         <span>
-                          To activate dynamic OpenAI completions, provide <code className="bg-amber-100 px-1 rounded">OPENAI_API_KEY</code> in the backend server environment.
+                          To activate dynamic Gemini completions, provide <code className="bg-amber-100 px-1 rounded">GEMINI_API_KEY</code> in the backend server environment.
                         </span>
                       </div>
                     </div>
@@ -396,7 +402,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
               </button>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#A39E96] px-1">
-              <span>Powered by OpenAI & SnapShoot Tools</span>
+              <span>Powered by Google Gemini & SnapShoot Tools</span>
               <span>Enter to send</span>
             </div>
           </div>

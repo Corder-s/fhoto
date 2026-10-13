@@ -1,15 +1,52 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Star, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
-import { SAMPLE_PHOTOGRAPHERS } from '../../data/photographers';
+import { Star, MapPin, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useAuthModal } from '../auth/AuthModalContext';
+
+interface LiveCreator {
+  id: string;
+  name: string;
+  bio?: string;
+  tagline: string;
+  locationArea: string;
+  startingPriceInr: number;
+  rating: number;
+  reviewCount: number;
+  availabilityStatus: string;
+  avatarUrl: string;
+  coverImageUrl: string;
+  specialties: string[];
+}
 
 export const ZomatoFeaturedPhotographers: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
+  const [creators, setCreators] = useState<LiveCreator[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCreators() {
+      try {
+        const res = await fetch('/api/photographers');
+        const data = await res.json();
+        if (isMounted && data.photographers && data.photographers.length > 0) {
+          setCreators(data.photographers);
+        }
+      } catch (err) {
+        console.error('Failed to load live photographers:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadCreators();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <section className="py-10 md:py-16 bg-[#FAF7F2]">
@@ -21,15 +58,16 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C847A]">
                 VERIFIED CREATOR NETWORK
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#FFF3E5] text-[#FF6E00] border border-[#FFD4A8]">
-                Sample Demo Data
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#E7F6ED] text-[#1E7D46] border border-[#C5E8D2] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1E7D46] animate-pulse" />
+                Live Database
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A1816] tracking-tight">
               Discover photographers near you
             </h2>
             <p className="text-xs sm:text-sm text-[#665E55]">
-              Browse verified portfolios and upfront package pricing in Delhi NCR and across India.
+              Browse verified portfolios and upfront package pricing in Delhi NCR, Mumbai, and across India.
             </p>
           </div>
 
@@ -46,29 +84,40 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
             }}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1A1816] hover:text-[#FF6E00] transition-colors self-start sm:self-auto"
           >
-            <span>View all photographers</span>
+            <span>View all {creators.length > 0 ? `${creators.length} verified` : ''} photographers</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
+        {/* Loading Skeletons */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-white rounded-2xl border border-[#EBE4DA] overflow-hidden shadow-sm animate-pulse flex flex-col justify-between h-[380px]"
+              >
+                <div className="aspect-[16/9] bg-[#E8E2D8]" />
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-[#E8E2D8]" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 bg-[#E8E2D8] rounded w-2/3" />
+                      <div className="h-3 bg-[#E8E2D8] rounded w-1/3" />
+                    </div>
+                  </div>
+                  <div className="h-3 bg-[#E8E2D8] rounded w-full" />
+                </div>
+                <div className="p-5 pt-3 border-t border-[#EBE4DA] h-12 bg-[#FAF7F2]/50" />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Photographers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {SAMPLE_PHOTOGRAPHERS.map((creator) => {
-            const avatarSrc =
-              creator.id === 'pro-aman'
-                ? '/reference-assets/avatar_aman.jpg'
-                : creator.id === 'pro-riya'
-                ? '/reference-assets/avatar_riya.jpg'
-                : '/reference-assets/avatar_karan.jpg';
-
-            const previewImg =
-              creator.id === 'pro-aman'
-                ? '/reference-assets/aman_c1.jpg'
-                : creator.id === 'pro-riya'
-                ? '/reference-assets/riya_c1.jpg'
-                : '/reference-assets/karan_c1.jpg';
-
-            return (
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {creators.map((creator) => (
               <div
                 key={creator.id}
                 className="bg-white rounded-2xl border border-[#EBE4DA] overflow-hidden shadow-[0_4px_16px_-4px_rgba(26,24,22,0.06)] hover:shadow-elevated hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group"
@@ -77,7 +126,7 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                   {/* Portfolio Preview Cover */}
                   <div className="relative aspect-[16/9] overflow-hidden bg-[#FAF7F2]">
                     <img
-                      src={previewImg}
+                      src={creator.coverImageUrl}
                       alt={`${creator.name} portfolio preview`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -93,7 +142,7 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={avatarSrc}
+                          src={creator.avatarUrl}
                           alt={creator.name}
                           className="w-11 h-11 rounded-full object-cover shrink-0 border border-[#E8E1D6]"
                         />
@@ -114,7 +163,7 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                       {/* Rating */}
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#FAF7F2] border border-[#E8E2D8] text-xs font-bold text-[#1A1816] shrink-0">
                         <Star className="w-3 h-3 text-[#FF6E00] fill-[#FF6E00]" />
-                        <span>{creator.rating}</span>
+                        <span>{creator.rating.toFixed(1)}</span>
                         <span className="text-[#8C847A] font-normal text-[11px]">
                           ({creator.reviewCount})
                         </span>
@@ -156,9 +205,9 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                   </Link>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

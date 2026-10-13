@@ -78,7 +78,7 @@ export const OriginalAuthenticatedLanding: React.FC = () => {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative overflow-hidden pt-8 pb-10 md:pt-12 md:pb-14">
+        <section className="relative pt-8 pb-10 md:pt-12 md:pb-14 z-20">
           <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
             {/* Top Row: Left Headline & Copy, Right Hero Photography */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[280px]">
@@ -124,7 +124,7 @@ export const OriginalAuthenticatedLanding: React.FC = () => {
             </div>
 
             {/* Bottom Row: Search Bar & Trust Indicators */}
-            <div className="mt-6 md:mt-8">
+            <div className="mt-6 md:mt-8 relative z-30">
               <HeroSearch
                 onSearch={handleSearch}
                 selectedCategory={selectedCategory}

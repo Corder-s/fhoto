@@ -18,89 +18,29 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
-  // Auto prompt authentication modal if visiting protected photographer route while logged out
+  // Auto redirect to /login if unauthenticated or signed out from protected photographer routes (preserving returnUrl)
   useEffect(() => {
     if (isMounted && !isAuthenticated) {
-      openAuthModal({
-        returnUrl: pathname,
-        initialTab: 'login',
-        rolePreference: 'creator',
-        message: 'The Photographer Studio is reserved for registered creator partners. Please log in or register your profile.',
-      });
+      router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
     }
-  }, [isMounted, isAuthenticated, pathname, openAuthModal]);
+  }, [isMounted, isAuthenticated, pathname, router]);
 
   // Loading skeleton while reading storage/cookies
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  // 1. Unauthenticated Gate: Block access and present login/registration
+  // 1. Unauthenticated Gate: Redirecting to login
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen bg-canvas-primary text-ink-primary flex flex-col items-center justify-center p-4 sm:p-8">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle shadow-elevated p-8 text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-[#FF6E00] flex items-center justify-center text-white mx-auto shadow-md">
-            <Lock className="w-8 h-8 stroke-[2.2]" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#FFF3E5] text-[#FF6E00] border border-[#FFD4A8]">
-              Creator Workspace Protected
-            </span>
-            <h1 className="text-2xl font-black text-ink-primary tracking-tight">
-              Photographer Access Required
-            </h1>
-            <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              The Photographer Studio, bookings schedule, service packages, and instant payouts are reserved for verified creator partners.
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <button
-              onClick={() =>
-                openAuthModal({
-                  returnUrl: pathname,
-                  initialTab: 'login',
-                  rolePreference: 'creator',
-                })
-              }
-              className="w-full py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Log In to Creator Studio</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() =>
-                openAuthModal({
-                  returnUrl: pathname,
-                  initialTab: 'register',
-                  rolePreference: 'creator',
-                })
-              }
-              className="w-full py-3 px-6 rounded-2xl bg-[#F2ECE3] hover:bg-[#E8E2D8] text-ink-primary border border-contour-subtle text-xs sm:text-sm font-bold transition-all cursor-pointer"
-            >
-              Apply as Creator Partner
-            </button>
-
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted hover:text-ink-primary pt-2 transition-colors"
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>Return to Public Homepage</span>
-            </Link>
-          </div>
-
-          <div className="pt-4 border-t border-contour-subtle text-[11px] text-ink-muted flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#FF6E00]" />
-            <span>Encrypted Session • Multi-Tenant Protected</span>
-          </div>
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-ink-secondary">Redirecting to login...</p>
         </div>
       </div>
     );
@@ -112,6 +52,13 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
     user.role === 'photographer' ||
     user.role === 'admin' ||
     user.role === 'owner';
+
+  // Automatically deny access and redirect customers to customer dashboard
+  useEffect(() => {
+    if (isMounted && isAuthenticated && user && !isAuthorizedRole) {
+      router.replace('/customer/dashboard');
+    }
+  }, [isMounted, isAuthenticated, user, isAuthorizedRole, router]);
 
   if (!isAuthorizedRole) {
     return (
@@ -158,7 +105,10 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
             </button>
 
             <button
-              onClick={() => logout()}
+              onClick={async () => {
+                await logout();
+                router.push('/login');
+              }}
               className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors cursor-pointer"
             >
               Sign Out of Current Account

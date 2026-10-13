@@ -33,13 +33,39 @@ export default function Navbar() {
     pathname === '/categories' ||
     pathname.startsWith('/categories/');
 
+  const isCreatorRole = user?.role === 'creator' || user?.role === 'photographer';
+  const isAdminRole = user?.role === 'admin' || user?.role === 'owner';
+
+  const bookingsHref = isCreatorRole
+    ? '/photographer/bookings'
+    : isAdminRole
+    ? '/admin/bookings'
+    : '/customer/bookings';
+
+  const bookingsLabel = isCreatorRole
+    ? 'Booking Requests'
+    : isAdminRole
+    ? 'All Bookings'
+    : 'My Bookings';
+
   const isBookingsActive =
-    pathname === '/customer/bookings' ||
-    pathname.startsWith('/customer/bookings/');
+    pathname === bookingsHref ||
+    pathname.startsWith(`${bookingsHref}/`) ||
+    pathname.includes('/bookings');
+
+  const galleryHref = isCreatorRole
+    ? '/photographer/portfolio'
+    : '/customer/gallery';
+
+  const galleryLabel = isCreatorRole
+    ? 'Portfolio Gallery'
+    : 'Photo Gallery';
 
   const isGalleryActive =
+    pathname === galleryHref ||
+    pathname.startsWith(`${galleryHref}/`) ||
     pathname === '/customer/gallery' ||
-    pathname.startsWith('/customer/gallery/');
+    pathname === '/photographer/portfolio';
 
   const isHowItWorksActive =
     pathname === '/how-it-works' ||
@@ -50,7 +76,7 @@ export default function Navbar() {
     pathname.startsWith('/for-photographers/');
 
   const userSettingsHref =
-    user?.role === 'creator' || user?.role === 'photographer'
+    isCreatorRole
       ? '/photographer/settings'
       : user?.role === 'admin'
       ? '/admin/dashboard'
@@ -100,24 +126,24 @@ export default function Navbar() {
                 Explore Photographers
               </Link>
               <Link
-                href="/customer/bookings"
+                href={bookingsHref}
                 className={`transition-colors ${
                   isBookingsActive
                     ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                My Bookings
+                {bookingsLabel}
               </Link>
               <Link
-                href="/customer/gallery"
+                href={galleryHref}
                 className={`transition-colors ${
                   isGalleryActive
                     ? 'text-[#FF6E00] font-bold'
                     : 'text-[#5A544D] hover:text-[#1A1816]'
                 }`}
               >
-                Photo Gallery
+                {galleryLabel}
               </Link>
             </>
           ) : (
@@ -181,13 +207,18 @@ export default function Navbar() {
           {isAuthenticated ? (
             <Link
               href={userSettingsHref}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
-              title="User Profile & Settings"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F2ECE3] border border-[#E5DDD2] text-xs font-bold text-[#1A1816] hover:bg-[#EAE2D7] transition-all cursor-pointer"
+              title={isCreatorRole ? 'Creator Studio Settings' : 'Client Profile & Settings'}
             >
               <div className="w-5 h-5 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-[10px]">
                 {user?.name ? user.name[0] : 'U'}
               </div>
-              <span>{user?.name || 'User Profile'}</span>
+              <span className="max-w-[120px] truncate">{user?.name || (isCreatorRole ? 'Creator' : 'Client')}</span>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                isCreatorRole ? 'bg-[#FF6E00] text-white' : 'bg-[#E7F6ED] text-[#1E7D46] border border-[#C5E8D2]'
+              }`}>
+                {isCreatorRole ? 'Studio' : 'Client'}
+              </span>
             </Link>
           ) : (
             <>
@@ -276,22 +307,22 @@ export default function Navbar() {
                   Explore Photographers
                 </Link>
                 <Link
-                  href="/customer/bookings"
+                  href={bookingsHref}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
                     isBookingsActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  My Bookings
+                  {bookingsLabel}
                 </Link>
                 <Link
-                  href="/customer/gallery"
+                  href={galleryHref}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-3 py-2 rounded-card-sm hover:bg-[#F2ECE3] transition-colors ${
                     isGalleryActive ? 'text-[#FF6E00] font-bold' : 'text-[#1A1816]'
                   }`}
                 >
-                  Photo Gallery
+                  {galleryLabel}
                 </Link>
               </>
             ) : (

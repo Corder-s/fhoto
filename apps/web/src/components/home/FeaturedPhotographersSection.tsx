@@ -92,21 +92,25 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
                 <div className="space-y-4">
                   {/* Top: Avatar, Name, Verification, Location, Rating, Favorite */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <Link
+                      href={`/photographers/${creator.id}`}
+                      className="flex items-center gap-3 min-w-0 group/creator hover:opacity-90 transition-opacity"
+                    >
                       <img
                         src={
-                          creator.id === 'pro-aman'
+                          creator.avatarUrl ||
+                          (creator.id === 'pro-aman'
                             ? '/reference-assets/avatar_aman.jpg'
                             : creator.id === 'pro-riya'
                             ? '/reference-assets/avatar_riya.jpg'
-                            : '/reference-assets/avatar_karan.jpg'
+                            : '/reference-assets/avatar_karan.jpg')
                         }
                         alt={creator.name}
-                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#E8E1D6]"
+                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#E8E1D6] group-hover/creator:border-[#FF6E00] transition-colors"
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
-                          <h3 className="text-sm font-bold text-[#1A1816] truncate">
+                          <h3 className="text-sm font-bold text-[#1A1816] truncate group-hover/creator:text-[#FF6E00] transition-colors">
                             {creator.name}
                           </h3>
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#FF6E00] fill-[#FF6E00]/10 shrink-0 stroke-[2.5]" />
@@ -116,7 +120,7 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
                           <span>{creator.locationArea}</span>
                         </p>
                       </div>
-                    </div>
+                    </Link>
 
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="flex items-center gap-1 text-xs font-bold text-[#1A1816]">
@@ -215,7 +219,7 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
 
                   {/* Card 3: Karan Mehta (Large photo + 2 stacked + +15 overlay) */}
                   {creator.id === 'pro-karan' && (
-                    <Link href={`/photographers/${creator.id}`} className="block">
+                    <Link href={`/photographers/${creator.id}`} className="block group/collage">
                       <div className="grid grid-cols-12 gap-1.5 h-24 sm:h-28 rounded-xl overflow-hidden bg-[#FAF7F2]">
                         <div className="col-span-5 h-full overflow-hidden">
                           <img
@@ -254,6 +258,39 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
                     </Link>
                   )}
 
+                  {/* Generic Creator Portfolio Preview for all other / Supabase creators */}
+                  {creator.id !== 'pro-aman' && creator.id !== 'pro-riya' && creator.id !== 'pro-karan' && (
+                    <Link href={`/photographers/${creator.id}`} className="block group/collage">
+                      <div className="grid grid-cols-12 gap-1.5 h-24 sm:h-28 rounded-xl overflow-hidden bg-[#FAF7F2]">
+                        <div className="col-span-7 h-full overflow-hidden">
+                          <img
+                            src={
+                              (creator as any).portfolio?.[0]?.url ||
+                              (creator as any).coverImageUrl ||
+                              '/reference-assets/cat_portrait.jpg'
+                            }
+                            alt={`${creator.name} Portfolio 1`}
+                            className="w-full h-full object-cover group-hover/collage:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="col-span-5 h-full relative overflow-hidden">
+                          <img
+                            src={
+                              (creator as any).portfolio?.[1]?.url ||
+                              (creator as any).secondaryCoverUrl ||
+                              '/reference-assets/cat_reels.jpg'
+                            }
+                            alt={`${creator.name} Portfolio 2`}
+                            className="w-full h-full object-cover group-hover/collage:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors flex items-center justify-center text-white font-bold text-xs">
+                            View Work
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )}
+
                   {/* Category Tag Pills */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     {creator.categories.map((cat) => (
@@ -267,19 +304,38 @@ export const FeaturedPhotographersSection: React.FC<FeaturedPhotographersSection
                   </div>
                 </div>
 
-                {/* Bottom: Pricing & Availability Badge */}
-                <div className="pt-4 mt-4 border-t border-[#EBE4DA] flex items-center justify-between">
-                  <div className="text-xs text-[#8C847A]">
-                    <span>From </span>
-                    <span className="text-sm font-black text-[#1A1816]">
-                      ₹{creator.startingPriceInr.toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-[10px]"> / session</span>
+                {/* Bottom: Pricing, Availability & Direct Action Links */}
+                <div className="pt-4 mt-4 border-t border-[#EBE4DA] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-[#8C847A]">
+                      <span>From </span>
+                      <span className="text-sm font-black text-[#1A1816]">
+                        ₹{creator.startingPriceInr.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[10px]"> / session</span>
+                    </div>
+
+                    <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1E7D46]" />
+                      <span>{creator.availabilityStatus}</span>
+                    </div>
                   </div>
 
-                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46] flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1E7D46]" />
-                    <span>{creator.availabilityStatus}</span>
+                  {/* Interactive 'View Profile' and 'Book' Links to ensure responsive clicks */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Link
+                      href={`/photographers/${creator.id}`}
+                      className="w-full py-2 px-3 rounded-xl border border-[#D5CEC4] bg-white hover:bg-[#FAF7F2] text-[#1A1816] text-xs font-bold text-center transition-all flex items-center justify-center gap-1 shadow-2xs"
+                    >
+                      <span>View Profile</span>
+                      <ArrowRight className="w-3 h-3 text-[#8C847A]" />
+                    </Link>
+                    <Link
+                      href={`/photographers/${creator.id}?book=true`}
+                      className="w-full py-2 px-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs font-bold text-center transition-all shadow-2xs"
+                    >
+                      <span>Book Shoot</span>
+                    </Link>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -11,12 +14,22 @@ import {
   CreditCard,
   ShieldCheck,
   CheckCircle2,
-  PieChart
+  PieChart,
+  LogOut
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
+import { useAuth } from '../../../../lib/auth';
 
 export default function OwnerDashboardPage() {
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -39,6 +52,15 @@ export default function OwnerDashboardPage() {
           <Badge variant="brand" size="md">
             Live Production Metrics
           </Badge>
+          <button
+            onClick={handleLogout}
+            id="owner-dashboard-action-logout-btn"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-red-50 text-red-600 border border-red-200 text-xs font-bold transition-all shadow-subtle hover:shadow-xs cursor-pointer"
+            title="Sign out of owner dashboard"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
 

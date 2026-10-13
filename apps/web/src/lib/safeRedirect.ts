@@ -64,6 +64,11 @@ export function resolvePostAuthRedirect(
   // Extract base path without query parameters or hash
   const basePath = sanitized.split('?')[0].split('#')[0].toLowerCase();
 
+  // Direct deep link to specific public photographer profile (e.g. for booking continuation)
+  if (basePath.startsWith('/photographers/')) {
+    return sanitized;
+  }
+
   // Public marketing, discovery, or auth pages must NEVER override the user's dashboard
   const publicPaths = [
     '/',
@@ -81,15 +86,14 @@ export function resolvePostAuthRedirect(
     '/forgot-password',
   ];
 
-  const isPublicPath =
+  const isPublicMarketingPath =
     publicPaths.includes(basePath) ||
     basePath.startsWith('/explore/') ||
-    basePath.startsWith('/photographers/') ||
     basePath.startsWith('/how-it-works/') ||
     basePath.startsWith('/for-photographers/') ||
     basePath.startsWith('/categories/');
 
-  if (isPublicPath) {
+  if (isPublicMarketingPath) {
     return roleDashboard;
   }
 

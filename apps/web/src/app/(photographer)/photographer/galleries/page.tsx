@@ -133,6 +133,11 @@ export default function PhotographerGalleriesPage() {
   // Delivery Modal
   const [isDeliverModalOpen, setIsDeliverModalOpen] = useState(false);
   const [selectedGalleryForDelivery, setSelectedGalleryForDelivery] = useState<ClientGalleryItem | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState<'upload' | 'google_drive' | 'video_link'>('upload');
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
+  const [videoStreamUrl, setVideoStreamUrl] = useState('');
+  const [deliverableCategory, setDeliverableCategory] = useState<'edited_photos' | 'raw_photos' | 'edited_video'>('edited_photos');
+  const [deliveryError, setDeliveryError] = useState('');
   const [uploadCount, setUploadCount] = useState(25);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -155,6 +160,10 @@ export default function PhotographerGalleriesPage() {
     setSelectedGalleryForDelivery(g);
     setCustomPin(g.accessPin);
     setUploadProgress(0);
+    setDeliveryError('');
+    setGoogleDriveUrl('');
+    setVideoStreamUrl('');
+    setDeliveryMethod('upload');
     setIsDeliverModalOpen(true);
   };
 
@@ -162,8 +171,37 @@ export default function PhotographerGalleriesPage() {
     e.preventDefault();
     if (!selectedGalleryForDelivery) return;
 
+    if (deliveryMethod === 'google_drive') {
+      const driveRegex = /^https:\/\/(drive|docs)\.google\.com\/(file\/d\/|drive\/folders\/|open\?id=|document\/d\/)[a-zA-Z0-9_-]+/;
+      if (!driveRegex.test(googleDriveUrl.trim())) {
+        setDeliveryError('Invalid Google Drive link format. Please provide a valid shareable link (e.g. https://drive.google.com/drive/folders/...) with view permissions enabled.');
+        return;
+      }
+    }
+
+    if (deliveryMethod === 'video_link' && !videoStreamUrl.trim()) {
+      setDeliveryError('Please enter a valid video link (YouTube, Vimeo, or Frame.io).');
+      return;
+    }
+
+    setDeliveryError('');
     setIsUploading(true);
     setUploadProgress(20);
+
+    // Dispatch deliverable to server API
+    fetch('/api/deliverables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookingId: selectedGalleryForDelivery.bookingRef,
+        creatorId: 'pro-current',
+        customerId: selectedGalleryForDelivery.clientEmail,
+        title: `${selectedGalleryForDelivery.shootTitle} — Deliverables`,
+        deliverableType: deliverableCategory,
+        storageProvider: deliveryMethod === 'google_drive' ? 'google_drive' : (deliveryMethod === 'video_link' ? 'external_video' : 'supabase_storage'),
+        externalUrl: deliveryMethod === 'google_drive' ? googleDriveUrl.trim() : (deliveryMethod === 'video_link' ? videoStreamUrl.trim() : null),
+      }),
+    }).catch((err) => console.warn('Deliverable API notice:', err));
 
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
@@ -177,7 +215,7 @@ export default function PhotographerGalleriesPage() {
                   ? {
                       ...item,
                       status: 'DELIVERED',
-                      totalPhotos: uploadCount,
+                      totalPhotos: deliveryMethod === 'upload' ? uploadCount : 50,
                       accessPin: customPin || item.accessPin,
                       deliveredDate: new Date().toLocaleDateString('en-GB', {
                         day: '2-digit',
@@ -190,7 +228,7 @@ export default function PhotographerGalleriesPage() {
             );
             setIsDeliverModalOpen(false);
             setDeliverySuccessMessage(
-              `Private gallery for ${selectedGalleryForDelivery.clientName} delivered successfully! Notification dispatched to ${selectedGalleryForDelivery.clientEmail}.`
+              `Deliverables for ${selectedGalleryForDelivery.clientName} dispatched successfully! Verification notification sent to ${selectedGalleryForDelivery.clientEmail}.`
             );
             setTimeout(() => setDeliverySuccessMessage(''), 5000);
           }, 400);
@@ -460,21 +498,116 @@ export default function PhotographerGalleriesPage() {
               <p className="text-ink-muted">Client Notification Target: {selectedGalleryForDelivery.clientEmail}</p>
             </div>
 
-            {/* Upload Area */}
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary mb-1.5">
-                Upload Curated High-Res Photos *
+            {/* Delivery Method Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary">
+                Delivery Channel / Media Format *
               </label>
-              <div className="border-2 border-dashed border-contour-subtle rounded-card p-6 text-center bg-canvas-primary/50 hover:bg-canvas-primary transition-colors cursor-pointer">
-                <UploadCloud className="w-8 h-8 text-brand mx-auto mb-2" />
-                <p className="text-xs font-bold text-ink-primary">
-                  Drag &amp; drop edited photos or click to browse
-                </p>
-                <p className="text-[11px] text-ink-muted mt-1">
-                  Supports JPEG, PNG, TIFF, or compressed DNG ZIP. Max 50MB per file.
-                </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod('upload')}
+                  className={`p-2.5 rounded-card-sm border text-xs font-bold text-center transition-all ${
+                    deliveryMethod === 'upload'
+                      ? 'border-brand bg-brand/5 text-brand shadow-xs'
+                      : 'border-contour-subtle bg-white text-ink-secondary hover:text-ink-primary'
+                  }`}
+                >
+                  Direct Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod('google_drive')}
+                  className={`p-2.5 rounded-card-sm border text-xs font-bold text-center transition-all ${
+                    deliveryMethod === 'google_drive'
+                      ? 'border-brand bg-brand/5 text-brand shadow-xs'
+                      : 'border-contour-subtle bg-white text-ink-secondary hover:text-ink-primary'
+                  }`}
+                >
+                  Google Drive Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod('video_link')}
+                  className={`p-2.5 rounded-card-sm border text-xs font-bold text-center transition-all ${
+                    deliveryMethod === 'video_link'
+                      ? 'border-brand bg-brand/5 text-brand shadow-xs'
+                      : 'border-contour-subtle bg-white text-ink-secondary hover:text-ink-primary'
+                  }`}
+                >
+                  Video Stream Link
+                </button>
               </div>
             </div>
+
+            {/* Deliverable Category */}
+            <div>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary mb-1">
+                Asset Classification
+              </label>
+              <select
+                value={deliverableCategory}
+                onChange={(e: any) => setDeliverableCategory(e.target.value)}
+                className="w-full px-3 py-2 text-xs font-bold border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+              >
+                <option value="edited_photos">Curated High-Res Edited Photos</option>
+                <option value="raw_photos">Raw Unedited Photographic Assets (CR2/ARW/DNG)</option>
+                <option value="edited_video">4K Master Cinema Film / Vertical Reels</option>
+              </select>
+            </div>
+
+            {deliveryMethod === 'upload' ? (
+              /* Upload Area */
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary mb-1.5">
+                  Upload Curated High-Res Files *
+                </label>
+                <div className="border-2 border-dashed border-contour-subtle rounded-card p-6 text-center bg-canvas-primary/50 hover:bg-canvas-primary transition-colors cursor-pointer">
+                  <UploadCloud className="w-8 h-8 text-brand mx-auto mb-2" />
+                  <p className="text-xs font-bold text-ink-primary">
+                    Drag &amp; drop edited photos or click to browse
+                  </p>
+                  <p className="text-[11px] text-ink-muted mt-1">
+                    Supports JPEG, PNG, TIFF, or compressed ZIP. Max 500MB per deliverable.
+                  </p>
+                </div>
+              </div>
+            ) : deliveryMethod === 'google_drive' ? (
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary">
+                  Google Drive Shared Link *
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://drive.google.com/drive/folders/1a2b3c4d5e..."
+                  value={googleDriveUrl}
+                  onChange={(e) => setGoogleDriveUrl(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+                <p className="text-[11px] text-ink-muted">
+                  Ensure link sharing is set to "Anyone with the link can view". Platform verifies URL format before customer notification.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-primary">
+                  External Video Preview Link (YouTube / Vimeo / Frame.io) *
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://vimeo.com/... or https://youtu.be/..."
+                  value={videoStreamUrl}
+                  onChange={(e) => setVideoStreamUrl(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+              </div>
+            )}
+
+            {deliveryError && (
+              <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-card-sm border border-red-200">
+                {deliveryError}
+              </p>
+            )}
 
             {/* Photo count selector */}
             <div className="grid grid-cols-2 gap-4">

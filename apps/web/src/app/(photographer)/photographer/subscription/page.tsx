@@ -36,8 +36,10 @@ import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Card } from '../../../../components/ui/Card';
+import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
 
 export default function PhotographerSubscriptionPage() {
+  const { accountName, professionalName, creatorProfile } = useCurrentUserProfile();
   const [subscription, setSubscription] = useState<PhotographerSubscriptionDto>(getStoredSubscription);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>(BillingInterval.MONTHLY);
   const [selectedPlanForModal, setSelectedPlanForModal] = useState<SubscriptionPlanDto | null>(null);
@@ -92,7 +94,7 @@ export default function PhotographerSubscriptionPage() {
       `=======================================================\n` +
       `Invoice Number:  ${inv.invoiceNumber}\n` +
       `Date of Issue:   ${inv.date}\n` +
-      `Billed To:       Aman Sharma (Studio Pro ID: pro-aman)\n` +
+      `Billed To:       ${professionalName || accountName || 'Photographer'} (Studio Pro ID: ${creatorProfile?.id || 'pro-creator'})\n` +
       `Plan Tier:       ${inv.planName}\n` +
       `Billing Cycle:   ${inv.billingPeriod}\n` +
       `Amount Paid:     INR ${inv.amountInr.toLocaleString('en-IN')}\n` +

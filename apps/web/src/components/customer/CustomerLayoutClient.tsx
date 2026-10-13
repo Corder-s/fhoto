@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import Navbar from '../Navbar';
 import Footer from '../Footer';
@@ -10,8 +10,18 @@ import { useAuthModal } from '../auth/AuthModalContext';
 
 export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname() || '/customer/dashboard';
-  const { isAuthenticated, isMounted } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, isMounted } = useAuth();
   const { openAuthModal } = useAuthModal();
+
+  const isCreatorRole = user?.role === 'creator' || user?.role === 'photographer';
+
+  // If a photographer visits a customer dashboard route, redirect them to photographer studio
+  useEffect(() => {
+    if (isMounted && isAuthenticated && isCreatorRole) {
+      router.replace('/photographer/dashboard');
+    }
+  }, [isMounted, isAuthenticated, isCreatorRole, router]);
 
   // Automatically prompt authentication modal if visiting a protected customer route while logged out
   useEffect(() => {
@@ -27,7 +37,19 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Redirecting creator to photographer studio
+  if (isAuthenticated && isCreatorRole) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-[#5A544D]">Redirecting to Creator Studio Dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -80,10 +102,7 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
     );
   }
 
-  // /customer/dashboard renders its own full layout matching the reference screenshot
-  if (pathname === '/customer/dashboard') {
-    return <>{children}</>;
-  }
+
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#1A1816] flex flex-col font-sans selection:bg-[#FF6E00] selection:text-white">

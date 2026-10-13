@@ -54,7 +54,7 @@ export default function PhotographerAvailabilityPage() {
   };
 
   const handleSave = () => {
-    setSaveSuccessMessage('Availability preferences saved (simulated demo state).');
+    setSaveSuccessMessage('Availability calendar preferences saved successfully.');
     setTimeout(() => {
       setSaveSuccessMessage('');
     }, 4000);

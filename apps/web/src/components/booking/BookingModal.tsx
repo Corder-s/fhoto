@@ -17,11 +17,13 @@ import { Input } from '../ui/Input';
 import { PhotographerServicePackage } from '../../data/photographers';
 import { useAuth } from '../../lib/auth';
 import { useAuthModal } from '../auth/AuthModalContext';
+import { VenueLocationPicker } from '../maps/VenueLocationPicker';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   photographerName: string;
+  creatorId?: string;
   selectedPackage: PhotographerServicePackage | null;
 }
 
@@ -29,21 +31,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   isOpen,
   onClose,
   photographerName,
+  creatorId,
   selectedPackage,
 }) => {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
   const [date, setDate] = useState('2026-10-20');
   const [time, setTime] = useState('16:00');
   const [locationAddress, setLocationAddress] = useState('');
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [createdBookingData, setCreatedBookingData] = useState<any>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentDone, setPaymentDone] = useState(false);
 
   if (!isOpen || !selectedPackage) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       onClose();
@@ -64,14 +71,84 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setError('');
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const startDateTime = `${date}T${time}:00Z`;
+      const endDateTime = `${date}T${(parseInt(time.split(':')[0], 10) + 2).toString().padStart(2, '0')}:${time.split(':')[1] || '00'}:00Z`;
+
+      const res = await fetch('/api/bookings/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: user?.id,
+          creatorId: creatorId || photographerName,
+          serviceId: selectedPackage.id,
+          eventTitle: `${selectedPackage.name} with ${photographerName}`,
+          eventDate: date,
+          startAt: startDateTime,
+          endAt: endDateTime,
+          eventLocation: locationAddress,
+          locationLatitude: coordinates?.lat || null,
+          locationLongitude: coordinates?.lng || null,
+          customerNotes: specialInstructions,
+          bookingType: 'scheduled',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setError(data.error || 'Failed to create booking.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setCreatedBookingData(data);
       setBookingConfirmed(true);
-    }, 700);
+      setIsSubmitting(false);
+
+      // Create payment intent
+      const idempotencyKey = `idemp_${data.booking.id}_${Date.now()}`;
+      await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: data.booking.id,
+          customerId: user?.id,
+          idempotencyKey,
+        }),
+      });
+    } catch (err: any) {
+      setError(err?.message || 'Network error creating booking.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!createdBookingData?.booking?.id) return;
+    setIsProcessingPayment(true);
+    try {
+      const res = await fetch('/api/payments/confirm-sandbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: createdBookingData.booking.id,
+          paymentId: `pay_dev_${Date.now()}`,
+        }),
+      });
+      const resData = await res.json();
+      if (res.ok) {
+        setPaymentDone(true);
+      }
+    } catch (err) {
+      console.error('Payment confirm err:', err);
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const resetAndClose = () => {
     setBookingConfirmed(false);
+    setCreatedBookingData(null);
+    setPaymentDone(false);
     setError('');
     onClose();
   };
@@ -100,7 +177,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         <div className="flex items-start justify-between mb-4 shrink-0">
           <div>
             <span className="text-[10px] uppercase font-extrabold tracking-wider text-brand">
-              Initiate Shoot Booking
+              Instantshoot Booking Checkout
             </span>
             <h2 id="booking-modal-title" className="text-xl sm:text-2xl font-extrabold text-ink-primary">
               Book with {photographerName}
@@ -117,47 +194,92 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         <div className="overflow-y-auto overscroll-contain flex-1 pr-0.5">
         {bookingConfirmed ? (
-          <div className="space-y-5 text-center py-4">
-            <div className="w-14 h-14 rounded-full bg-green-50 border border-green-200 text-green-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="space-y-4 text-center py-2">
+            <div className="w-12 h-12 rounded-full bg-green-50 border border-green-200 text-green-600 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-xl font-extrabold text-ink-primary">Booking Request Prepared!</h3>
-              <p className="text-xs sm:text-sm text-ink-secondary max-w-xs mx-auto">
-                Your shoot package with <strong>{photographerName}</strong> has been configured.
+              <h3 className="text-lg font-extrabold text-ink-primary">
+                {paymentDone ? 'Booking Confirmed & Escrow Secured!' : 'Booking Created & Ready for Checkout'}
+              </h3>
+              <p className="text-xs text-ink-secondary max-w-xs mx-auto">
+                Reference: <strong className="text-brand font-mono">{createdBookingData?.booking?.booking_reference || 'INST-2026-PENDING'}</strong>
               </p>
             </div>
 
-            {/* Summary Box */}
+            {/* Server-Calculated Price Breakdown */}
             <div className="bg-canvas-primary p-4 rounded-card-md border border-contour-subtle text-left space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-ink-muted">Package:</span>
-                <span className="font-bold text-ink-primary">{selectedPackage.name} ({selectedPackage.duration})</span>
+                <span className="text-ink-muted">Package Selected:</span>
+                <span className="font-bold text-ink-primary">{selectedPackage.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Scheduled Date & Time:</span>
+                <span className="text-ink-muted">Scheduled Slot:</span>
                 <span className="font-bold text-ink-primary">{date} at {time}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-ink-muted">Shoot Venue:</span>
-                <span className="font-bold text-ink-primary">{locationAddress}</span>
+                <span className="font-bold text-ink-primary truncate max-w-[180px]">{locationAddress}</span>
               </div>
-              <div className="flex justify-between border-t border-contour-subtle pt-2 text-sm">
-                <span className="font-bold text-ink-primary">Package Price:</span>
-                <span className="font-black text-brand">₹{selectedPackage.priceInr.toLocaleString('en-IN')}</span>
+              <div className="border-t border-contour-subtle pt-2 space-y-1.5">
+                <div className="flex justify-between text-ink-muted">
+                  <span>Base Service Fee:</span>
+                  <span>₹{(createdBookingData?.breakdown?.agreedServicePrice || selectedPackage.priceInr).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-ink-muted">
+                  <span>Marketplace Platform Fee (10%):</span>
+                  <span>₹{(createdBookingData?.breakdown?.platformFee || Math.round(selectedPackage.priceInr * 0.1)).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-ink-muted">
+                  <span>GST Taxes (18%):</span>
+                  <span>₹{(createdBookingData?.breakdown?.taxes || Math.round(selectedPackage.priceInr * 0.198)).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between border-t border-contour-subtle pt-1.5 text-sm font-extrabold">
+                  <span className="text-ink-primary">Total Payable:</span>
+                  <span className="text-brand">₹{(createdBookingData?.breakdown?.totalAmount || Math.round(selectedPackage.priceInr * 1.298)).toLocaleString('en-IN')}</span>
+                </div>
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50 rounded-card-sm border border-amber-200 text-left flex items-start gap-2 text-xs text-amber-800">
-              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <span>
-                <strong>Demonstration Note:</strong> In the upcoming backend phases, this triggers the payment gateway escrow checkout and generates the 6-digit Shoot-Start OTP.
-              </span>
-            </div>
+            {paymentDone ? (
+              <div className="p-3 bg-green-50 rounded-card-sm border border-green-200 text-left flex items-start gap-2 text-xs text-green-800">
+                <ShieldCheck className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Escrow Active:</strong> Funds are locked in platform escrow until the shoot is completed and deliverables are reviewed.
+                </span>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 rounded-card-sm border border-amber-200 text-left flex items-start gap-2 text-xs text-amber-800">
+                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Sandbox Test Environment:</strong> Authorize payment in development mode to simulate escrow lock and verify booking status transitions.
+                </span>
+              </div>
+            )}
 
-            <Button onClick={resetAndClose} variant="primary" className="w-full" size="md">
-              Return to Profile
+            {!paymentDone ? (
+              <Button
+                onClick={handleConfirmPayment}
+                variant="primary"
+                className="w-full"
+                size="md"
+                isLoading={isProcessingPayment}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Authorize Payment (Development Sandbox)
+              </Button>
+            ) : (
+              <a
+                href="/customer/bookings"
+                className="block w-full py-2.5 px-4 bg-brand text-white font-extrabold text-xs text-center rounded-card-sm shadow-sm hover:bg-brand-hover transition-colors"
+              >
+                View in Customer Bookings Dashboard
+              </a>
+            )}
+
+            <Button onClick={resetAndClose} variant="ghost" className="w-full text-xs text-ink-muted" size="sm">
+              Close Window
             </Button>
           </div>
         ) : (
@@ -204,19 +326,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
             </div>
 
-            {/* Shoot Location Address */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink-primary mb-1">
-                Shoot Venue / Location Address
-              </label>
-              <Input
-                placeholder="e.g. Lodhi Gardens, New Delhi or Client Studio"
-                required
-                value={locationAddress}
-                onChange={(e) => setLocationAddress(e.target.value)}
-                leftIcon={<MapPin className="w-4 h-4 text-brand" />}
-              />
-            </div>
+            {/* Shoot Location Address with Autocomplete & Geocoded Venue Map */}
+            <VenueLocationPicker
+              value={locationAddress}
+              onChange={(addr, coords) => {
+                setLocationAddress(addr);
+                if (coords) setCoordinates(coords);
+              }}
+              required
+            />
 
             {/* Special Instructions */}
             <div>

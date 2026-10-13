@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI, FunctionDeclaration, SchemaType } from '@google/generative-ai';
 import { RoleType } from '@snapshoot/shared';
 import { AuthenticatedUser } from '../common/auth.guard';
 import { ChatRequestDto, ChatResponseDto } from './ai.dto';
@@ -12,7 +12,7 @@ import { ClientsService } from '../clients/clients.service';
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private openai: OpenAI | null = null;
+  private genAI: GoogleGenerativeAI | null = null;
   private readonly modelName: string;
 
   constructor(
@@ -22,24 +22,24 @@ export class AiService {
     private readonly subscriptionsService: SubscriptionsService,
     private readonly clientsService: ClientsService,
   ) {
-    const key = process.env.OPENAI_API_KEY;
-    this.modelName = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const key = process.env.GEMINI_API_KEY;
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
-    if (key && key.trim() !== '' && key !== 'your_openai_api_key_here') {
-      this.openai = new OpenAI({ apiKey: key.trim() });
-      this.logger.log(`Initialized OpenAI AI Service with model: ${this.modelName}`);
+    if (key && key.trim() !== '' && key !== 'your_gemini_api_key_here') {
+      this.genAI = new GoogleGenerativeAI(key.trim());
+      this.logger.log(`Initialized Google Gemini AI Service with model: ${this.modelName}`);
     } else {
-      this.logger.warn('OPENAI_API_KEY not found or unconfigured. AI responses will inform the user of missing configuration.');
+      this.logger.warn('GEMINI_API_KEY not found or unconfigured. AI responses will inform the user of missing configuration.');
     }
   }
 
   // Setter for automated testing and dependency injection
-  setOpenAiClient(client: OpenAI | null) {
-    this.openai = client;
+  setGenAIClient(client: GoogleGenerativeAI | null) {
+    this.genAI = client;
   }
 
   isConfigured(): boolean {
-    return !!this.openai;
+    return !!this.genAI;
   }
 
   // Authoritative Help Knowledge Base for Customer Assistant
@@ -57,133 +57,99 @@ export class AiService {
     return articles[topic] || articles.booking_workflow;
   }
 
-  // Customer Assistant Tool Definitions
-  private getCustomerTools(): OpenAI.ChatCompletionTool[] {
+  // Customer Assistant Tool Definitions (Gemini FunctionDeclarations)
+  private getCustomerTools(): FunctionDeclaration[] {
     return [
       {
-        type: 'function',
-        function: {
-          name: 'searchPhotographers',
-          description: 'Search verified photographers by city and/or genre category (portrait, wedding, event, commercial, couple)',
-          parameters: {
-            type: 'object',
-            properties: {
-              city: { type: 'string', description: 'City name (e.g. New Delhi, Mumbai, Bengaluru)' },
-              category: { type: 'string', description: 'Photography category' },
-            },
+        name: 'searchPhotographers',
+        description: 'Search verified photographers by city and/or genre category (portrait, wedding, event, commercial, couple)',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            city: { type: SchemaType.STRING, description: 'City name (e.g. New Delhi, Mumbai, Bengaluru)' },
+            category: { type: SchemaType.STRING, description: 'Photography category' },
           },
         },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyBookings',
-          description: 'Retrieve all photography bookings made by the authenticated customer',
-          parameters: {
-            type: 'object',
-            properties: {},
-          },
+        name: 'getMyBookings',
+        description: 'Retrieve all photography bookings made by the authenticated customer',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {},
         },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getBookingStatus',
-          description: 'Get shoot arrival, venue, and completion status for a specific booking reference',
-          parameters: {
-            type: 'object',
-            properties: {
-              bookingReference: { type: 'string', description: 'Reference code (e.g. SNP-2026-98042)' },
-            },
-            required: ['bookingReference'],
+        name: 'getBookingStatus',
+        description: 'Get shoot arrival, venue, and completion status for a specific booking reference',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            bookingReference: { type: SchemaType.STRING, description: 'Reference code (e.g. SNP-2026-98042)' },
           },
+          required: ['bookingReference'],
         },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyGalleryStatus',
-          description: 'Check delivered photos and gallery status for a booking',
-          parameters: {
-            type: 'object',
-            properties: {
-              bookingReference: { type: 'string', description: 'Reference code (e.g. SNP-2026-97910)' },
-            },
-            required: ['bookingReference'],
+        name: 'getMyGalleryStatus',
+        description: 'Check delivered photos and gallery status for a booking',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            bookingReference: { type: SchemaType.STRING, description: 'Reference code (e.g. SNP-2026-97910)' },
           },
+          required: ['bookingReference'],
         },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getHelpArticle',
-          description: 'Retrieve official SnapShoot help documentation and policies',
-          parameters: {
-            type: 'object',
-            properties: {
-              topic: {
-                type: 'string',
-                enum: ['booking_workflow', 'shoot_otp', 'cancellation_refund', 'pricing'],
-                description: 'The help topic needed',
-              },
+        name: 'getHelpArticle',
+        description: 'Retrieve official SnapShoot help documentation and policies',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            topic: {
+              type: SchemaType.STRING,
+              description: 'The help topic needed (booking_workflow, shoot_otp, cancellation_refund, pricing)',
             },
-            required: ['topic'],
           },
+          required: ['topic'],
         },
       },
     ];
   }
 
-  // Photographer Business Assistant Tool Definitions
-  private getPhotographerTools(): OpenAI.ChatCompletionTool[] {
+  // Photographer Business Assistant Tool Definitions (Gemini FunctionDeclarations)
+  private getPhotographerTools(): FunctionDeclaration[] {
     return [
       {
-        type: 'function',
-        function: {
-          name: 'getMyBusinessProfile',
-          description: 'Retrieve current photographer studio profile, experience, gear list, and service area',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMyBusinessProfile',
+        description: 'Retrieve current photographer studio profile, experience, gear list, and service area',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyPackages',
-          description: 'Retrieve photography packages, pricing tiers, and shoot durations',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMyPackages',
+        description: 'Retrieve photography packages, pricing tiers, and shoot durations',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyAvailability',
-          description: 'Retrieve shoot calendar availability slots and blocked dates',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMyAvailability',
+        description: 'Retrieve shoot calendar availability slots and blocked dates',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyBookingRequests',
-          description: 'Retrieve assigned customer shoots and their current workflow status',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMyBookingRequests',
+        description: 'Retrieve assigned customer shoots and their current workflow status',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMySubscription',
-          description: 'Retrieve SaaS subscription tier, plan limits, and feature entitlements',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMySubscription',
+        description: 'Retrieve SaaS subscription tier, plan limits, and feature entitlements',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
       {
-        type: 'function',
-        function: {
-          name: 'getMyBusinessAnalytics',
-          description: 'Retrieve authorized business analytics: client count, completed shoots, and total revenue',
-          parameters: { type: 'object', properties: {} },
-        },
+        name: 'getMyBusinessAnalytics',
+        description: 'Retrieve authorized business analytics: client count, completed shoots, and total revenue',
+        parameters: { type: SchemaType.OBJECT, properties: {} },
       },
     ];
   }
@@ -210,7 +176,7 @@ export class AiService {
       switch (name) {
         // Customer Tools
         case 'searchPhotographers': {
-          const list = await this.photographersService.getPublicPhotographers(args.city, args.category);
+          const list = await this.photographersService.getPublicPhotographers(args?.city, args?.category);
           return list.slice(0, 5).map((p) => ({
             id: p.id,
             name: p.name,
@@ -340,7 +306,7 @@ export class AiService {
     }
   }
 
-  // Core Dynamic Chat Handler
+  // Core Dynamic Chat Handler with Google Gemini
   async chat(dto: ChatRequestDto, user?: AuthenticatedUser): Promise<ChatResponseDto> {
     // Determine Assistant Role from Authenticated Identity
     const isPhotographer = !!(
@@ -385,15 +351,15 @@ export class AiService {
       };
     }
 
-    // Provider Configuration Guard: Fail clearly and safely if key is absent
-    if (!this.openai) {
+    // Provider Configuration Guard: Fail clearly and safely if Gemini key is absent
+    if (!this.genAI) {
       return {
         success: false,
         isConfigured: false,
         assistantRole,
         reply:
-          '⚠️ OpenAI Provider Not Configured:\nOPENAI_API_KEY is not configured on the SnapShoot backend server. To enable real dynamic AI responses, please add OPENAI_API_KEY in your server environment (.env).',
-        error: 'OPENAI_API_KEY_MISSING',
+          '⚠️ Google Gemini Provider Not Configured:\nGEMINI_API_KEY is not configured on the SnapShoot backend server. To enable real dynamic AI responses, please add GEMINI_API_KEY in your server environment (.env).',
+        error: 'GEMINI_API_KEY_MISSING',
         suggestions: ['How to book a shoot', 'Pricing plans', 'Contact Support'],
       };
     }
@@ -425,76 +391,68 @@ Guidelines:
     const systemPrompt = isPhotographer ? photographerSystemPrompt : customerSystemPrompt;
     const tools = isPhotographer ? this.getPhotographerTools() : this.getCustomerTools();
 
-    // Prepare OpenAI Messages
-    const messages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt },
-    ];
+    // Map conversation history to Gemini Content structure
+    const history: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
     if (dto.history && Array.isArray(dto.history)) {
       for (const h of dto.history.slice(-8)) {
-        messages.push({
-          role: h.role === 'user' ? 'user' : 'assistant',
-          content: h.content,
+        history.push({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }],
         });
       }
     }
 
-    messages.push({ role: 'user', content: dto.message });
-
     const toolsUsed: string[] = [];
 
     try {
-      // 1. Initial Model Call with Function Calling enabled
-      let completion = await this.openai.chat.completions.create({
+      const model = this.genAI.getGenerativeModel({
         model: this.modelName,
-        messages,
-        tools,
-        tool_choice: 'auto',
-        temperature: 0.7,
-        max_tokens: 800,
+        systemInstruction: systemPrompt,
+        tools: [{ functionDeclarations: tools }],
       });
 
-      let choice = completion.choices[0];
-
-      // 2. Handle Tool Calls if the model requests them
-      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        // Append model's assistant message with tool calls
-        messages.push(choice.message);
-
-        for (const toolCall of choice.message.tool_calls) {
-          if (toolCall.type === 'function') {
-            const funcName = toolCall.function.name;
-            toolsUsed.push(funcName);
-
-            let args = {};
-            try {
-              args = JSON.parse(toolCall.function.arguments || '{}');
-            } catch {
-              args = {};
-            }
-
-            const toolResult = await this.executeTool(funcName, args, user, isPhotographer);
-
-            messages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: JSON.stringify(toolResult),
-            });
-          }
-        }
-
-        // 3. Follow-up Call: Let the model synthesize natural-language answer with tool output
-        completion = await this.openai.chat.completions.create({
-          model: this.modelName,
-          messages,
+      const chatSession = model.startChat({
+        history,
+        generationConfig: {
           temperature: 0.7,
-          max_tokens: 800,
-        });
+          maxOutputTokens: 800,
+        },
+      });
 
-        choice = completion.choices[0];
+      let result = await chatSession.sendMessage(dto.message);
+      let response = result.response;
+
+      const functionCalls = response.functionCalls();
+      if (functionCalls && functionCalls.length > 0) {
+        for (const call of functionCalls) {
+          const funcName = call.name;
+          toolsUsed.push(funcName);
+
+          const toolResult = await this.executeTool(funcName, call.args || {}, user, isPhotographer);
+
+          result = await chatSession.sendMessage([
+            {
+              functionResponse: {
+                name: funcName,
+                response: { output: toolResult },
+              },
+            },
+          ]);
+        }
+        response = result.response;
       }
 
-      const reply = choice.message.content || 'I processed your request, but received no response text.';
+      let reply = '';
+      try {
+        reply = response.text();
+      } catch {
+        reply = 'I processed your request using SnapShoot tools.';
+      }
+
+      if (!reply) {
+        reply = 'I processed your request, but received no response text.';
+      }
 
       // Generate context-aware suggestions
       const suggestions = isPhotographer
@@ -510,13 +468,13 @@ Guidelines:
         suggestions,
       };
     } catch (err: any) {
-      this.logger.error(`OpenAI provider error: ${err.message}`, err.stack);
+      this.logger.error(`Gemini provider error: ${err.message}`, err.stack);
       return {
         success: false,
         isConfigured: true,
         assistantRole,
         reply: `⚠️ AI Provider Communication Error: ${err.message || 'Unable to connect to model service.'}`,
-        error: err.code || 'OPENAI_API_ERROR',
+        error: err.code || 'GEMINI_API_ERROR',
         suggestions: ['Retry your question', 'Contact customer support'],
       };
     }

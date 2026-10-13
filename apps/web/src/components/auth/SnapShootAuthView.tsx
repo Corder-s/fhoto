@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { saveAuthSession, AuthUser } from '../../lib/auth';
 import { resolvePostAuthRedirect } from '../../lib/safeRedirect';
+import { getSupabaseBrowserClient, isSupabaseConfigured } from '../../lib/supabase/client';
 
 export interface SnapShootAuthViewProps {
   isModal?: boolean;
@@ -101,53 +102,6 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     }, 700);
   };
 
-  // Quick Demo Logins
-  const handleQuickDemoLogin = (role: 'customer' | 'creator' | 'admin' | 'owner') => {
-    setErrorMessage('');
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      if (role === 'creator') {
-        const creatorUser: AuthUser = {
-          id: 'creator-demo-1',
-          name: 'Rajat Kapoor',
-          email: 'rajat.kapoor@snapshoot.local',
-          phone: '+91 98765 43210',
-          role: 'creator',
-        };
-        handleAuthSuccess(creatorUser, '/photographer/dashboard');
-      } else if (role === 'admin') {
-        const adminUser: AuthUser = {
-          id: 'admin-demo-1',
-          name: 'Ops Desk Admin',
-          email: 'admin@snapshoot.local',
-          phone: '+91 98111 00001',
-          role: 'admin',
-        };
-        handleAuthSuccess(adminUser, '/admin/dashboard');
-      } else if (role === 'owner') {
-        const ownerUser: AuthUser = {
-          id: 'owner-demo-1',
-          name: 'Platform Owner',
-          email: 'owner@snapshoot.local',
-          phone: '+91 98111 00000',
-          role: 'owner',
-        };
-        handleAuthSuccess(ownerUser, '/owner/dashboard');
-      } else {
-        const customerUser: AuthUser = {
-          id: 'cust-demo-1',
-          name: 'Aman Sharma',
-          email: 'aman.sharma@snapshoot.local',
-          phone: '+91 98112 34567',
-          role: 'customer',
-        };
-        handleAuthSuccess(customerUser, '/customer/dashboard');
-      }
-    }, 600);
-  };
-
   // OTP input handler
   const handleOtpBoxChange = (index: number, val: string) => {
     const char = val.slice(-1);
@@ -161,25 +115,44 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     }
   };
 
-  // Submit Login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // Submit Login (Supabase Auth Only)
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSocialNotice(null);
 
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !isSupabaseConfigured()) {
+      setErrorMessage(
+        'Database connection required: Please enter your Supabase Project URL and Anon Key in apps/web/.env.local (and restart dev server) to log in to your Supabase account.'
+      );
+      return;
+    }
+
     if (loginMethod === 'phone') {
+      const cleanPhone = loginPhone.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        setErrorMessage('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+
       if (!isOtpSent) {
-        const cleanPhone = loginPhone.replace(/\D/g, '');
-        if (cleanPhone.length < 10) {
-          setErrorMessage('Please enter a valid 10-digit mobile number.');
-          return;
-        }
         setIsLoading(true);
-        setTimeout(() => {
+        try {
+          const { error } = await supabase.auth.signInWithOtp({
+            phone: `+91${cleanPhone}`,
+          });
           setIsLoading(false);
+          if (error) {
+            setErrorMessage(error.message);
+            return;
+          }
           setIsOtpSent(true);
           setResendCountdown(60);
-        }, 500);
+        } catch (err: any) {
+          setIsLoading(false);
+          setErrorMessage(err?.message || 'Failed to send OTP.');
+        }
       } else {
         const code = loginOtp.join('');
         if (code.length < 6) {
@@ -187,21 +160,33 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           return;
         }
         setIsLoading(true);
-        setTimeout(() => {
+        try {
+          const { data, error } = await supabase.auth.verifyOtp({
+            phone: `+91${cleanPhone}`,
+            token: code,
+            type: 'sms',
+          });
           setIsLoading(false);
-          if (code === '123456') {
-            const user: AuthUser = {
-              id: 'cust-otp-1',
-              name: 'Aman Sharma',
-              email: 'aman@snapshoot.local',
-              phone: `+91 ${loginPhone.trim()}`,
-              role: 'customer',
-            };
-            handleAuthSuccess(user, '/customer/dashboard');
-          } else {
-            setErrorMessage('Invalid verification code entered. (Test OTP code is 123456)');
+          if (error) {
+            setErrorMessage(error.message);
+            return;
           }
-        }, 600);
+          if (data.session?.user) {
+            const meta = data.session.user.user_metadata || {};
+            const role = (meta.role as AuthUser['role']) || 'customer';
+            const user: AuthUser = {
+              id: data.session.user.id,
+              name: meta.full_name || 'Customer',
+              email: data.session.user.email || '',
+              phone: `+91 ${cleanPhone}`,
+              role,
+            };
+            handleAuthSuccess(user, role === 'creator' ? '/photographer/dashboard' : '/customer/dashboard');
+          }
+        } catch (err: any) {
+          setIsLoading(false);
+          setErrorMessage(err?.message || 'Failed to verify OTP.');
+        }
       }
     } else {
       if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
@@ -214,40 +199,41 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       }
 
       setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        const emailLower = loginEmail.toLowerCase().trim();
-        let role: AuthUser['role'] = 'customer';
-        let name = loginEmail.split('@')[0];
 
-        if (emailLower.includes('admin')) {
-          role = 'admin';
-          name = 'Ops Desk Admin';
-        } else if (emailLower.includes('owner')) {
-          role = 'owner';
-          name = 'Platform Owner';
-        } else if (
-          emailLower.includes('creator') ||
-          emailLower.includes('photographer') ||
-          emailLower.includes('seller')
-        ) {
-          role = 'creator';
-          name = 'Rajat Kapoor';
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: loginEmail.trim(),
+          password: loginPassword,
+        });
+
+        setIsLoading(false);
+
+        if (error) {
+          setErrorMessage(error.message);
+          return;
         }
 
-        const user: AuthUser = {
-          id: `${role}-email-${Date.now()}`,
-          name,
-          email: loginEmail.trim(),
-          role,
-        };
-        handleAuthSuccess(user);
-      }, 600);
+        if (data.user) {
+          const meta = data.user.user_metadata || {};
+          const role = (meta.role as AuthUser['role']) || 'customer';
+          const user: AuthUser = {
+            id: data.user.id,
+            name: meta.full_name || data.user.email?.split('@')[0] || 'User',
+            email: data.user.email || loginEmail.trim(),
+            role,
+            phone: meta.phone,
+          };
+          handleAuthSuccess(user, role === 'creator' ? '/photographer/dashboard' : undefined);
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMessage(err?.message || 'Supabase authentication error.');
+      }
     }
   };
 
-  // Submit Create Account
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  // Submit Create Account (Supabase Auth Only)
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSocialNotice(null);
@@ -278,34 +264,178 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const newUser: AuthUser = {
-        id: `${regRole}-${Date.now()}`,
-        name: fullName.trim(),
-        email: regEmail.trim(),
-        phone: `+91 ${cleanPhone}`,
-        role: regRole,
-      };
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !isSupabaseConfigured()) {
+      setErrorMessage(
+        'Database connection required: Please enter your Supabase Project URL and Anon Key in apps/web/.env.local (and restart dev server) to create accounts in your Supabase database.'
+      );
+      return;
+    }
 
-      if (regRole === 'creator') {
-        saveAuthSession(newUser);
-        setSuccessMessage('Creator profile created! Taking you to onboarding studio...');
-        setTimeout(() => {
-          if (onClose) onClose();
-          router.replace('/photographer/onboarding');
-        }, 800);
-      } else {
-        handleAuthSuccess(newUser, '/customer/dashboard');
+    setIsLoading(true);
+
+    try {
+      // 1. Try server-side admin creation first (pre-verifies email, bypasses email rate limits, inserts profile)
+      let userId: string | null = null;
+      let sessionToken: string | null = null;
+
+      try {
+        const regRes = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: regEmail.trim(),
+            password: regPassword,
+            full_name: fullName.trim(),
+            phone: `+91 ${cleanPhone}`,
+            role: regRole,
+            city: city.trim(),
+          }),
+        });
+
+        const regData = await regRes.json();
+        if (regRes.ok && regData.user) {
+          userId = regData.user.id;
+        } else if (regData.error && !regData.error.includes('rate limit')) {
+          // If already registered or specific error
+          setErrorMessage(regData.error);
+          setIsLoading(false);
+          return;
+        }
+      } catch (adminErr) {
+        console.warn('Admin registration fallback:', adminErr);
       }
-    }, 700);
+
+      // 2. Sign in to Supabase Browser Client to get live active session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: regEmail.trim(),
+        password: regPassword,
+      });
+
+      if (!signInError && signInData.session) {
+        setIsLoading(false);
+        const newUser: AuthUser = {
+          id: signInData.user.id,
+          name: fullName.trim(),
+          email: regEmail.trim(),
+          phone: `+91 ${cleanPhone}`,
+          role: regRole,
+        };
+
+        if (regRole === 'creator') {
+          saveAuthSession(newUser, signInData.session.access_token);
+          setSuccessMessage('Creator account created in Supabase! Taking you to onboarding studio...');
+          setTimeout(() => {
+            if (onClose) onClose();
+            router.replace('/photographer/onboarding');
+          }, 800);
+        } else {
+          handleAuthSuccess(newUser, returnUrl || '/customer/dashboard');
+        }
+        return;
+      }
+
+      // 3. If direct sign-in didn't succeed, attempt standard client signUp
+      const { data, error } = await supabase.auth.signUp({
+        email: regEmail.trim(),
+        password: regPassword,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            phone: `+91 ${cleanPhone}`,
+            role: regRole,
+            city: city.trim(),
+          },
+        },
+      });
+
+      setIsLoading(false);
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (data.user) {
+        if (!data.session) {
+          setSuccessMessage(
+            'Account created in Supabase! You can now log in with your credentials.'
+          );
+          setTimeout(() => {
+            setTab('login');
+          }, 1500);
+          return;
+        }
+
+        const newUser: AuthUser = {
+          id: data.user.id,
+          name: fullName.trim(),
+          email: regEmail.trim(),
+          phone: `+91 ${cleanPhone}`,
+          role: regRole,
+        };
+
+        if (regRole === 'creator') {
+          saveAuthSession(newUser, data.session.access_token);
+          setSuccessMessage('Creator account created in Supabase! Taking you to onboarding studio...');
+          setTimeout(() => {
+            if (onClose) onClose();
+            router.replace('/photographer/onboarding');
+          }, 800);
+        } else {
+          handleAuthSuccess(newUser, returnUrl || '/customer/dashboard');
+        }
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err?.message || 'Supabase account creation error.');
+    }
   };
 
   // Social Login Notice Handler
-  const handleSocialClick = (provider: 'google' | 'apple') => {
+  const handleSocialClick = async (provider: 'google' | 'apple') => {
+    setErrorMessage('');
+    setSocialNotice(null);
+
+    if (provider === 'google') {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase || !isSupabaseConfigured()) {
+        setErrorMessage(
+          'Supabase is not configured. Please verify your Supabase credentials in apps/web/.env.local.'
+        );
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const callbackUrl = `${window.location.origin}/auth/callback?role=${encodeURIComponent(
+          tab === 'register' ? regRole : 'customer'
+        )}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
+
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: callbackUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'select_account',
+            },
+          },
+        });
+
+        if (error) {
+          setIsLoading(false);
+          setErrorMessage(error.message);
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMessage(err?.message || 'Failed to initiate Google Sign-In.');
+      }
+      return;
+    }
+
     setSocialNotice(
-      `${provider === 'google' ? 'Google' : 'Apple'} Sign-In is configured for production domains. For instant local access, please continue with Email or Phone OTP.`
+      'Apple Sign-In is configured for production domains. For instant local access, please continue with Email or Phone OTP.'
     );
   };
 
@@ -591,6 +721,19 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               Create Account
             </button>
           </div>
+
+          {/* Supabase Connection Status Banner */}
+          {!isSupabaseConfigured() && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold text-amber-950 block">Supabase Keys Required</span>
+                <span className="text-[11px] text-amber-800">
+                  Please add your <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to <code>apps/web/.env.local</code> to create real user accounts in your Supabase database.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Error / Feedback Banners */}
           {errorMessage && (
@@ -897,47 +1040,6 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   )}
                 </>
               )}
-
-              {/* Quick Demo Accounts */}
-              <div className="p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-[#736B63] block">
-                  Instant Demo Accounts:
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('customer')}
-                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <User className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Customer</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('creator')}
-                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <Camera className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Creator</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('admin')}
-                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <ShieldCheck className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Admin</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('owner')}
-                    className="py-1.5 px-1.5 rounded-lg bg-white border border-[#E8E2D8] hover:border-[#FF6E00] text-[10px] font-bold text-[#1A1816] transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <Lock className="w-3 h-3 text-[#FF6E00]" />
-                    <span>Owner</span>
-                  </button>
-                </div>
-              </div>
 
               {/* Submit Login Button */}
               <button

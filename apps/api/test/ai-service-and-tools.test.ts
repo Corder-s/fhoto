@@ -44,9 +44,9 @@ describe('SnapShoot Real AI Assistant & Tool Execution Suite', () => {
   // 1. PROVIDER CONFIGURATION SAFETY & MISSING KEY HANDLING
   // ========================================================
   describe('Provider Configuration Safety', () => {
-    it('should detect unconfigured OPENAI_API_KEY and return clear configuration error', async () => {
+    it('should detect unconfigured GEMINI_API_KEY and return clear configuration error', async () => {
       // Unconfigured client state
-      aiService.setOpenAiClient(null);
+      aiService.setGenAIClient(null);
       assert.equal(aiService.isConfigured(), false);
 
       const res = await aiService.chat(
@@ -56,8 +56,8 @@ describe('SnapShoot Real AI Assistant & Tool Execution Suite', () => {
 
       assert.equal(res.success, false);
       assert.equal(res.isConfigured, false);
-      assert.equal(res.error, 'OPENAI_API_KEY_MISSING');
-      assert.match(res.reply, /OPENAI_API_KEY is not configured/i);
+      assert.equal(res.error, 'GEMINI_API_KEY_MISSING');
+      assert.match(res.reply, /GEMINI_API_KEY is not configured/i);
     });
   });
 
@@ -165,55 +165,44 @@ describe('SnapShoot Real AI Assistant & Tool Execution Suite', () => {
   });
 
   // ========================================================
-  // 5. MOCK OPENAI PROVIDER INTEGRATION & TOOL CALLING LOOP
+  // 5. MOCK GOOGLE GEMINI PROVIDER INTEGRATION & TOOL CALLING LOOP
   // ========================================================
-  describe('Mock OpenAI Dynamic Tool Calling Loop', () => {
+  describe('Mock Google Gemini Dynamic Tool Calling Loop', () => {
     it('should process function calling, execute tool, and return synthesized answer', async () => {
-      // Simulate OpenAI client with function calling
-      const mockOpenAi = {
-        chat: {
-          completions: {
-            create: async (params: any) => {
-              // If tools are provided and it is the first call
-              if (params.messages.length === 2) {
+      // Simulate Gemini model with function calling
+      const mockGenAI = {
+        getGenerativeModel: () => ({
+          startChat: () => {
+            let callIndex = 0;
+            return {
+              sendMessage: async () => {
+                callIndex++;
+                if (callIndex === 1) {
+                  return {
+                    response: {
+                      functionCalls: () => [
+                        {
+                          name: 'searchPhotographers',
+                          args: { city: 'New Delhi' },
+                        },
+                      ],
+                      text: () => '',
+                    },
+                  };
+                }
                 return {
-                  choices: [
-                    {
-                      message: {
-                        role: 'assistant',
-                        content: null,
-                        tool_calls: [
-                          {
-                            id: 'call_abc123',
-                            type: 'function',
-                            function: {
-                              name: 'searchPhotographers',
-                              arguments: JSON.stringify({ city: 'New Delhi' }),
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                };
-              }
-              // Second call after tool execution:
-              return {
-                choices: [
-                  {
-                    message: {
-                      role: 'assistant',
-                      content: 'I found top verified photographers in New Delhi including Aman Verma (Rating: 4.96).',
-                    },
+                  response: {
+                    functionCalls: () => [],
+                    text: () => 'I found top verified photographers in New Delhi including Aman Verma (Rating: 4.96).',
                   },
-                ],
-              };
-            },
+                };
+              },
+            };
           },
-        },
+        }),
       } as any;
 
-      aiService.setOpenAiClient(mockOpenAi);
+      aiService.setGenAIClient(mockGenAI);
 
       const res = await aiService.chat(
         { message: 'Who is available for shoots in Delhi?' },
@@ -227,19 +216,19 @@ describe('SnapShoot Real AI Assistant & Tool Execution Suite', () => {
     });
 
     it('should safely handle provider API exceptions', async () => {
-      const failingOpenAi = {
-        chat: {
-          completions: {
-            create: async () => {
+      const failingGenAI = {
+        getGenerativeModel: () => ({
+          startChat: () => ({
+            sendMessage: async () => {
               const err = new Error('Rate limit exceeded or invalid API key');
-              (err as any).code = 'rate_limit_exceeded';
+              (err as any).code = 'RESOURCE_EXHAUSTED';
               throw err;
             },
-          },
-        },
+          }),
+        }),
       } as any;
 
-      aiService.setOpenAiClient(failingOpenAi);
+      aiService.setGenAIClient(failingGenAI);
 
       const res = await aiService.chat(
         { message: 'Hello' },
@@ -247,7 +236,7 @@ describe('SnapShoot Real AI Assistant & Tool Execution Suite', () => {
       );
 
       assert.equal(res.success, false);
-      assert.equal(res.error, 'rate_limit_exceeded');
+      assert.equal(res.error, 'RESOURCE_EXHAUSTED');
       assert.match(res.reply, /AI Provider Communication Error/i);
     });
   });

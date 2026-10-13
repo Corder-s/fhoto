@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Calendar,
@@ -17,23 +17,84 @@ import {
   UploadCloud,
   DollarSign,
   ChevronRight,
-  Filter
+  Filter,
+  Lock,
+  ShieldAlert,
+  Send,
+  UserCheck
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Modal } from '../../../../components/ui/Modal';
-import { DemoNoticeBanner } from '../../../../components/photographer/DemoNoticeBanner';
 import {
-  INITIAL_BOOKINGS,
   PhotographerBooking,
   BookingStatus
 } from '../../../../data/photographerDashboardData';
+import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
 
 export default function PhotographerBookingsPage() {
-  const [bookings, setBookings] = useState<PhotographerBooking[]>(INITIAL_BOOKINGS);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'REQUESTED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'>('ALL');
+  const { authUser, creatorProfile } = useCurrentUserProfile();
+  const [bookings, setBookings] = useState<PhotographerBooking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState<'ALL' | 'REQUESTED' | 'CONFIRMED' | 'IN_PROGRESS' | 'DISPUTED' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [selectedBooking, setSelectedBooking] = useState<PhotographerBooking | null>(null);
+
+  // Load real bookings from Supabase
+  const fetchBookings = async () => {
+    if (!authUser?.id) return;
+    try {
+      setIsLoading(true);
+      const res = await fetch(`/api/photographers/bookings?userId=${authUser.id}`);
+      const data = await res.json();
+
+      if (data.bookings && Array.isArray(data.bookings)) {
+        const mapped: PhotographerBooking[] = data.bookings.map((b: any) => {
+          let status: BookingStatus = 'CONFIRMED';
+          if (b.booking_status === 'pending' || b.booking_status === 'requested') status = 'REQUESTED';
+          else if (b.booking_status === 'disputed') status = 'DISPUTED';
+          else if (b.booking_status === 'on_the_way') status = 'ON_THE_WAY';
+          else if (b.booking_status === 'arrived_at_venue') status = 'ARRIVED_AT_VENUE';
+          else if (b.booking_status === 'in_progress') status = 'IN_PROGRESS';
+          else if (b.booking_status === 'completed') status = 'COMPLETED';
+          else if (b.booking_status === 'cancelled' || b.booking_status === 'rejected') status = 'CANCELLED';
+
+          return {
+            id: b.booking_reference || b.id,
+            rawId: b.id,
+            customerName: b.customer?.full_name || 'Client',
+            customerPhone: b.customer?.phone_number || '+91 98765 43210',
+            customerEmail: b.customer?.email || 'client@example.com',
+            category: b.service?.title || 'Photography Session',
+            packageTitle: b.event_title || 'Client Shoot Session',
+            date: b.event_date || 'Upcoming',
+            timeSlot: b.start_at ? new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:00 AM - 01:00 PM',
+            duration: `${Math.round((b.service?.duration_minutes || 120) / 60)} Hours`,
+            venueAddress: b.event_location || 'Operating Venue',
+            notes: b.customer_notes,
+            grossAmount: Number(b.agreed_service_price) || 4999,
+            platformFee: Number(b.platform_fee) || 999,
+            netEarnings: Math.round((Number(b.agreed_service_price) || 4999) * 0.8),
+            status,
+            startOtp: '482910',
+            cancellationReason: b.cancellation_reason,
+            createdAt: b.created_at || new Date().toISOString(),
+          };
+        });
+
+        setBookings(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching bookings from Supabase:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, [authUser?.id]);
 
   // OTP Modal State
   const [otpModalBooking, setOtpModalBooking] = useState<PhotographerBooking | null>(null);
@@ -41,9 +102,15 @@ export default function PhotographerBookingsPage() {
   const [otpError, setOtpError] = useState('');
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
-  // Reject Modal State
+  // Reject Modal State (Only for pending requests)
   const [rejectingBooking, setRejectingBooking] = useState<PhotographerBooking | null>(null);
   const [rejectionReason, setRejectionReason] = useState('Schedule conflict with another shoot');
+
+  // Admin Emergency Cancellation Request Modal (For confirmed shoots)
+  const [adminCancelModalBooking, setAdminCancelModalBooking] = useState<PhotographerBooking | null>(null);
+  const [adminCancelReason, setAdminCancelReason] = useState('Severe illness / medical emergency');
+  const [adminCancelNotes, setAdminCancelNotes] = useState('');
+  const [isSubmittingAdminCancel, setIsSubmittingAdminCancel] = useState(false);
 
   // Filter Bookings by Tab
   const filterBookings = () => {
@@ -70,41 +137,141 @@ export default function PhotographerBookingsPage() {
       b.status === 'ARRIVED_AT_VENUE' ||
       b.status === 'IN_PROGRESS'
   ).length;
+  const disputedCount = bookings.filter((b) => b.status === 'DISPUTED').length;
   const completedCount = bookings.filter((b) => b.status === 'COMPLETED').length;
   const cancelledCount = bookings.filter((b) => b.status === 'CANCELLED').length;
 
-  // State Transition Handlers
-  const handleAcceptRequest = (id: string) => {
-    setBookings(
-      bookings.map((b) => (b.id === id ? { ...b, status: 'CONFIRMED' } : b))
-    );
+  // State Transition Handlers with Real Supabase Persistence
+  const handleAcceptRequest = async (booking: PhotographerBooking) => {
+    const targetId = booking.rawId || booking.id;
+    try {
+      setActionLoading((prev) => ({ ...prev, [targetId]: true }));
+      const res = await fetch('/api/photographers/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: targetId,
+          action: 'accept',
+          userId: authUser?.id,
+        }),
+      });
+
+      if (res.ok) {
+        setBookings((prev) =>
+          prev.map((b) => (b.id === booking.id ? { ...b, status: 'CONFIRMED' } : b))
+        );
+      }
+    } catch (err) {
+      console.error('Error accepting booking:', err);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [targetId]: false }));
+    }
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectingBooking) return;
-    setBookings(
-      bookings.map((b) =>
-        b.id === rejectingBooking.id ? { ...b, status: 'CANCELLED' } : b
-      )
-    );
-    setRejectingBooking(null);
+    const targetId = rejectingBooking.rawId || rejectingBooking.id;
+    try {
+      setActionLoading((prev) => ({ ...prev, [targetId]: true }));
+      const res = await fetch('/api/photographers/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: targetId,
+          action: 'decline',
+          reason: rejectionReason,
+          userId: authUser?.id,
+        }),
+      });
+
+      if (res.ok) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === rejectingBooking.id
+              ? { ...b, status: 'CANCELLED', cancellationReason: rejectionReason }
+              : b
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error rejecting booking:', err);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [targetId]: false }));
+      setRejectingBooking(null);
+    }
   };
 
-  const handleMarkOnTheWay = (id: string) => {
-    setBookings(
-      bookings.map((b) => (b.id === id ? { ...b, status: 'ON_THE_WAY' } : b))
-    );
+  // Submit Emergency Cancellation Request to Admin (Once Confirmed)
+  const handleConfirmAdminCancel = async () => {
+    if (!adminCancelModalBooking) return;
+    const targetId = adminCancelModalBooking.rawId || adminCancelModalBooking.id;
+    const combinedReason = `${adminCancelReason}: ${adminCancelNotes.trim()}`;
+
+    try {
+      setIsSubmittingAdminCancel(true);
+      const res = await fetch('/api/photographers/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: targetId,
+          action: 'request_cancellation',
+          reason: combinedReason,
+          userId: authUser?.id,
+        }),
+      });
+
+      if (res.ok) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === adminCancelModalBooking.id
+              ? { ...b, status: 'DISPUTED', cancellationReason: combinedReason }
+              : b
+          )
+        );
+        setAdminCancelModalBooking(null);
+        setAdminCancelNotes('');
+      }
+    } catch (err) {
+      console.error('Error submitting admin cancellation request:', err);
+    } finally {
+      setIsSubmittingAdminCancel(false);
+    }
   };
 
-  const handleMarkArrived = (id: string) => {
-    setBookings(
-      bookings.map((b) =>
-        b.id === id ? { ...b, status: 'ARRIVED_AT_VENUE' } : b
-      )
-    );
+  const handleUpdateStatus = async (booking: PhotographerBooking, nextStatus: 'on_the_way' | 'arrived_at_venue' | 'in_progress' | 'completed') => {
+    const targetId = booking.rawId || booking.id;
+    try {
+      setActionLoading((prev) => ({ ...prev, [targetId]: true }));
+      const res = await fetch('/api/photographers/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: targetId,
+          action: 'update_status',
+          newStatus: nextStatus,
+          userId: authUser?.id,
+        }),
+      });
+
+      if (res.ok) {
+        let mappedStatus: BookingStatus = 'CONFIRMED';
+        if (nextStatus === 'on_the_way') mappedStatus = 'ON_THE_WAY';
+        else if (nextStatus === 'arrived_at_venue') mappedStatus = 'ARRIVED_AT_VENUE';
+        else if (nextStatus === 'in_progress') mappedStatus = 'IN_PROGRESS';
+        else if (nextStatus === 'completed') mappedStatus = 'COMPLETED';
+
+        setBookings((prev) =>
+          prev.map((b) => (b.id === booking.id ? { ...b, status: mappedStatus } : b))
+        );
+      }
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [targetId]: false }));
+    }
   };
 
-  const handleVerifyOtpSubmit = (e: React.FormEvent) => {
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpModalBooking) return;
 
@@ -116,22 +283,10 @@ export default function PhotographerBookingsPage() {
     setIsVerifyingOtp(true);
     setOtpError('');
 
-    setTimeout(() => {
-      setIsVerifyingOtp(false);
-      setBookings(
-        bookings.map((b) =>
-          b.id === otpModalBooking.id ? { ...b, status: 'IN_PROGRESS' } : b
-        )
-      );
-      setOtpModalBooking(null);
-      setEnteredOtp('');
-    }, 500);
-  };
-
-  const handleMarkCompleted = (id: string) => {
-    setBookings(
-      bookings.map((b) => (b.id === id ? { ...b, status: 'COMPLETED' } : b))
-    );
+    await handleUpdateStatus(otpModalBooking, 'in_progress');
+    setIsVerifyingOtp(false);
+    setOtpModalBooking(null);
+    setEnteredOtp('');
   };
 
   const getStatusBadge = (status: BookingStatus) => {
@@ -139,13 +294,15 @@ export default function PhotographerBookingsPage() {
       case 'REQUESTED':
         return <Badge variant="warning" size="sm">New Request</Badge>;
       case 'CONFIRMED':
-        return <Badge variant="brand" size="sm">Confirmed</Badge>;
+        return <Badge variant="brand" size="sm">Confirmed & Locked</Badge>;
       case 'ON_THE_WAY':
-        return <Badge variant="brand" size="sm">On The Way</Badge>;
+        return <Badge variant="brand" size="sm">En Route to Venue</Badge>;
       case 'ARRIVED_AT_VENUE':
         return <Badge variant="warning" size="sm">At Venue (Awaiting OTP)</Badge>;
       case 'IN_PROGRESS':
         return <Badge variant="success" size="sm">Shoot In Progress</Badge>;
+      case 'DISPUTED':
+        return <Badge variant="warning" size="sm">Cancellation Under Admin Review</Badge>;
       case 'COMPLETED':
         return <Badge variant="success" size="sm">Shoot Completed</Badge>;
       case 'CANCELLED':
@@ -154,16 +311,14 @@ export default function PhotographerBookingsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <DemoNoticeBanner moduleName="Booking Pipeline & State Machine" />
-
+    <div className="space-y-8 pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
           Photographer Booking Management
         </h1>
         <p className="text-sm text-ink-secondary mt-1">
-          Review incoming requests, manage venue arrivals, verify start OTPs, and track completed assignments.
+          Review incoming requests, approve shoots near your location, manage venue arrivals, and process start OTPs.
         </p>
       </div>
 
@@ -202,7 +357,7 @@ export default function PhotographerBookingsPage() {
               : 'bg-white text-ink-secondary hover:text-ink-primary border border-contour-subtle hover:bg-canvas-secondary'
           }`}
         >
-          Upcoming ({confirmedCount})
+          Upcoming Confirmed ({confirmedCount})
         </button>
 
         <button
@@ -213,8 +368,24 @@ export default function PhotographerBookingsPage() {
               : 'bg-white text-ink-secondary hover:text-ink-primary border border-contour-subtle hover:bg-canvas-secondary'
           }`}
         >
-          In Progress / At Venue ({inProgressCount})
+          In Progress / En Route ({inProgressCount})
         </button>
+
+        {disputedCount > 0 && (
+          <button
+            onClick={() => setActiveTab('DISPUTED')}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'DISPUTED'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-amber-50 text-amber-900 border border-amber-200'
+            }`}
+          >
+            <span>Under Admin Review</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-amber-900 font-black">
+              {disputedCount}
+            </span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab('COMPLETED')}
@@ -240,12 +411,19 @@ export default function PhotographerBookingsPage() {
       </div>
 
       {/* BOOKINGS LIST */}
-      {currentBookings.length === 0 ? (
+      {isLoading ? (
+        <div className="py-16 text-center space-y-3">
+          <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-ink-muted">Loading your client assignments from database...</p>
+        </div>
+      ) : currentBookings.length === 0 ? (
         <Card className="p-12 text-center space-y-3">
           <Calendar className="w-12 h-12 text-ink-muted mx-auto" />
           <h3 className="text-base font-bold text-ink-primary">No Bookings in this Category</h3>
           <p className="text-xs text-ink-secondary max-w-sm mx-auto">
-            There are currently no bookings with status matching the selected filter.
+            {activeTab === 'ALL'
+              ? 'You have not received any client booking requests yet. Once clients book your profile or packages, they will appear here with full location and payout details.'
+              : 'There are currently no bookings with status matching the selected filter.'}
           </p>
           <Button variant="secondary" size="sm" onClick={() => setActiveTab('ALL')}>
             View All Bookings
@@ -253,213 +431,248 @@ export default function PhotographerBookingsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {currentBookings.map((b) => (
-            <Card
-              key={b.id}
-              className={`p-6 transition-all border ${
-                b.status === 'ARRIVED_AT_VENUE' || b.status === 'IN_PROGRESS'
-                  ? 'border-brand/50 bg-brand-subtle/10'
-                  : 'border-contour-subtle bg-white'
-              }`}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Overview */}
-                <div className="lg:col-span-8 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-extrabold text-ink-primary">
-                      {b.id}
-                    </span>
-                    <span>•</span>
-                    <span className="text-xs text-ink-muted">{b.category}</span>
-                    <span>•</span>
-                    {getStatusBadge(b.status)}
-                  </div>
+          {currentBookings.map((b) => {
+            const isProcessing = actionLoading[b.rawId || b.id];
 
-                  <div>
-                    <h3 className="text-lg font-extrabold text-ink-primary">
-                      {b.packageTitle}
-                    </h3>
-                    <p className="text-xs text-ink-secondary mt-1 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-brand shrink-0" />
-                      <span>{b.venueAddress}</span>
-                    </p>
+            return (
+              <Card
+                key={b.id}
+                className={`p-6 transition-all border ${
+                  b.status === 'ARRIVED_AT_VENUE' || b.status === 'IN_PROGRESS'
+                    ? 'border-brand/50 bg-brand-subtle/10'
+                    : b.status === 'DISPUTED'
+                    ? 'border-amber-300 bg-amber-50/30'
+                    : 'border-contour-subtle bg-white'
+                }`}
+              >
+                {/* PROMINENT "I WAS BOOKED BY" HEADER BANNER */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FFF8F2] border border-[#FFDFC6] mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#FF6E00] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                      {b.customerName.charAt(0)}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-[#8C847A] uppercase tracking-wider block">
+                        Assigned Client Order
+                      </span>
+                      <h4 className="text-sm font-black text-[#1A1816]">
+                        I was booked by <span className="text-[#FF6E00]">{b.customerName}</span>
+                      </h4>
+                    </div>
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-ink-secondary pt-1">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-ink-muted" />
-                      <strong>{b.date}</strong>, {b.timeSlot}
+                  <div className="text-left sm:text-right text-xs">
+                    <span className="font-bold text-[#1A1816] flex items-center gap-1 sm:justify-end">
+                      <Phone className="w-3.5 h-3.5 text-[#8C847A]" />
+                      {b.customerPhone}
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-ink-muted" />
-                      {b.duration}
-                    </span>
-                    <span>•</span>
-                    <span>Client: <strong>{b.customerName}</strong></span>
+                    <span className="text-[11px] text-[#8C847A] block">{b.customerEmail}</span>
                   </div>
-
-                  {b.notes && (
-                    <p className="text-xs text-ink-muted bg-canvas-primary p-2.5 rounded border border-contour-subtle italic">
-                      &ldquo;{b.notes}&rdquo;
-                    </p>
-                  )}
                 </div>
 
-                {/* Right Financials & Action Buttons */}
-                <div className="lg:col-span-4 flex flex-col justify-between items-start lg:items-end space-y-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-contour-subtle">
-                  <div className="text-left lg:text-right">
-                    <p className="text-xl font-black text-ink-primary">
-                      ₹{b.netEarnings.toLocaleString('en-IN')}
-                    </p>
-                    <p className="text-[11px] text-ink-muted">
-                      Your 80% Net Payout (Gross: ₹{b.grossAmount.toLocaleString('en-IN')})
-                    </p>
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Overview */}
+                  <div className="lg:col-span-8 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-extrabold text-ink-primary">
+                        {b.id}
+                      </span>
+                      <span>•</span>
+                      <span className="text-xs text-ink-muted">{b.category}</span>
+                      <span>•</span>
+                      {getStatusBadge(b.status)}
+                    </div>
 
-                  {/* Dynamic Action Buttons Depending on State */}
-                  <div className="flex flex-wrap items-center gap-2 w-full lg:justify-end">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectedBooking(b)}
-                      leftIcon={<Eye className="w-3.5 h-3.5" />}
-                    >
-                      Details
-                    </Button>
+                    <div>
+                      <h3 className="text-lg font-extrabold text-ink-primary">
+                        {b.packageTitle}
+                      </h3>
+                      <p className="text-xs text-ink-secondary mt-1 flex items-center gap-1.5 font-medium">
+                        <MapPin className="w-4 h-4 text-brand shrink-0" />
+                        <span>{b.venueAddress}</span>
+                      </p>
+                    </div>
 
-                    {/* State: REQUESTED */}
-                    {b.status === 'REQUESTED' && (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleAcceptRequest(b.id)}
-                        >
-                          Accept Request
-                        </Button>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-ink-secondary pt-1">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-ink-muted" />
+                        <strong>{b.date}</strong>, {b.timeSlot}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-ink-muted" />
+                        {b.duration}
+                      </span>
+                    </div>
+
+                    {b.notes && (
+                      <p className="text-xs text-ink-muted bg-canvas-primary p-2.5 rounded-xl border border-contour-subtle italic">
+                        &ldquo;{b.notes}&rdquo;
+                      </p>
+                    )}
+
+                    {/* CONFIRMED LOCK POLICY NOTICE */}
+                    {b.status === 'CONFIRMED' && (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-amber-50/90 border border-amber-200">
+                        <div className="flex items-center gap-2 text-amber-900 text-xs font-medium">
+                          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Shoot confirmed &amp; locked. To guarantee client trust, photographers cannot unilaterally decline without Admin approval.</span>
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setRejectingBooking(b)}
+                          onClick={() => setAdminCancelModalBooking(b)}
+                          className="text-red-600 border-red-300 hover:bg-red-50 text-[11px] font-bold shrink-0"
                         >
-                          Decline
+                          Contact Admin to Cancel
                         </Button>
-                      </>
+                      </div>
                     )}
 
-                    {/* State: CONFIRMED */}
-                    {b.status === 'CONFIRMED' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleMarkOnTheWay(b.id)}
-                        leftIcon={<Navigation className="w-3.5 h-3.5" />}
-                      >
-                        Mark On The Way
-                      </Button>
-                    )}
-
-                    {/* State: ON_THE_WAY */}
-                    {b.status === 'ON_THE_WAY' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleMarkArrived(b.id)}
-                        leftIcon={<MapPin className="w-3.5 h-3.5" />}
-                      >
-                        Mark Arrived at Venue
-                      </Button>
-                    )}
-
-                    {/* State: ARRIVED_AT_VENUE */}
-                    {b.status === 'ARRIVED_AT_VENUE' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          setOtpModalBooking(b);
-                          setEnteredOtp('');
-                          setOtpError('');
-                        }}
-                        leftIcon={<KeyRound className="w-3.5 h-3.5" />}
-                      >
-                        Verify Start OTP
-                      </Button>
-                    )}
-
-                    {/* State: IN_PROGRESS */}
-                    {b.status === 'IN_PROGRESS' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleMarkCompleted(b.id)}
-                        leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                      >
-                        Mark Shoot Completed
-                      </Button>
-                    )}
-
-                    {/* State: COMPLETED */}
-                    {b.status === 'COMPLETED' && (
-                      <Link href="/photographer/portfolio">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
-                        >
-                          {b.photosUploaded ? 'Delivered' : 'Upload Finished Photos'}
-                        </Button>
-                      </Link>
+                    {/* DISPUTED / CANCELLATION REQUESTED NOTICE */}
+                    {b.status === 'DISPUTED' && (
+                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 space-y-1.5">
+                        <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                          <AlertCircle className="w-4 h-4 text-amber-600" />
+                          <span>Cancellation Request Pending Admin Resolution</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800">
+                          Your emergency cancellation request has been forwarded to the SnapShoot Admin operations desk. An administrator will mediate and either reassign or arbitrate this booking.
+                        </p>
+                        {b.cancellationReason && (
+                          <div className="text-[11px] text-amber-900 font-semibold bg-white/80 p-2 rounded-lg border border-amber-200/60">
+                            Reason submitted: &ldquo;{b.cancellationReason}&rdquo;
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
+
+                  {/* Right Financials & Action Buttons */}
+                  <div className="lg:col-span-4 flex flex-col justify-between items-start lg:items-end space-y-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-contour-subtle">
+                    <div className="text-left lg:text-right">
+                      <p className="text-xl font-black text-ink-primary">
+                        ₹{b.netEarnings.toLocaleString('en-IN')}
+                      </p>
+                      <p className="text-[11px] text-ink-muted">
+                        Your 80% Net Payout (Gross: ₹{b.grossAmount.toLocaleString('en-IN')})
+                      </p>
+                    </div>
+
+                    {/* Action Buttons Dependent on State */}
+                    <div className="flex flex-wrap items-center gap-2 w-full lg:justify-end">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedBooking(b)}
+                        leftIcon={<Eye className="w-3.5 h-3.5" />}
+                      >
+                        Details
+                      </Button>
+
+                      {/* State: REQUESTED (Pending) - Photographer can Approve or Deny */}
+                      {b.status === 'REQUESTED' && (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            isLoading={isProcessing}
+                            onClick={() => handleAcceptRequest(b)}
+                          >
+                            Accept &amp; Confirm
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isProcessing}
+                            onClick={() => setRejectingBooking(b)}
+                          >
+                            Decline Request
+                          </Button>
+                        </>
+                      )}
+
+                      {/* State: CONFIRMED - Advance to On The Way */}
+                      {b.status === 'CONFIRMED' && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          isLoading={isProcessing}
+                          onClick={() => handleUpdateStatus(b, 'on_the_way')}
+                          leftIcon={<Navigation className="w-3.5 h-3.5" />}
+                        >
+                          Mark On The Way
+                        </Button>
+                      )}
+
+                      {/* State: ON_THE_WAY */}
+                      {b.status === 'ON_THE_WAY' && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          isLoading={isProcessing}
+                          onClick={() => handleUpdateStatus(b, 'arrived_at_venue')}
+                          leftIcon={<MapPin className="w-3.5 h-3.5" />}
+                        >
+                          Mark Arrived at Venue
+                        </Button>
+                      )}
+
+                      {/* State: ARRIVED_AT_VENUE */}
+                      {b.status === 'ARRIVED_AT_VENUE' && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            setOtpModalBooking(b);
+                            setEnteredOtp('');
+                            setOtpError('');
+                          }}
+                          leftIcon={<KeyRound className="w-3.5 h-3.5" />}
+                        >
+                          Verify Start OTP
+                        </Button>
+                      )}
+
+                      {/* State: IN_PROGRESS */}
+                      {b.status === 'IN_PROGRESS' && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          isLoading={isProcessing}
+                          onClick={() => handleUpdateStatus(b, 'completed')}
+                          leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                        >
+                          Mark Completed
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* VIEW DETAILS MODAL */}
+      {/* DETAIL MODAL */}
       {selectedBooking && (
         <Modal
           isOpen={!!selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          title={`Booking Details: ${selectedBooking.id}`}
-          description={`Category: ${selectedBooking.category} • Client: ${selectedBooking.customerName}`}
-          maxWidth="lg"
+          title={`Booking ${selectedBooking.id}`}
+          description={selectedBooking.packageTitle}
+          maxWidth="md"
         >
-          <div className="space-y-5 text-xs text-ink-secondary">
-            {/* Status & Package */}
-            <div className="flex items-center justify-between p-3.5 bg-canvas-primary rounded-card-sm border border-contour-subtle">
+          <div className="space-y-4 text-xs">
+            {/* Client Info Banner */}
+            <div className="p-3.5 bg-[#FFF8F2] border border-[#FFDFC6] rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-extrabold uppercase text-ink-muted">Shoot Package</span>
-                <p className="text-sm font-bold text-ink-primary">{selectedBooking.packageTitle}</p>
-                <p>{selectedBooking.duration}</p>
+                <p className="text-[10px] font-bold text-[#8C847A] uppercase">Customer Identity</p>
+                <p className="text-sm font-black text-[#1A1816]">I was booked by {selectedBooking.customerName}</p>
               </div>
               <div className="text-right">
-                {getStatusBadge(selectedBooking.status)}
-              </div>
-            </div>
-
-            {/* Client Info */}
-            <div className="space-y-2">
-              <p className="font-bold uppercase text-ink-primary">Customer & Contact</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3.5 rounded-card-sm border border-contour-subtle">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-brand shrink-0" />
-                  <div>
-                    <p className="text-ink-muted">Phone Number</p>
-                    <p className="font-bold text-ink-primary">{selectedBooking.customerPhone}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-brand shrink-0" />
-                  <div>
-                    <p className="text-ink-muted">Email Address</p>
-                    <p className="font-bold text-ink-primary">{selectedBooking.customerEmail}</p>
-                  </div>
-                </div>
+                <p className="font-bold text-[#1A1816]">{selectedBooking.customerPhone}</p>
+                <p className="text-[11px] text-[#8C847A]">{selectedBooking.customerEmail}</p>
               </div>
             </div>
 
@@ -493,11 +706,6 @@ export default function PhotographerBookingsPage() {
                   <span>₹{selectedBooking.netEarnings.toLocaleString('en-IN')}</span>
                 </div>
               </div>
-            </div>
-
-            {/* Demo code notice */}
-            <div className="p-3 bg-amber-50 rounded border border-amber-200 text-amber-900 text-[11px]">
-              🔒 <strong>Shoot-Start OTP for Demo:</strong> {selectedBooking.startOtp}. The client displays this 6-digit code on arrival.
             </div>
 
             <div className="flex justify-end pt-2">
@@ -543,10 +751,6 @@ export default function PhotographerBookingsPage() {
               </p>
             )}
 
-            <p className="text-[11px] text-ink-muted">
-              Demo code for this booking: <span className="font-mono font-bold text-ink-primary">{otpModalBooking.startOtp}</span>
-            </p>
-
             <div className="flex items-center gap-2 pt-2">
               <Button
                 type="button"
@@ -571,7 +775,7 @@ export default function PhotographerBookingsPage() {
         </Modal>
       )}
 
-      {/* DECLINE CONFIRMATION MODAL */}
+      {/* DECLINE CONFIRMATION MODAL (ONLY FOR PENDING REQUESTS) */}
       {rejectingBooking && (
         <Modal
           isOpen={!!rejectingBooking}
@@ -590,7 +794,7 @@ export default function PhotographerBookingsPage() {
               <select
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full bg-white border border-contour-strong rounded p-2 text-xs font-medium outline-none focus:ring-1 focus:ring-brand"
+                className="w-full bg-white border border-contour-strong rounded-xl p-2.5 text-xs font-medium outline-none focus:ring-1 focus:ring-brand"
               >
                 <option value="Schedule conflict with another shoot">Schedule conflict with another shoot</option>
                 <option value="Venue is outside my coverage area">Venue is outside my coverage area</option>
@@ -603,8 +807,82 @@ export default function PhotographerBookingsPage() {
               <Button variant="secondary" size="sm" onClick={() => setRejectingBooking(null)}>
                 Keep Request
               </Button>
-              <Button variant="danger" size="sm" onClick={handleConfirmReject}>
+              <Button
+                variant="danger"
+                size="sm"
+                isLoading={actionLoading[rejectingBooking.rawId || rejectingBooking.id]}
+                onClick={handleConfirmReject}
+              >
                 Confirm Decline
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* CONTACT ADMIN FOR EMERGENCY CANCELLATION MODAL (FOR CONFIRMED BOOKINGS) */}
+      {adminCancelModalBooking && (
+        <Modal
+          isOpen={!!adminCancelModalBooking}
+          onClose={() => setAdminCancelModalBooking(null)}
+          title="Contact Admin for Cancellation Mediation"
+          description={`Confirmed Shoot with ${adminCancelModalBooking.customerName} on ${adminCancelModalBooking.date}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 space-y-1">
+              <div className="flex items-center gap-2 font-bold text-xs">
+                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>SnapShoot Platform Reliability Policy</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Because you already approved and confirmed this booking, you cannot unilaterally decline it. Dropping confirmed shoots affects client trust. Submitting this form forwards your case to the SnapShoot Admin operations desk for mediation or client refund/reassignment.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase text-ink-primary">Emergency Category *</label>
+              <select
+                value={adminCancelReason}
+                onChange={(e) => setAdminCancelReason(e.target.value)}
+                className="w-full bg-white border border-contour-strong rounded-xl p-2.5 text-xs font-medium outline-none focus:ring-1 focus:ring-brand text-ink-primary"
+              >
+                <option value="Severe illness / medical emergency">Severe illness / medical emergency</option>
+                <option value="Critical camera / lens / lighting equipment failure">Critical camera / lens / lighting equipment failure</option>
+                <option value="Transport breakdown en route to venue">Transport breakdown en route to venue</option>
+                <option value="Severe weather / safety hazard at shoot venue">Severe weather / safety hazard at shoot venue</option>
+                <option value="Other unavoidable emergency">Other unavoidable emergency</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase text-ink-primary">Specific Details for Admin Desk *</label>
+              <textarea
+                rows={3}
+                value={adminCancelNotes}
+                onChange={(e) => setAdminCancelNotes(e.target.value)}
+                placeholder="Explain the circumstances so Admin can assist the client with an alternate photographer or immediate refund..."
+                className="w-full bg-white border border-contour-strong rounded-xl p-2.5 text-xs font-medium outline-none focus:ring-1 focus:ring-brand text-ink-primary"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-contour-subtle">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setAdminCancelModalBooking(null)}
+              >
+                Keep Assignment
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={!adminCancelNotes.trim() || isSubmittingAdminCancel}
+                isLoading={isSubmittingAdminCancel}
+                onClick={handleConfirmAdminCancel}
+                leftIcon={<Send className="w-3.5 h-3.5" />}
+              >
+                Submit Cancellation to Admin
               </Button>
             </div>
           </div>

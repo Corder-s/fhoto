@@ -30,10 +30,12 @@ export type BookingStatus =
   | 'ARRIVED_AT_VENUE'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'DISPUTED';
 
 export interface PhotographerBooking {
   id: string;
+  rawId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -50,6 +52,7 @@ export interface PhotographerBooking {
   status: BookingStatus;
   startOtp: string; // 6-digit verification code
   photosUploaded?: boolean;
+  cancellationReason?: string;
   createdAt: string;
 }
 

@@ -1,84 +1,117 @@
-# SNAPSHOOT — On-Demand Photographer & Videographer Marketplace
+# INSTANTSHOOT — Production-Ready Creative Services Marketplace
 
-> **SnapShoot** is a modern, responsive web application connecting customers with verified professional photographers and filmmakers across India. Built with Next.js 14 App Router, TypeScript, and Tailwind CSS.
-
----
-
-## 📸 Key Features
-
-### 1. Consumer Experience & Discovery
-- **Faithful Design Replication:** Warm cream canvas (`#FAF7F2`), vibrant primary orange accents (`#FF6E00`), near-black typography (`#1A1816`), and refined card composition.
-- **Hero & Geospatial Search:** Dynamic search bar filtering by Location, Shoot Type (Portraits, Reels, Couples, Events), Date, and Duration.
-- **Verified Photographers Radar:** Multi-facet filtering on `/explore` by location/city, category, price range (₹500 to ₹15,000+), rating, and availability status.
-- **Creator Profiles:** Rich portfolios with full-screen lightbox preview, camera gear breakdown, transparent package tiers, and client reviews.
-- **4-Step Booking Wizard:** Interactive booking modal calculating transparent INR totals with platform fee and 100% Escrow security.
-
-### 2. Customer Dashboard (`/customer/*`)
-- **Active Appointment Tracker:** Live status milestone tracking (`REQUESTED` → `CONFIRMED` → `ON_THE_WAY` → `ARRIVED_AT_VENUE` → `IN_PROGRESS` → `COMPLETED`).
-- **Shoot-Start OTP System:** 6-digit OTP verification handshake on arrival ensuring verified attendance before shoots begin.
-- **Private Photo Proofing Gallery:** Watermarked client previews, high-res 4K JPEG downloads, and complete ZIP downloads.
-- **Escrow Financial Ledger:** RBI-compliant escrow payment breakdown, downloadable GST invoices, and transaction history.
-- **Reviews & Favorites:** Verified review submissions with star ratings and feedback validation.
-
-### 3. Photographer Creator Studio (`/photographer/*`)
-- **Studio Dashboard:** Real-time shoot requests, online/offline status switch, and on-site OTP handshake validator.
-- **Financial Analytics & Payouts:** Gross Booking Value (GBV), guaranteed 80% net payouts, and instant UPI/Bank IMPS withdrawal dialog.
-- **Portfolio & Packages Editor:** Create, update, and manage photography tiers and portfolio image collections.
-- **Availability Calendar:** Slot and day management for instant bookings.
-- **KYC Verification Desk:** 4-step identity verification (Govt ID, camera gear check, selfie verification, and bank details).
-
-### 4. Operations & Executive Panels
-- **Admin Operations Desk (`/admin/dashboard`):** KYC review queue, active shoots monitor, dispute mediation console, and platform integrity checks.
-- **Owner Analytics (`/owner/dashboard`):** Marketplace liquidity, Gross Booking Value (GBV), 20% platform commission capture, and city density metrics.
+> **Instantshoot** is an on-demand marketplace connecting customers with verified professional photographers, cinematographers, drone pilots, and short-form video creators across India. Built with Next.js 14 App Router, Supabase PostgreSQL, TypeScript, and Tailwind CSS.
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 📸 Core Capabilities
 
-- **Framework:** [Next.js 14](https://nextjs.org/) (App Router, Server Components + Client Interactivity)
-- **Language:** TypeScript 5.6
-- **Styling:** Tailwind CSS with custom design tokens (`canvas`, `brand`, `ink`, `contour`)
-- **Icons:** [Lucide React](https://lucide.dev/)
-- **Monorepo:** npm workspaces (`apps/web`, `apps/api`, `packages/*`)
-- **Package Manager:** npm
+### 1. Visual Discovery & Radar Exploration (`/explore`)
+- **Aesthetic Vibe Search & Smart Prompting:** Discover creators by AI mood presets (Golden Hour Romance, 4K Cinema Reels, Moody Editorial, Royal Heritage).
+- **Multi-Parameter Database Filtering:** Live filtering by Indian metro/hub, creative genre, pricing tiers (₹1,500 – ₹15,000+), minimum ratings, same-day instant availability, and gear tier (Flagship FX3 / A7IV / Medium Format).
+- **Side-by-Side Creator Comparison:** Compare up to 3 creative packages, deliverables, turnarounds, and rates in a unified modal.
+- **Studio Radar Map:** Interactive coordinates map showing creators nearby.
+
+### 2. Transactional Booking & Escrow Platform
+- **Server-Authoritative Pricing:** Service prices, platform fees (10%), and 18% GST are calculated and snapshotted on the server — never trusting client inputs.
+- **Atomic Availability Checks:** Prevents double-bookings or concurrent time conflicts for creators.
+- **Auditable Status Machine:** `pending` → `accepted` → `confirmed` → `in_progress` → `completed`, logged permanently in `booking_status_history`.
+- **Payment & Escrow System:** Full support for Razorpay/Cashfree order initiation with unique idempotency keys, webhook signature verification, and an auditable Development Sandbox Mode when gateway keys are unconfigured.
+
+### 3. Media Delivery Engine (Supabase Storage + Google Drive)
+- **Hybrid Deliverables:** Creators upload high-res JPEG/RAW ZIP archives directly to private Supabase Storage buckets or submit verified Google Drive shared links (`drive.google.com/drive/folders/...`) and cinema stream links (Vimeo/YouTube).
+- **Private Access & Signed URLs:** Private Supabase Storage objects (`booking-deliverables`) are accessed exclusively via short-lived signed URLs generated on the server for authorized customers.
+
+### 4. Supabase Auth & Role-Based Profiles
+- **Consumer & Creator Journeys:** Unified authentication using Supabase Auth with custom application profiles (`profiles`) and strict role permissions (`user_roles`).
+- **Context Retention:** Selected packages and creator profiles are preserved across authentication redirects.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Database Schema & Supabase Migrations
 
-### Prerequisites
-- Node.js >= 18.x (tested on Node v20 & v24)
-- npm >= 9.x
+The database is built on Supabase PostgreSQL with 19 version-controlled tables, automated triggers, and Row Level Security:
 
-### Installation
+### Tables Overview
+| Table Name | Description | Access Control (RLS) |
+|---|---|---|
+| `profiles` | User profiles linked 1:1 with `auth.users(id)` | Public read, owner update |
+| `user_roles` | Customer, Creator, and Admin roles | Owner read, service role manage |
+| `creator_profiles` | Creator professional details, city, ratings | Public read, creator update |
+| `creator_portfolio_items` | High-res photos and video reel previews | Public read published items |
+| `service_categories` | Configurable creative service categories | Public read |
+| `creator_services` | Base prices, duration, turnaround, instant flag | Public read, creator manage |
+| `creator_availability` | Creator schedule availability blocks | Public read, creator manage |
+| `creator_unavailable_periods` | Blackout dates preventing booking conflicts | Public read, creator manage |
+| `bookings` | Master customer booking contracts & financials | Customer & Creator assigned only |
+| `booking_status_history` | Immutable audit trail of state transitions | Booking participants read-only |
+| `platform_fee_settings` | Percentage and fixed fee settings | Public read, admin manage |
+| `payments` | Customer payments with idempotency keys | Customer, Creator, Admin only |
+| `creator_payouts` | Creator net payouts held in escrow | Creator and Admin only |
+| `refunds` | Refund records and gateway status | Customer and Admin only |
+| `booking_deliverables` | Raw files, edited media, and Google Drive links | Booking participants only |
+| `reviews` | Customer ratings & reviews for completed shoots | Public read, customer create |
+| `conversations` | Booking-related chat threads | Participants only |
+| `messages` | Direct messages between customer and creator | Thread participants only |
+| `notifications` | In-app user notifications | Target user only |
+
+### Storage Buckets
+1. `profile-avatars` (Public read, authenticated upload, 5 MB limit)
+2. `creator-portfolios` (Public read, creator upload, 50 MB limit)
+3. `booking-deliverables` (PRIVATE bucket, 500 MB limit, signed URLs only)
+4. `creator-verification` (PRIVATE bucket, 25 MB limit, owner + admin only)
+
+---
+
+## 🚀 Local Setup & Supabase Configuration
+
+### Step 1: Environment Variables
+Copy `.env.local.example` to `.env.local` inside `apps/web`:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Corder-s/fhoto.git
-cd fhoto
-
-# Install dependencies across monorepo
-npm install
+cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-### Development Server
-
-```bash
-# Run web application locally (runs on http://localhost:3000)
-npm run dev:web
+Configure your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### Production Build
+> **Note:** If Supabase credentials are not configured, the application runs seamlessly in **Development Sandbox Mode**, displaying catalog fixtures and providing auditable test payment and booking simulations without crashing.
+
+### Step 2: Apply Database Migrations
+You can apply the SQL migrations via the Supabase Dashboard SQL Editor or Supabase CLI:
+
+1. Open your Supabase Dashboard > **SQL Editor**.
+2. Run [`supabase/migrations/20261012000001_master_instantshoot_schema.sql`](supabase/migrations/20261012000001_master_instantshoot_schema.sql) to create all 19 tables, indexes, triggers, and seed data.
+3. Run [`supabase/migrations/20261012000002_storage_and_rls_policies.sql`](supabase/migrations/20261012000002_storage_and_rls_policies.sql) to provision storage buckets and enable Row Level Security.
+
+### Step 3: Run Development Server
 
 ```bash
-# Build production bundle
-npm run build --workspace=apps/web
+# Start Next.js development server
+npm.cmd run dev:web
+```
+Open [http://localhost:3000/explore](http://localhost:3000/explore) in your browser.
 
-# Start production server
-npm run start --workspace=apps/web
+---
+
+## 🧪 Verification & Testing
+
+Run linting and production build checks across the workspace:
+
+```bash
+# Typecheck and linting
+npm.cmd run lint --workspace=apps/web
+
+# Production build verification
+npm.cmd run build --workspace=apps/web
 ```
 
 ---
 
 ## 📄 License
-Private & Confidential — SnapShoot Technologies Pvt. Ltd.
+Private & Confidential — Instantshoot Creative Technologies Pvt. Ltd.

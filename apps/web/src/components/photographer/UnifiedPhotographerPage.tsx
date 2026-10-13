@@ -58,6 +58,7 @@ import {
   PhotographerServicePackage as SampleServicePackage
 } from '../../data/photographers';
 import { useAuth } from '../../lib/auth';
+import { useCurrentUserProfile } from '../../context/UserProfileContext';
 
 export type UnifiedPageMode = 'creator' | 'public';
 export type ActiveSection = 'overview' | 'profile' | 'portfolio' | 'services' | 'bookings' | 'reviews';
@@ -72,6 +73,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
   creatorId = 'pro-aman'
 }) => {
   const { user } = useAuth();
+  const { accountName, professionalName } = useCurrentUserProfile();
   const [currentMode, setCurrentMode] = useState<UnifiedPageMode>(initialMode);
   const [activeSection, setActiveSection] = useState<ActiveSection>('overview');
 
@@ -93,6 +95,40 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
 
   // Share profile toast
   const [copiedToast, setCopiedToast] = useState(false);
+
+  // Live packages state from Supabase creator_services
+  const [liveServices, setLiveServices] = useState<typeof INITIAL_SERVICES>(INITIAL_SERVICES);
+
+  React.useEffect(() => {
+    let isCancelled = false;
+    async function loadCreatorServices() {
+      try {
+        const queryParam = user?.id ? `userId=${user.id}` : `creatorId=${creatorId}`;
+        const res = await fetch(`/api/photographers/services?${queryParam}`);
+        const data = await res.json();
+        if (!isCancelled && data.services && Array.isArray(data.services) && data.services.length > 0) {
+          const mapped = data.services.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            category: s.service_categories?.name || 'Portrait',
+            description: s.description || 'High-res retouched photographs & private client gallery.',
+            durationHours: Math.max(1, Math.round((s.duration_minutes || 60) / 60)),
+            priceInr: Number(s.base_price) || 2999,
+            deliverables: s.description 
+              ? s.description.split('\n').map((l: string) => l.trim()).filter(Boolean)
+              : ['30 Edited High-Res Photos', 'Online Gallery Link', '48-Hour Turnaround'],
+            additionalHourRateInr: 1500,
+            isActive: s.is_active !== false,
+          }));
+          setLiveServices(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to load services in UnifiedPhotographerPage:', err);
+      }
+    }
+    loadCreatorServices();
+    return () => { isCancelled = true; };
+  }, [user?.id, creatorId]);
 
   // Look up photographer profile data
   const sampleCreator = SAMPLE_PHOTOGRAPHERS.find((p) => p.id === creatorId) || SAMPLE_PHOTOGRAPHERS[0];
@@ -141,7 +177,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
     }
   };
 
-  const handleInitiateBooking = (pkg: typeof INITIAL_SERVICES[0]) => {
+  const handleInitiateBooking = (pkg: typeof liveServices[0]) => {
     // Map to SampleServicePackage format expected by BookingModal
     const modalPackage: SampleServicePackage = {
       id: pkg.id,
@@ -191,7 +227,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
             SnapShoot Unified Creator Hub
           </Badge>
           <span className="text-xs text-ink-muted hidden md:inline">
-            Aman Sharma&apos;s Photographer Profile &amp; Studio Dashboard
+            {(professionalName || accountName || 'Photographer')}&apos;s Profile &amp; Studio Dashboard
           </span>
         </div>
 
@@ -794,7 +830,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="unified-packages-section">
-          {INITIAL_SERVICES.slice(0, 3).map((pkg, idx) => (
+          {liveServices.map((pkg, idx) => (
             <Card
               key={pkg.id}
               className={`flex flex-col justify-between relative ${

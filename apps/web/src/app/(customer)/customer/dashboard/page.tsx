@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { OriginalAuthenticatedLanding } from '../../../../components/home/OriginalAuthenticatedLanding';
+import { CustomerDashboardView } from '../../../../components/customer/CustomerDashboardView';
 
 export default function CustomerDashboardPage() {
-  return <OriginalAuthenticatedLanding />;
+  return <CustomerDashboardView />;
 }

@@ -142,32 +142,6 @@ export default function PhotographerVerificationPage() {
         </p>
       </div>
 
-      {/* DEMO STATE SWITCHER BAR */}
-      <div className="bg-canvas-secondary/80 border border-contour-subtle rounded-card-md p-4 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink-primary">
-          <RefreshCw className="w-3.5 h-3.5 text-brand" />
-          <span>Interactive State Inspector (Demonstration Tool)</span>
-        </div>
-        <p className="text-xs text-ink-secondary">
-          Click any state below to preview how the verification interface adapts to each compliance lifecycle phase:
-        </p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          {(Object.keys(statesConfig) as VerificationState[]).map((stateKey) => (
-            <button
-              key={stateKey}
-              onClick={() => setSelectedState(stateKey)}
-              className={`px-3 py-1.5 rounded-card-sm text-xs font-bold transition-all ${
-                selectedState === stateKey
-                  ? 'bg-brand text-white shadow-sm'
-                  : 'bg-white text-ink-secondary hover:text-ink-primary border border-contour-subtle hover:bg-canvas-secondary'
-              }`}
-            >
-              {statesConfig[stateKey].label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* CURRENT STATUS PRESENTATION CARD */}
       <Card className="p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-contour-subtle">

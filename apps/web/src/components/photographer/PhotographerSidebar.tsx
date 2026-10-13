@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Calendar,
@@ -25,8 +25,8 @@ import {
   Layers,
   BarChart3,
 } from 'lucide-react';
-import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
-import { clearAuthSession } from '../../lib/auth';
+import { clearAuthSession, useAuth } from '../../lib/auth';
+import { useCurrentUserProfile } from '../../context/UserProfileContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -35,10 +35,31 @@ interface SidebarProps {
 
 export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+  const {
+    authUser,
+    profile,
+    creatorProfile,
+    stats,
+    accountName,
+    professionalName,
+    displayAvatar,
+    initials,
+  } = useCurrentUserProfile();
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
+    await logout();
+    router.push('/login');
+  };
+
+  const handleSlug = `@${accountName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
   const navItems = [
     { label: 'Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
-    { label: 'My Profile', href: '/photographer/settings', icon: UserCheck },
+    { label: 'My Profile', href: '/photographer/business', icon: UserCheck },
     { label: 'Portfolio', href: '/photographer/portfolio', icon: Image },
     { label: 'Packages & Pricing', href: '/photographer/services', icon: Package },
     { label: 'Availability', href: '/photographer/availability', icon: Clock },
@@ -46,7 +67,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       label: 'Booking Requests',
       href: '/photographer/bookings',
       icon: Calendar,
-      badge: '5',
+      badge: stats.newRequests > 0 ? String(stats.newRequests) : undefined,
       badgeColor: 'bg-[#FF4D4D] text-white',
     },
     { label: 'My Bookings', href: '/photographer/bookings', icon: Calendar },
@@ -55,13 +76,6 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
     { label: 'Subscription', href: '/photographer/subscription', icon: CreditCard },
     { label: 'Analytics', href: '/photographer/analytics', icon: BarChart3 },
     { label: 'Reviews', href: '/photographer/reviews', icon: Star },
-    {
-      label: 'Messages',
-      href: '/photographer/dashboard',
-      icon: ExternalLink,
-      badge: '3',
-      badgeColor: 'bg-[#FF4D4D] text-white',
-    },
     { label: 'Settings', href: '/photographer/settings', icon: Settings },
     { label: 'Help & Support', href: '/photographer/settings', icon: ShieldCheck },
   ];
@@ -106,27 +120,38 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         {/* Profile Card Snippet */}
         <div className="p-4 border-b border-contour-subtle bg-canvas-primary/60 shrink-0">
           <div className="flex items-center gap-3">
-            <img
-              src={INITIAL_PHOTOGRAPHER_PROFILE.avatar}
-              alt={INITIAL_PHOTOGRAPHER_PROFILE.name}
-              className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm"
-            />
+            {displayAvatar ? (
+              <img
+                src={displayAvatar}
+                alt={accountName}
+                className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-sm font-black border-2 border-white shadow-sm shrink-0">
+                {initials}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-bold text-ink-primary truncate">
-                  {INITIAL_PHOTOGRAPHER_PROFILE.name}
+                  {accountName}
                 </p>
-                <span title="Verified Professional" className="inline-flex">
-                  <ShieldCheck className="w-3.5 h-3.5 text-brand shrink-0" />
-                </span>
+                {creatorProfile?.verification_status === 'approved' && (
+                  <span title="Verified Professional" className="inline-flex">
+                    <ShieldCheck className="w-3.5 h-3.5 text-brand shrink-0" />
+                  </span>
+                )}
               </div>
               <p className="text-xs text-ink-secondary truncate">
-                {INITIAL_PHOTOGRAPHER_PROFILE.handle}
+                {handleSlug}
               </p>
               <div className="flex items-center gap-2 mt-0.5 text-[11px] font-medium text-ink-muted">
-                <span>⭐ {INITIAL_PHOTOGRAPHER_PROFILE.rating}</span>
+                <span>⭐ {creatorProfile?.average_rating ? Number(creatorProfile.average_rating).toFixed(1) : '5.0'}</span>
                 <span>•</span>
-                <span>{INITIAL_PHOTOGRAPHER_PROFILE.city}</span>
+                <span className="truncate">{creatorProfile?.city || 'Delhi NCR'}</span>
               </div>
             </div>
           </div>
@@ -197,11 +222,8 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
           </Link>
 
           <Link
-            href="/"
-            onClick={() => {
-              clearAuthSession();
-              onClose();
-            }}
+            href="/login"
+            onClick={handleSignOut}
             className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg px-3 py-1 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
@@ -25,26 +26,118 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { PortfolioLightbox } from '../../../components/gallery/PortfolioLightbox';
 import { BookingModal } from '../../../components/booking/BookingModal';
-import { UnifiedPhotographerPage } from '../../../components/photographer/UnifiedPhotographerPage';
 import { useAuth } from '../../../lib/auth';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
-export default function PhotographerProfilePage({ params }: { params: { id: string } }) {
-  if (params.id === 'pro-aman') {
-    return (
-      <>
-        <Navbar />
-        <main className="flex-1 bg-canvas-primary py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <UnifiedPhotographerPage initialMode="public" creatorId="pro-aman" />
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+function PhotographerProfileInner({ params }: { params: { id: string } }) {
+  const searchParams = useSearchParams();
+  const shouldAutoBook = searchParams?.get('book') === 'true';
 
-  const creator = SAMPLE_PHOTOGRAPHERS.find((p) => p.id === params.id);
+  const [creator, setCreator] = useState<SamplePhotographer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCreator() {
+      try {
+        const res = await fetch(`/api/photographers?id=${encodeURIComponent(params.id)}`);
+        const data = await res.json();
+        if (isMounted && data.photographers && data.photographers.length > 0) {
+          const cp = data.photographers[0];
+
+          let rawPackages = cp.services || [];
+          if (rawPackages.length === 0) {
+            try {
+              const srvRes = await fetch(`/api/photographers/services?creatorId=${encodeURIComponent(params.id)}`);
+              if (srvRes.ok) {
+                const srvData = await srvRes.json();
+                if (srvData.services && srvData.services.length > 0) {
+                  rawPackages = srvData.services.map((s: any) => ({
+                    id: s.id,
+                    name: s.title,
+                    description: s.description,
+                    priceInr: Number(s.base_price),
+                    durationMinutes: s.duration_minutes,
+                    deliveryHours: s.delivery_time_hours || 48,
+                  }));
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          const servicePackages: PhotographerServicePackage[] = rawPackages.length > 0
+            ? rawPackages.map((s: any, idx: number) => {
+                const desc = s.description || '';
+                const lines = desc.split('\n').map((l: string) => l.trim()).filter(Boolean);
+                const features = lines.length > 0 ? lines : [
+                  'Full commercial usage rights',
+                  'High-resolution master JPEGs',
+                  'Direct cloud delivery via private gallery',
+                ];
+
+                const durHours = s.durationMinutes ? Math.max(1, Math.round(s.durationMinutes / 60)) : 1;
+                return {
+                  id: s.id,
+                  name: s.name,
+                  priceInr: s.priceInr,
+                  duration: `${durHours} Hour${durHours > 1 ? 's' : ''}`,
+                  photos: desc || '30-40 color-graded frames',
+                  turnaround: `${s.deliveryHours || 48} Hours`,
+                  isPopular: idx === 0,
+                  features,
+                };
+              })
+            : [];
+
+          const mapped: SamplePhotographer = {
+            id: cp.id,
+            name: cp.name,
+            tagline: cp.tagline || 'Verified Professional Creative Specialist',
+            avatarUrl: cp.avatarUrl || '/reference-assets/avatar_aman.jpg',
+            coverImageUrl: cp.coverImageUrl || '/reference-assets/hero_scene.jpg',
+            isVerified: cp.isVerified,
+            locationCity: cp.city || 'Delhi NCR',
+            locationArea: cp.locationArea || `${cp.city}, India`,
+            rating: cp.rating || 5.0,
+            reviewCount: cp.reviewCount || 0,
+            categories: cp.specialties || ['Portraits', 'Events'],
+            startingPriceInr: cp.startingPriceInr || 2499,
+            availabilityStatus: cp.availabilityStatus || 'Available today',
+            experienceYears: cp.experienceYears || 5,
+            cameraGear: 'Professional Full-Frame Rig • Prime Lenses • Portable Studio Strobes',
+            specialties: cp.specialties || ['Portraits', 'Events', 'Reels'],
+            bio: cp.bio || 'Verified professional photographer available for instant and scheduled bookings.',
+            portfolioPreviews: (cp.portfolio || []).map((p: any) => p.url).slice(0, 4),
+            fullPortfolio: (cp.portfolio || []).map((p: any) => ({
+              id: p.id,
+              url: p.url,
+              title: p.title || 'Creative Portfolio Staging',
+              category: p.mediaType || 'Portraits',
+            })),
+            servicePackages,
+            reviews: [],
+          };
+          (mapped as any).userId = cp.userId || cp.user_id;
+          (mapped as any).slug = cp.slug;
+          setCreator(mapped);
+          if (shouldAutoBook && servicePackages.length > 0) {
+            setSelectedPackage(servicePackages[0]);
+            setBookingModalOpen(true);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load creator profile:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadCreator();
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id, shouldAutoBook]);
 
   // Lightbox State
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -54,11 +147,27 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PhotographerServicePackage | null>(null);
 
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
 
   // Copy Profile Link Toast State
   const [copiedToast, setCopiedToast] = useState(false);
+
+  // LOADING SKELETON
+  if (isLoading && !creator) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-canvas-primary py-24">
+          <div className="max-w-md mx-auto text-center px-4 space-y-3">
+            <div className="w-10 h-10 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs font-semibold text-ink-muted">Loading verified artist profile from Supabase...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   // 404 NOT FOUND STATE FOR UNKNOWN IDS
   if (!creator) {
@@ -116,6 +225,55 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
   return (
     <>
       <Navbar />
+
+      {/* Role Context Bar: Distinguishes Client vs Creator on Photographer Pages */}
+      {isAuthenticated && (
+        <div className="bg-[#FAF7F2] border-b border-[#E8E1D6] py-2.5 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            {user?.role === 'customer' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#E7F6ED] text-[#1E7D46] border border-[#C5E8D2] text-[10px]">
+                    Client Session: {user?.name || 'Customer'}
+                  </span>
+                  <span className="text-[#5A544D]">
+                    You are browsing photographer <strong>{creator.name}</strong>&apos;s verified booking profile.
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Link href="/customer/dashboard" className="text-[#5A544D] hover:text-[#1A1816] font-semibold underline">
+                    ← Back to Dashboard
+                  </Link>
+                  <Link href="/customer/settings" className="text-[#FF6E00] hover:text-[#E86300] font-bold">
+                    My Client Profile →
+                  </Link>
+                </div>
+              </>
+            ) : user?.id === (creator as any).userId || user?.id === creator.id ? (
+              <>
+                <span className="text-[#FF6E00] font-bold">
+                  ✨ You are viewing your public client-facing creator profile page.
+                </span>
+                <Link
+                  href="/photographer/dashboard"
+                  className="px-3.5 py-1 rounded-full bg-[#FF6E00] text-white font-bold text-xs hover:bg-[#E86300] transition-colors"
+                >
+                  Manage in Studio Dashboard →
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="text-[#5A544D]">
+                  Viewing verified creator profile: <strong>{creator.name}</strong>
+                </span>
+                <Link href="/explore" className="text-[#FF6E00] font-bold">
+                  ← Explore All Photographers
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 bg-canvas-primary pb-20">
         {/* HERO PORTFOLIO COVER IMAGE */}
@@ -295,59 +453,77 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {creator.servicePackages.map((pkg) => (
-                <Card
-                  key={pkg.id}
-                  hoverEffect
-                  className={`flex flex-col justify-between relative ${
-                    pkg.isPopular ? 'border-brand ring-1 ring-brand' : ''
-                  }`}
-                >
-                  {pkg.isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge variant="brand" size="sm">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-ink-primary">{pkg.name}</h3>
-                      <p className="text-2xl font-black text-brand mt-1">
-                        ₹{pkg.priceInr.toLocaleString('en-IN')}
-                      </p>
-                      <p className="text-xs text-ink-muted mt-0.5">
-                        {pkg.duration} shoot • {pkg.photos}
-                      </p>
-                    </div>
-
-                    <ul className="space-y-2 text-xs sm:text-sm text-ink-secondary pt-2 border-t border-contour-subtle">
-                      {pkg.features.map((feat, i) => (
-                        <li key={i} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
+              {creator.servicePackages.length === 0 ? (
+                <div className="col-span-full py-12 text-center bg-white border border-dashed border-contour-subtle rounded-card-md p-8 space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto mb-2">
+                    <Sparkles className="w-6 h-6" />
                   </div>
+                  <h3 className="text-sm font-bold text-ink-primary">No Service Packages Published Yet</h3>
+                  <p className="text-xs text-ink-muted max-w-sm mx-auto">
+                    This creative specialist hasn&apos;t published any custom booking packages yet. Check back soon or contact support for custom shoot requests.
+                  </p>
+                </div>
+              ) : (
+                creator.servicePackages.map((pkg) => (
+                  <Card
+                    key={pkg.id}
+                    hoverEffect
+                    className={`flex flex-col justify-between relative ${
+                      pkg.isPopular ? 'border-brand ring-1 ring-brand' : ''
+                    }`}
+                  >
+                    {pkg.isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge variant="brand" size="sm">
+                          Most Popular
+                        </Badge>
+                      </div>
+                    )}
 
-                  <div className="pt-6 mt-6 border-t border-contour-subtle">
-                    <Button
-                      variant={pkg.isPopular ? 'primary' : 'secondary'}
-                      className="w-full"
-                      size="md"
-                      onClick={() => handleInitiateBooking(pkg)}
-                    >
-                      Book {pkg.name}
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-ink-primary">{pkg.name}</h3>
+                        <p className="text-2xl font-black text-brand mt-1">
+                          ₹{pkg.priceInr.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-xs text-ink-muted mt-0.5">
+                          {pkg.duration} shoot • {pkg.turnaround} turnaround
+                        </p>
+                      </div>
+
+                      {pkg.photos && (
+                        <p className="text-xs text-ink-secondary leading-relaxed bg-canvas-secondary/60 p-2.5 rounded-lg border border-contour-subtle">
+                          {pkg.photos}
+                        </p>
+                      )}
+
+                      <ul className="space-y-2 text-xs sm:text-sm text-ink-secondary pt-2 border-t border-contour-subtle">
+                        {pkg.features.map((feat, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-contour-subtle">
+                      <Button
+                        variant={pkg.isPopular ? 'primary' : 'secondary'}
+                        className="w-full"
+                        size="md"
+                        onClick={() => handleInitiateBooking(pkg)}
+                      >
+                        Book {pkg.name}
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
 
-          {/* CUSTOMER REVIEWS (CLEARLY LABELED DEMONSTRATION DATA) */}
+          {/* CUSTOMER REVIEWS */}
           <div className="space-y-6 pt-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
@@ -358,9 +534,6 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
                   Customer Reviews ({creator.reviews.length})
                 </h2>
               </div>
-              <span className="text-xs text-ink-muted">
-                (Sample demonstration feedback for preview)
-              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -425,8 +598,23 @@ export default function PhotographerProfilePage({ params }: { params: { id: stri
         isOpen={bookingModalOpen}
         onClose={() => setBookingModalOpen(false)}
         photographerName={creator.name}
+        creatorId={creator.id}
         selectedPackage={selectedPackage}
       />
     </>
+  );
+}
+
+export default function PhotographerProfilePage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <PhotographerProfileInner params={params} />
+    </Suspense>
   );
 }

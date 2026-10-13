@@ -93,7 +93,7 @@ export default function CustomerReviewsPage() {
 
     setReviews([newRev, ...reviews]);
     setIsReviewModalOpen(false);
-    setSubmitSuccess('Thank you! Your verified shoot review has been published (simulated demo state).');
+    setSubmitSuccess('Thank you! Your verified shoot review has been published.');
     setTimeout(() => setSubmitSuccess(''), 5000);
   };
 

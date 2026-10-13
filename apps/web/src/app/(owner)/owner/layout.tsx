@@ -2,15 +2,33 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Camera, TrendingUp, BarChart3, PieChart, DollarSign, Settings, LogOut, Lock, ShieldAlert } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  Camera,
+  TrendingUp,
+  BarChart3,
+  PieChart,
+  DollarSign,
+  Settings,
+  LogOut,
+  Lock,
+  ShieldAlert,
+  ArrowLeft,
+  User,
+} from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/owner/dashboard';
+  const router = useRouter();
   const { user, isAuthenticated, isMounted, logout } = useAuth();
   const { openAuthModal } = useAuthModal();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
 
   useEffect(() => {
     if (isMounted && !isAuthenticated) {
@@ -25,7 +43,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -74,8 +92,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
               Return to Your Workspace
             </Link>
             <button
-              onClick={() => logout()}
-              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors"
+              onClick={handleLogout}
+              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -113,21 +131,21 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
               <span>Executive Overview</span>
             </Link>
             <Link
-              href="/owner/revenue"
+              href="/owner/dashboard"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
               <DollarSign className="w-4 h-4" />
               <span>Commission Revenue</span>
             </Link>
             <Link
-              href="/owner/analytics"
+              href="/owner/dashboard"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
               <BarChart3 className="w-4 h-4" />
               <span>Supply vs Demand</span>
             </Link>
             <Link
-              href="/owner/marketplace"
+              href="/owner/dashboard"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
               <PieChart className="w-4 h-4" />
@@ -136,27 +154,75 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        <div className="p-4 border-t border-ink-secondary/30">
+        {/* User profile & bottom actions */}
+        <div className="p-4 border-t border-ink-secondary/30 space-y-2.5">
+          {/* Owner Account Card */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">
+              {user?.name ? user.name[0].toUpperCase() : 'O'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-white truncate">{user?.name || 'Platform Owner'}</p>
+              <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
+            </div>
+          </div>
+
+          {/* Return to Public Website */}
           <Link
             href="/"
-            className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white p-2"
+            className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
           >
-            <LogOut className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
             <span>Return to Public Website</span>
           </Link>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            id="owner-sidebar-logout-btn"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 text-red-400" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
       {/* Main Owner Content */}
       <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
-        <div className="mb-6 p-3 bg-white border border-contour-subtle rounded-card-sm text-xs text-ink-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-subtle">
-          <span className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-brand shrink-0" />
-            <span><strong>Executive Security Notice:</strong> Platform analytics and take-rate policies are restricted to platform owners.</span>
-          </span>
-          <span className="font-mono text-[10px] font-bold bg-ink-primary text-white px-2 py-0.5 rounded self-start sm:self-auto">
-            ROLE: OWNER
-          </span>
+        {/* Top Executive Header with Status & Logout */}
+        <div className="mb-6 p-3.5 bg-white border border-contour-subtle rounded-card-sm text-xs text-ink-muted flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-subtle">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-ink-primary">Executive Security Desk</span>
+                <span className="font-mono text-[10px] font-extrabold bg-ink-primary text-white px-2 py-0.5 rounded">
+                  ROLE: OWNER
+                </span>
+              </div>
+              <p className="text-[11px] text-ink-muted mt-0.5">
+                Financial analytics and take-rate governance restricted to verified platform owners.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-end sm:self-auto shrink-0">
+            <span className="text-xs font-semibold text-ink-secondary hidden lg:inline">
+              {user?.email}
+            </span>
+            <button
+              onClick={handleLogout}
+              id="owner-header-logout-btn"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              title="Log out of Owner Executive Account"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
         {children}
       </main>

@@ -48,3 +48,6 @@ logs/
 *.db
 *.db-journal
 *.tsbuildinfo
+
+# Supabase CLI temp files
+supabase/.temp/

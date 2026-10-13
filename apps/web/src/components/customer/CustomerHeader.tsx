@@ -28,11 +28,19 @@ import { getCustomerPreferences, CustomerPreferences } from '../../lib/settingsS
 export const CustomerHeader: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowProfileMenu(false);
+    setMobileMenuOpen(false);
+    await logout();
+    router.push('/login');
+  };
 
   // Get active profile preferences if saved
   const [currentProfile, setCurrentProfile] = useState<CustomerPreferences['profile']>(() => {
@@ -57,9 +65,9 @@ export const CustomerHeader: React.FC = () => {
     { label: 'Messages', href: '/customer/bookings?tab=messages', icon: MessageSquare },
   ];
 
-  const unreadCount = INITIAL_NOTIFICATIONS.filter((n) => n.unread).length || 1;
-  const displayName = user?.name || currentProfile.displayName || currentProfile.name || 'Priya Sharma';
-  const displayAvatar = user?.avatarUrl || currentProfile.avatar || INITIAL_CUSTOMER_PROFILE.avatar;
+  const unreadCount = INITIAL_NOTIFICATIONS.filter((n) => n.unread).length || 0;
+  const displayName = user?.name || currentProfile.name || 'Customer';
+  const displayAvatar = user?.avatarUrl || currentProfile.avatar || '';
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E1D6]">
@@ -211,22 +219,30 @@ export const CustomerHeader: React.FC = () => {
                     <Settings className="w-3.5 h-3.5 text-[#8C847A]" />
                     <span>Account Settings</span>
                   </Link>
-                  <Link
-                    href="/photographer/dashboard"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4E6] rounded-lg"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-[#FF6E00]" />
-                    <span>Switch to Creator Studio</span>
-                  </Link>
+                  {user?.role === 'creator' ? (
+                    <Link
+                      href="/photographer/dashboard"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4E6] rounded-lg"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-[#FF6E00]" />
+                      <span>Switch to Creator Studio</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/for-photographers"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-[#8C847A]" />
+                      <span>Join as Photographer</span>
+                    </Link>
+                  )}
                 </div>
                 <div className="border-t border-[#F0EAE1] pt-1 mt-1">
                   <Link
-                    href="/"
-                    onClick={() => {
-                      clearAuthSession();
-                      setShowProfileMenu(false);
-                    }}
+                    href="/login"
+                    onClick={handleSignOut}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -287,11 +303,8 @@ export const CustomerHeader: React.FC = () => {
               Switch to Creator Studio
             </Link>
             <Link
-              href="/"
-              onClick={() => {
-                clearAuthSession();
-                setMobileMenuOpen(false);
-              }}
+              href="/login"
+              onClick={handleSignOut}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-full font-bold text-xs text-red-600 bg-red-50 border border-red-200"
             >
               <LogOut className="w-3.5 h-3.5" />

@@ -14,10 +14,11 @@ import {
   User,
   Radio,
   Search,
-  MessageSquare
+  MessageSquare,
 } from 'lucide-react';
-import { INITIAL_PHOTOGRAPHER_PROFILE } from '../../data/photographerDashboardData';
-import { clearAuthSession } from '../../lib/auth';
+import { useRouter } from 'next/navigation';
+import { clearAuthSession, useAuth } from '../../lib/auth';
+import { useCurrentUserProfile } from '../../context/UserProfileContext';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -30,9 +31,27 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
   isOnline,
   onToggleOnline
 }) => {
+  const {
+    authUser,
+    profile,
+    creatorProfile,
+    accountName,
+    professionalName,
+    displayAvatar,
+    initials,
+  } = useCurrentUserProfile();
+  const router = useRouter();
+  const { logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowProfileMenu(false);
+    await logout();
+    router.push('/login');
+  };
 
   const notifications = [
     {
@@ -153,17 +172,26 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             }}
             className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#FAF7F2] transition-colors cursor-pointer"
           >
-            <img
-              src="/reference-assets/seller_profile_aman.jpg"
-              alt="Aman Sharma"
-              className="w-8 h-8 rounded-full object-cover border border-[#E8E2D8]"
-            />
+            {displayAvatar ? (
+              <img
+                src={displayAvatar}
+                alt={accountName}
+                className="w-8 h-8 rounded-full object-cover border border-[#E8E2D8]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-xs font-black border border-[#E8E2D8] shadow-2xs">
+                {initials}
+              </div>
+            )}
             <div className="text-left hidden md:block">
               <p className="text-xs font-black text-[#1A1816] leading-tight">
-                Aman Sharma
+                {accountName}
               </p>
               <p className="text-[10px] text-[#8C847A] font-medium leading-tight">
-                Wedding Photographer
+                {creatorProfile?.city ? `${creatorProfile.city} • Creator` : 'Verified Creator'}
               </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
@@ -173,14 +201,22 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-card-md border border-contour-subtle shadow-elevated py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-4 py-2 border-b border-contour-subtle">
                 <p className="text-xs font-bold text-ink-primary truncate">
-                  {INITIAL_PHOTOGRAPHER_PROFILE.name}
+                  {accountName}
                 </p>
                 <p className="text-[11px] text-ink-muted truncate">
-                  {INITIAL_PHOTOGRAPHER_PROFILE.email}
+                  {profile?.email || authUser?.email || ''}
                 </p>
               </div>
 
               <div className="py-1">
+                <Link
+                  href="/photographer/business"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
+                >
+                  <User className="w-3.5 h-3.5 text-ink-muted" />
+                  <span>My Studio Profile</span>
+                </Link>
                 <Link
                   href="/photographer/settings"
                   onClick={() => setShowProfileMenu(false)}
@@ -190,7 +226,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                   <span>Studio Settings</span>
                 </Link>
                 <Link
-                  href="/photographers/pro-aman"
+                  href={creatorProfile?.id ? `/photographers/${creatorProfile.id}` : '/photographer/portfolio'}
                   target="_blank"
                   onClick={() => setShowProfileMenu(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
@@ -210,11 +246,8 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
 
               <div className="border-t border-contour-subtle pt-1 mt-1">
                 <Link
-                  href="/"
-                  onClick={() => {
-                    clearAuthSession();
-                    setShowProfileMenu(false);
-                  }}
+                  href="/login"
+                  onClick={handleSignOut}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="w-3.5 h-3.5" />

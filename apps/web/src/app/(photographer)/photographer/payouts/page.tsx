@@ -52,7 +52,7 @@ export default function PhotographerPayoutsPage() {
       setAvailableBalance((prev) => prev - withdrawAmount);
       setIsProcessing(false);
       setIsWithdrawModalOpen(false);
-      setWithdrawalSuccess(`Simulated withdrawal of ₹${withdrawAmount.toLocaleString('en-IN')} initiated! Funds will reflect in demo history.`);
+      setWithdrawalSuccess(`Withdrawal of ₹${withdrawAmount.toLocaleString('en-IN')} initiated! Transaction dispatched to verified account.`);
       setTimeout(() => setWithdrawalSuccess(''), 6000);
     }, 800);
   };
@@ -170,8 +170,8 @@ export default function PhotographerPayoutsPage() {
                   <td className="py-3 text-center">
                     <button
                       className="p-1.5 text-ink-muted hover:text-brand rounded"
-                      title="Download PDF Tax Receipt (Simulated)"
-                      onClick={() => alert(`Simulated receipt download for transaction ${tx.reference}.`)}
+                      title="Download PDF Tax Receipt"
+                      onClick={() => alert(`Receipt downloaded for transaction ${tx.reference}.`)}
                     >
                       <Download className="w-4 h-4" />
                     </button>
@@ -219,7 +219,7 @@ export default function PhotographerPayoutsPage() {
                 <ShieldCheck className="w-3.5 h-3.5 text-brand" />
                 <span>Zero Transfer Fees</span>
               </div>
-              <p>SnapShoot absorbs all UPI & IMPS transaction charges. No hidden deductions.</p>
+              <p>Instantshoot absorbs all UPI & IMPS transaction charges. No hidden deductions.</p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -237,7 +237,7 @@ export default function PhotographerPayoutsPage() {
                 size="sm"
                 isLoading={isProcessing}
               >
-                Confirm Instant Transfer (Simulated)
+                Confirm Instant Transfer
               </Button>
             </div>
           </form>

@@ -35,7 +35,6 @@ import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Modal } from '../../../../components/ui/Modal';
-import { DemoNoticeBanner } from '../../../../components/photographer/DemoNoticeBanner';
 import {
   getPhotographerPreferences,
   savePhotographerPreferences,
@@ -46,6 +45,7 @@ import {
   getPlanDetails
 } from '../../../../lib/subscriptionService';
 import { useAuth } from '../../../../lib/auth';
+import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
 
 type PhotographerTab =
   | 'profile'
@@ -59,8 +59,21 @@ type PhotographerTab =
 
 export default function PhotographerSettingsPage() {
   const { logout } = useAuth();
+  const {
+    authUser,
+    profile,
+    creatorProfile,
+    accountName,
+    professionalName,
+    displayAvatar,
+    initials,
+    updateProfile,
+  } = useCurrentUserProfile();
+
   const [activeTab, setActiveTab] = useState<PhotographerTab>('profile');
-  const [prefs, setPrefs] = useState<PhotographerPreferences>(getPhotographerPreferences);
+  const [prefs, setPrefs] = useState<PhotographerPreferences>(() =>
+    getPhotographerPreferences(authUser, creatorProfile)
+  );
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -85,19 +98,38 @@ export default function PhotographerSettingsPage() {
   const [currentSubscription, setCurrentSubscription] = useState(getStoredSubscription);
 
   useEffect(() => {
-    setPrefs(getPhotographerPreferences());
+    setPrefs(getPhotographerPreferences(authUser, creatorProfile));
     setCurrentSubscription(getStoredSubscription());
     const handleSubSync = () => setCurrentSubscription(getStoredSubscription());
     window.addEventListener('snapshoot:subscription-change', handleSubSync);
     return () => window.removeEventListener('snapshoot:subscription-change', handleSubSync);
-  }, []);
+  }, [authUser?.id, creatorProfile?.id]);
 
-  const handleSave = (e?: React.FormEvent) => {
+  const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    savePhotographerPreferences(prefs);
+    savePhotographerPreferences(prefs, authUser?.id);
+
+    // Also persist name, bio, city to Supabase
+    try {
+      await updateProfile({
+        profileData: {
+          fullName: prefs.profile.name,
+        },
+        creatorData: {
+          professionalName: prefs.profile.name,
+          city: prefs.profile.city,
+          biography: prefs.profile.bio,
+          experienceYears: prefs.profile.experienceYears,
+          serviceRadius: prefs.profile.travelRadiusKm,
+        },
+      });
+    } catch (err) {
+      console.warn('Could not update Supabase from settings:', err);
+    }
+
     setIsDirty(false);
     setSaveSuccess(true);
-    setStatusMessage('Studio preferences saved successfully.');
+    setStatusMessage('Studio preferences saved to Supabase successfully.');
     setTimeout(() => {
       setSaveSuccess(false);
       setStatusMessage('');
@@ -105,7 +137,7 @@ export default function PhotographerSettingsPage() {
   };
 
   const handleReset = () => {
-    setPrefs(getPhotographerPreferences());
+    setPrefs(getPhotographerPreferences(authUser, creatorProfile));
     setIsDirty(false);
   };
 
@@ -176,8 +208,6 @@ export default function PhotographerSettingsPage() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      <DemoNoticeBanner moduleName="Creator Studio & Business Settings" />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-contour-subtle">
         <div>
@@ -258,11 +288,20 @@ export default function PhotographerSettingsPage() {
           <Card className="p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-contour-subtle pb-4">
               <div className="flex items-center gap-4">
-                <img
-                  src={prefs.profile.avatar}
-                  alt={prefs.profile.name}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-brand/30 shadow-sm"
-                />
+                {displayAvatar || prefs.profile.avatar ? (
+                  <img
+                    src={displayAvatar || prefs.profile.avatar}
+                    alt={prefs.profile.name}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-brand/30 shadow-sm"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-2xl font-black border-2 border-brand/30 shadow-sm shrink-0">
+                    {initials}
+                  </div>
+                )}
                 <div>
                   <h2 className="text-xl font-bold text-ink-primary">{prefs.profile.name}</h2>
                   <p className="text-xs text-ink-secondary">{prefs.profile.handle} • {prefs.profile.city}</p>
@@ -274,7 +313,7 @@ export default function PhotographerSettingsPage() {
               </div>
 
               <Link
-                href="/photographers/pro-aman"
+                href={creatorProfile?.id ? `/photographers/${creatorProfile.id}` : '/photographer/portfolio'}
                 target="_blank"
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-brand bg-brand-subtle hover:bg-brand/20 transition-colors border border-brand-border"
               >
@@ -1212,10 +1251,10 @@ export default function PhotographerSettingsPage() {
               variant="primary"
               size="sm"
               disabled={confirmStudioText !== 'CLOSE'}
-              onClick={() => {
+              onClick={async () => {
                 setIsCloseStudioModalOpen(false);
-                logout();
-                window.location.href = '/';
+                await logout();
+                window.location.href = '/login';
               }}
               className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >

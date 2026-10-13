@@ -59,17 +59,17 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Dialog Content */}
       <div
-        className={`relative w-full ${maxWidthClasses[maxWidth]} my-auto bg-white rounded-card-lg border border-contour-subtle shadow-elevated p-6 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col overflow-hidden`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} my-auto bg-white rounded-3xl border border-[#E8E2D8] shadow-elevated p-6 sm:p-7 z-10 transition-all transform animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-1.5rem)] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col overflow-hidden`}
         role="document"
       >
         <div className="flex items-start justify-between mb-4 shrink-0">
           <div>
-            {title && <h3 className="text-xl font-bold text-ink-primary tracking-tight">{title}</h3>}
-            {description && <p className="text-xs text-ink-secondary mt-1">{description}</p>}
+            {title && <h3 className="text-xl font-bold text-[#1A1816] tracking-tight">{title}</h3>}
+            {description && <p className="text-xs text-[#5A544D] mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-card-sm text-ink-muted hover:text-ink-primary hover:bg-canvas-secondary transition-colors"
+            className="p-1.5 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />

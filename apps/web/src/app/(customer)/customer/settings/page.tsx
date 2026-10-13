@@ -45,10 +45,13 @@ import { Badge } from '../../../../components/ui/Badge';
 import {
   getCustomerPreferences,
   saveCustomerPreferences,
+  fetchCustomerPreferencesFromSupabase,
+  saveCustomerPreferencesToSupabase,
   CustomerPreferences,
-  SavedLocation
+  SavedLocation,
 } from '../../../../lib/settingsService';
 import { useAuth } from '../../../../lib/auth';
+import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 
 type SettingsTab =
   | 'profile'
@@ -67,24 +70,57 @@ export default function CustomerSettingsPage() {
   const { user, logout, isAuthenticated, isMounted } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const [prefs, setPrefs] = useState<CustomerPreferences>(getCustomerPreferences);
+  const [prefs, setPrefs] = useState<CustomerPreferences>(() => getCustomerPreferences(user));
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  // Authentication guard: prevent unauthenticated access to Settings
+  // Authentication guard & Supabase live data synchronization
   useEffect(() => {
-    if (isMounted && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isMounted, isAuthenticated, router]);
+    let isCancelled = false;
 
-  const handleConfirmLogout = () => {
-    logout();
+    async function loadData() {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const loaded = await fetchCustomerPreferencesFromSupabase(user);
+        if (!isCancelled) {
+          setPrefs(loaded);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load customer settings from Supabase:', err);
+        if (!isCancelled) {
+          setPrefs(getCustomerPreferences(user));
+          setIsLoading(false);
+        }
+      }
+    }
+
+    if (isMounted) {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else {
+        loadData();
+      }
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isMounted, isAuthenticated, user, router]);
+
+  const handleConfirmLogout = async () => {
+    await logout();
     setIsLogoutModalOpen(false);
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   // Avatar Upload Ref
@@ -97,12 +133,13 @@ export default function CustomerSettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // New Location Modal State
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationLabel, setLocationLabel] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
-  const [locationCity, setLocationCity] = useState('Mumbai, Maharashtra');
+  const [locationCity, setLocationCity] = useState('Delhi NCR');
   const [locationInstructions, setLocationInstructions] = useState('');
   const [locationError, setLocationError] = useState('');
 
@@ -115,57 +152,60 @@ export default function CustomerSettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
 
-  // Load stored preferences & sync with active user session
-  useEffect(() => {
-    const loaded = getCustomerPreferences();
-    if (user?.name) {
-      const parts = user.name.split(' ');
-      loaded.profile.name = user.name;
-      if (!loaded.profile.firstName) loaded.profile.firstName = parts[0] || '';
-      if (!loaded.profile.lastName) loaded.profile.lastName = parts.slice(1).join(' ') || '';
-      if (!loaded.profile.displayName) loaded.profile.displayName = user.name;
-    }
-    if (user?.email) {
-      loaded.profile.email = user.email;
-    }
-    if (user?.avatarUrl) {
-      loaded.profile.avatar = user.avatarUrl;
-    }
-    setPrefs(loaded);
-  }, [user]);
-
   // Handle Save
-  const handleSave = (e?: React.FormEvent) => {
+  const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMessage('');
     
     // Basic validation
-    if (!prefs.profile.firstName?.trim() || !prefs.profile.lastName?.trim()) {
-      setErrorMessage('First Name and Last Name are required.');
+    if (!prefs.profile.firstName?.trim() && !prefs.profile.displayName?.trim()) {
+      setErrorMessage('Please provide your name.');
       return;
     }
 
-    saveCustomerPreferences(prefs);
-    setIsDirty(false);
-    setSaveSuccess(true);
-    setStatusMessage('Profile and account settings saved successfully.');
-    setTimeout(() => {
-      setSaveSuccess(false);
-      setStatusMessage('');
-    }, 4000);
+    if (!user?.id) {
+      setErrorMessage('User session not found. Please log in.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await saveCustomerPreferencesToSupabase(user.id, prefs);
+      setIsSaving(false);
+      if (!res.success && res.error) {
+        setErrorMessage(res.error);
+        return;
+      }
+
+      setIsDirty(false);
+      setSaveSuccess(true);
+      setStatusMessage('Settings synced and saved to Supabase successfully.');
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setStatusMessage('');
+      }, 4000);
+    } catch (err: any) {
+      setIsSaving(false);
+      setErrorMessage(err?.message || 'Failed to save settings to Supabase.');
+    }
   };
 
   // Handle Cancel / Reset
-  const handleReset = () => {
-    setPrefs(getCustomerPreferences());
+  const handleReset = async () => {
+    if (user) {
+      const loaded = await fetchCustomerPreferencesFromSupabase(user);
+      setPrefs(loaded);
+    } else {
+      setPrefs(getCustomerPreferences(user));
+    }
     setIsDirty(false);
     setErrorMessage('');
     setStatusMessage('Changes reverted.');
     setTimeout(() => setStatusMessage(''), 2500);
   };
 
-  // Avatar Upload Handler
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Avatar Upload Handler with Supabase Storage integration
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -180,18 +220,60 @@ export default function CustomerSettingsPage() {
     }
 
     setErrorMessage('');
+
+    // Attempt direct upload to Supabase Storage bucket 'profile-avatars'
+    const supabase = getSupabaseBrowserClient();
+    if (supabase && user?.id) {
+      try {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const filePath = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('profile-avatars')
+          .upload(filePath, file, { upsert: true });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('profile-avatars')
+            .getPublicUrl(filePath);
+
+          if (publicUrl) {
+            const updated = {
+              ...prefs,
+              profile: {
+                ...prefs.profile,
+                avatar: publicUrl,
+              },
+            };
+            setPrefs(updated);
+            setIsDirty(true);
+            await saveCustomerPreferencesToSupabase(user.id, updated);
+            setStatusMessage('Avatar uploaded and saved to Supabase.');
+            setTimeout(() => setStatusMessage(''), 4000);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Storage bucket upload fallback:', err);
+      }
+    }
+
+    // Fallback: Read as base64 data URL
     const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
+    reader.onload = async (uploadEvent) => {
       const base64 = uploadEvent.target?.result as string;
       if (base64) {
-        setPrefs((prev) => ({
-          ...prev,
+        const updated = {
+          ...prefs,
           profile: {
-            ...prev.profile,
+            ...prevProfile(prefs.profile, base64),
             avatar: base64,
           },
-        }));
+        };
+        setPrefs(updated);
         setIsDirty(true);
+        if (user?.id) {
+          await saveCustomerPreferencesToSupabase(user.id, updated);
+        }
         setStatusMessage('Profile photo updated. Click "Save Changes" to save permanently.');
         setTimeout(() => setStatusMessage(''), 4000);
       }
@@ -199,15 +281,16 @@ export default function CustomerSettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  // Password Update Handler
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const prevProfile = (p: any, avatar: string) => ({
+    ...p,
+    avatar,
+  });
+
+  // Password Update Handler synced directly to Supabase Auth
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
 
-    if (!currentPassword) {
-      setPasswordError('Please enter your current account password.');
-      return;
-    }
     if (newPassword.length < 8) {
       setPasswordError('New password must be at least 8 characters long.');
       return;
@@ -217,6 +300,27 @@ export default function CustomerSettingsPage() {
       return;
     }
 
+    setIsUpdatingPassword(true);
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (error) {
+          setIsUpdatingPassword(false);
+          setPasswordError(error.message);
+          return;
+        }
+      } catch (err: any) {
+        setIsUpdatingPassword(false);
+        setPasswordError(err?.message || 'Failed to update password.');
+        return;
+      }
+    }
+
+    setIsUpdatingPassword(false);
     setPasswordSuccess(true);
     setTimeout(() => {
       setIsPasswordModalOpen(false);
@@ -224,13 +328,13 @@ export default function CustomerSettingsPage() {
       setNewPassword('');
       setConfirmPassword('');
       setPasswordSuccess(false);
-      setStatusMessage('Password updated successfully.');
+      setStatusMessage('Password updated successfully in Supabase.');
       setTimeout(() => setStatusMessage(''), 4000);
     }, 1200);
   };
 
-  // Add Venue Location Handler
-  const handleAddLocation = (e: React.FormEvent) => {
+  // Add Venue Location Handler synced to Supabase
+  const handleAddLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!locationLabel.trim() || !locationAddress.trim()) {
       setLocationError('Please provide both a label and street address.');
@@ -241,7 +345,7 @@ export default function CustomerSettingsPage() {
       id: `loc-${Date.now()}`,
       label: locationLabel.trim(),
       address: locationAddress.trim(),
-      city: locationCity,
+      city: locationCity || 'Delhi NCR',
       instructions: locationInstructions.trim(),
     };
 
@@ -251,7 +355,9 @@ export default function CustomerSettingsPage() {
     };
 
     setPrefs(updated);
-    saveCustomerPreferences(updated);
+    if (user?.id) {
+      await saveCustomerPreferencesToSupabase(user.id, updated);
+    }
     setLocationLabel('');
     setLocationAddress('');
     setLocationInstructions('');
@@ -260,13 +366,15 @@ export default function CustomerSettingsPage() {
     setTimeout(() => setStatusMessage(''), 4000);
   };
 
-  const handleDeleteLocation = (id: string) => {
+  const handleDeleteLocation = async (id: string) => {
     const updated = {
       ...prefs,
       savedLocations: prefs.savedLocations.filter((l) => l.id !== id),
     };
     setPrefs(updated);
-    saveCustomerPreferences(updated);
+    if (user?.id) {
+      await saveCustomerPreferencesToSupabase(user.id, updated);
+    }
   };
 
   // Data Export
@@ -487,11 +595,17 @@ export default function CustomerSettingsPage() {
                 <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
                   {/* Avatar with Camera Overlay */}
                   <div className="relative group shrink-0">
-                    <img
-                      src={prefs.profile.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                      alt={prefs.profile.displayName || prefs.profile.name}
-                      className="w-20 h-20 rounded-full object-cover border border-[#E8E1D6] shadow-sm"
-                    />
+                    {prefs.profile.avatar ? (
+                      <img
+                        src={prefs.profile.avatar}
+                        alt={prefs.profile.displayName || prefs.profile.name || 'User Avatar'}
+                        className="w-20 h-20 rounded-full object-cover border border-[#E8E1D6] shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand text-2xl font-black shadow-sm">
+                        {(prefs.profile.displayName || user?.name || user?.email || 'U')[0].toUpperCase()}
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -505,11 +619,11 @@ export default function CustomerSettingsPage() {
                   {/* Profile Name & Badges */}
                   <div>
                     <h2 className="text-xl font-bold text-[#1A1816]">
-                      {prefs.profile.displayName || prefs.profile.name || 'Priya Sharma'}
+                      {prefs.profile.displayName || prefs.profile.name || user?.name || 'Customer'}
                     </h2>
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                       <span className="text-xs font-medium text-[#665E55]">
-                        {prefs.profile.handle || '@priyasharma'}
+                        {prefs.profile.handle || (user?.email ? `@${user.email.split('@')[0]}` : '@customer')}
                       </span>
                       {prefs.profile.emailVerified && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -519,7 +633,7 @@ export default function CustomerSettingsPage() {
                       )}
                     </div>
                     <p className="text-xs text-[#5A544D] mt-1.5">
-                      {prefs.profile.tagline || 'Captured memories, beautiful stories ✨'}
+                      {prefs.profile.tagline || 'SnapShoot verified customer'}
                     </p>
                   </div>
                 </div>
@@ -569,7 +683,7 @@ export default function CustomerSettingsPage() {
                           setIsDirty(true);
                         }}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
-                        placeholder="Priya"
+                        placeholder="First name"
                       />
                     </div>
 
@@ -595,7 +709,7 @@ export default function CustomerSettingsPage() {
                           setIsDirty(true);
                         }}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
-                        placeholder="Sharma"
+                        placeholder="Last name"
                       />
                     </div>
 
@@ -613,7 +727,7 @@ export default function CustomerSettingsPage() {
                           setIsDirty(true);
                         }}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
-                        placeholder="Priya Sharma"
+                        placeholder="Display name"
                       />
                     </div>
 
@@ -642,7 +756,7 @@ export default function CustomerSettingsPage() {
                     {/* Phone Number with +91 Country Code */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[#1A1816]">
-                        Phone Number <span className="text-[#FF6E00]">*</span>
+                        Phone Number
                       </label>
                       <div className="relative flex items-center border border-[#E0D8CD] rounded-xl bg-white overflow-hidden focus-within:border-[#FF6E00] focus-within:ring-1 focus-within:ring-[#FF6E00]/20 transition-all">
                         <div className="flex items-center gap-1 px-3 py-2.5 bg-[#FAF7F2] border-r border-[#E0D8CD] text-xs font-bold text-[#1A1816] shrink-0">
@@ -651,7 +765,6 @@ export default function CustomerSettingsPage() {
                         </div>
                         <input
                           type="text"
-                          required
                           value={prefs.profile.phone || ''}
                           onChange={(e) => {
                             setPrefs({
@@ -661,7 +774,7 @@ export default function CustomerSettingsPage() {
                             setIsDirty(true);
                           }}
                           className="w-full px-3 py-2.5 text-xs font-medium text-[#1A1816] focus:outline-none"
-                          placeholder="98765 43210"
+                          placeholder="10-digit mobile number"
                         />
                         {prefs.profile.phoneVerified && (
                           <span className="mr-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
@@ -678,7 +791,7 @@ export default function CustomerSettingsPage() {
                       <div className="relative flex items-center">
                         <input
                           type="text"
-                          value={prefs.profile.dob || '15 Mar 1998'}
+                          value={prefs.profile.dob || ''}
                           onChange={(e) => {
                             setPrefs({
                               ...prefs,
@@ -687,7 +800,7 @@ export default function CustomerSettingsPage() {
                             setIsDirty(true);
                           }}
                           className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
-                          placeholder="15 Mar 1998"
+                          placeholder="DD MMM YYYY"
                         />
                         <Calendar className="w-4 h-4 text-[#8C847A] absolute right-3 pointer-events-none" />
                       </div>
@@ -698,7 +811,7 @@ export default function CustomerSettingsPage() {
                       <label className="text-xs font-bold text-[#1A1816]">Gender</label>
                       <div className="relative">
                         <select
-                          value={prefs.profile.gender || 'Female'}
+                          value={prefs.profile.gender || 'Prefer not to say'}
                           onChange={(e) => {
                             setPrefs({
                               ...prefs,
@@ -708,10 +821,10 @@ export default function CustomerSettingsPage() {
                           }}
                           className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
                         >
+                          <option value="Prefer not to say">Prefer not to say</option>
                           <option value="Female">Female</option>
                           <option value="Male">Male</option>
                           <option value="Non-binary">Non-binary</option>
-                          <option value="Prefer not to say">Prefer not to say</option>
                         </select>
                         <ChevronDown className="w-4 h-4 text-[#8C847A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
@@ -752,7 +865,7 @@ export default function CustomerSettingsPage() {
                         <MapPin className="w-4 h-4 text-[#8C847A] absolute left-3 pointer-events-none" />
                         <input
                           type="text"
-                          value={prefs.profile.city || 'Mumbai, Maharashtra'}
+                          value={prefs.profile.city || ''}
                           onChange={(e) => {
                             setPrefs({
                               ...prefs,
@@ -761,7 +874,7 @@ export default function CustomerSettingsPage() {
                             setIsDirty(true);
                           }}
                           className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
-                          placeholder="Mumbai, Maharashtra"
+                          placeholder="e.g. Mumbai, Delhi NCR, Bengaluru"
                         />
                       </div>
                     </div>
@@ -772,15 +885,16 @@ export default function CustomerSettingsPage() {
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all"
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all"
+                      disabled={isSaving}
+                      className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
-                      Save Changes
+                      {isSaving ? 'Syncing...' : 'Save Changes'}
                     </button>
                   </div>
                 </form>
@@ -800,7 +914,7 @@ export default function CustomerSettingsPage() {
                       <span className="text-xs text-[#665E55]">Account Status</span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Active
+                        {prefs.profile.accountStatus || 'Active'}
                       </span>
                     </div>
 
@@ -808,7 +922,7 @@ export default function CustomerSettingsPage() {
                       <span className="text-xs text-[#665E55]">Member Since</span>
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1A1816]">
                         <Calendar className="w-3.5 h-3.5 text-[#8C847A]" />
-                        {prefs.profile.memberSince || '15 Jan 2024'}
+                        {prefs.profile.memberSince || 'Active Member'}
                       </span>
                     </div>
 
@@ -822,14 +936,14 @@ export default function CustomerSettingsPage() {
                     <div className="flex items-center justify-between pt-3">
                       <span className="text-xs text-[#665E55]">User ID</span>
                       <span className="text-xs font-mono font-bold text-[#5A544D]">
-                        {prefs.profile.userId || '#USR102938'}
+                        {prefs.profile.userId || (user?.id ? `#${user.id.slice(0, 8).toUpperCase()}` : '#USR')}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-3">
                       <span className="text-xs text-[#665E55]">Last Login</span>
                       <span className="text-xs font-medium text-[#5A544D]">
-                        {prefs.profile.lastLogin || '12 Aug 2024, 10:24 AM'}
+                        {prefs.profile.lastLogin || 'Active session'}
                       </span>
                     </div>
                   </div>
@@ -1205,41 +1319,59 @@ export default function CustomerSettingsPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {prefs.savedLocations.map((loc) => (
-                  <div
-                    key={loc.id}
-                    className="p-5 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm flex flex-col justify-between"
+              {prefs.savedLocations.length === 0 ? (
+                <div className="p-8 bg-white rounded-2xl border border-dashed border-[#E8E1D6] text-center space-y-3">
+                  <MapPin className="w-8 h-8 text-[#8C847A] mx-auto" />
+                  <h4 className="text-sm font-bold text-[#1A1816]">No Saved Venues Yet</h4>
+                  <p className="text-xs text-[#8C847A] max-w-sm mx-auto">
+                    Save your home studio, terrace, or favorite shoot location for 1-click booking with photographers.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] shadow-sm transition-all cursor-pointer"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-[#FF6E00]" />
-                          <h4 className="text-xs font-bold text-[#1A1816]">{loc.label}</h4>
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>Add Your First Venue</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {prefs.savedLocations.map((loc) => (
+                    <div
+                      key={loc.id}
+                      className="p-5 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-[#FF6E00]" />
+                            <h4 className="text-xs font-bold text-[#1A1816]">{loc.label}</h4>
+                          </div>
+                          {loc.isDefault && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF7F2] text-[#8C847A] border border-[#E0D8CD]">
+                              Default
+                            </span>
+                          )}
                         </div>
-                        {loc.isDefault && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF7F2] text-[#8C847A] border border-[#E0D8CD]">
-                            Default
-                          </span>
+                        <p className="text-xs text-[#5A544D] mt-2 leading-relaxed">{loc.address}</p>
+                        {loc.instructions && (
+                          <p className="text-[11px] text-[#8C847A] mt-1 italic">Note: {loc.instructions}</p>
                         )}
                       </div>
-                      <p className="text-xs text-[#5A544D] mt-2 leading-relaxed">{loc.address}</p>
-                      {loc.instructions && (
-                        <p className="text-[11px] text-[#8C847A] mt-1 italic">Note: {loc.instructions}</p>
-                      )}
+                      <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#F0EAE1]">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLocation(loc.id)}
+                          className="text-[11px] font-bold text-red-600 hover:text-red-700 p-1 cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#F0EAE1]">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteLocation(loc.id)}
-                        className="text-[11px] font-bold text-red-600 hover:text-red-700 p-1"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1277,26 +1409,29 @@ export default function CustomerSettingsPage() {
                     <div className="flex items-center gap-3">
                       <CreditCard className="w-5 h-5 text-[#FF6E00]" />
                       <div>
-                        <p className="text-xs font-bold text-[#1A1816]">HDFC Bank Credit Card •••• 4092</p>
-                        <p className="text-[11px] text-[#8C847A]">Expires 09/28 • Default Payment Method</p>
+                        <p className="text-xs font-bold text-[#1A1816]">Razorpay Payment & Escrow Gateway</p>
+                        <p className="text-[11px] text-[#8C847A]">UPI, Cards, NetBanking &amp; Wallets enabled for shoot bookings</p>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Active
+                      Operational
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-[#E8E1D6] bg-[#FAF7F2] flex items-center justify-between">
+                  <div className="p-4 rounded-xl border border-dashed border-[#E8E1D6] bg-white flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5 text-[#5A544D]" />
+                      <Smartphone className="w-5 h-5 text-[#8C847A]" />
                       <div>
-                        <p className="text-xs font-bold text-[#1A1816]">Unified Payments Interface (UPI)</p>
-                        <p className="text-[11px] text-[#8C847A]">priya.sharma@okhdfcbank</p>
+                        <p className="text-xs font-bold text-[#1A1816]">Checkout-Linked Payment Methods</p>
+                        <p className="text-[11px] text-[#8C847A]">Payment accounts and UPI handles are secured during reservation checkouts</p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Verified
-                    </span>
+                    <Link
+                      href="/customer/payments"
+                      className="text-[11px] font-bold text-[#FF6E00] hover:underline"
+                    >
+                      View Escrow History →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -1595,13 +1730,13 @@ export default function CustomerSettingsPage() {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Current Password</label>
+            <label className="text-xs font-bold text-[#1A1816]">Current Password (Optional if signed in with Google/OTP)</label>
             <input
               type="password"
-              required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              placeholder="Leave blank if using Google or OTP"
             />
           </div>
 
@@ -1632,8 +1767,8 @@ export default function CustomerSettingsPage() {
             <Button variant="secondary" size="sm" onClick={() => setIsPasswordModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" type="submit">
-              Update Password
+            <Button variant="primary" size="sm" type="submit" disabled={isUpdatingPassword}>
+              {isUpdatingPassword ? 'Updating...' : 'Update Password'}
             </Button>
           </div>
         </form>

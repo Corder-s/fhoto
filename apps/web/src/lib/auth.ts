@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getSupabaseBrowserClient } from './supabase/client';
 
 export interface AuthUser {
   id: string;
@@ -82,6 +83,51 @@ export function useAuth() {
     setIsMounted(true);
     refreshSession();
 
+    // Check Supabase session if configured
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const meta = session.user.user_metadata || {};
+          const role = (meta.role as AuthUser['role']) || 'customer';
+          const authUser: AuthUser = {
+            id: session.user.id,
+            name: meta.full_name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            phone: meta.phone || session.user.phone,
+            avatarUrl: meta.avatar_url,
+            role: role === 'photographer' ? 'creator' : role,
+          };
+          saveAuthSession(authUser, session.access_token);
+          setUser(authUser);
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          const meta = session.user.user_metadata || {};
+          const role = (meta.role as AuthUser['role']) || 'customer';
+          const authUser: AuthUser = {
+            id: session.user.id,
+            name: meta.full_name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            phone: meta.phone || session.user.phone,
+            avatarUrl: meta.avatar_url,
+            role: role === 'photographer' ? 'creator' : role,
+          };
+          saveAuthSession(authUser, session.access_token);
+          setUser(authUser);
+        } else if (_event === 'SIGNED_OUT') {
+          clearAuthSession();
+          setUser(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+
     const handleAuthChange = () => {
       refreshSession();
     };
@@ -100,7 +146,15 @@ export function useAuth() {
     setUser(userData);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error('Supabase signOut error:', err);
+      }
+    }
     clearAuthSession();
     setUser(null);
   }, []);

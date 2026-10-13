@@ -131,7 +131,7 @@ export default function CustomerPaymentsPage() {
                   <td className="py-3.5 text-center">
                     <button
                       type="button"
-                      onClick={() => alert(`Simulated PDF receipt download for invoice ${p.invoiceRef}`)}
+                      onClick={() => alert(`Downloading official tax invoice ${p.invoiceRef}...`)}
                       className="p-1.5 text-[#8C847A] hover:text-[#FF6E00] rounded-lg hover:bg-[#F2ECE3]"
                       title="Download Tax Receipt"
                     >

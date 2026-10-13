@@ -17,7 +17,7 @@ import { RateLimitGuard } from './common/rate-limit.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: ['.env.local', '.env', '.env.example'],
     }),
     PrismaModule,
     AuthModule,
