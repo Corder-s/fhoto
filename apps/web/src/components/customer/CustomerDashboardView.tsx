@@ -205,20 +205,21 @@ export const CustomerDashboardView: React.FC = () => {
         <div className="absolute right-20 top-24 w-80 h-80 bg-gradient-to-tl from-[#FF9E40]/25 via-[#FFE0B2]/30 to-transparent rounded-full blur-2xl animate-fluid-blob-slow pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10">
-          {/* Left Column: Greeting, Headline, Subtitle, Quick Actions */}
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center gap-3.5">
-              {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt={clientName}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-[#FF6E00]/30 shadow-sm shrink-0"
-                />
-              ) : (
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#FF6E00] to-[#E86300] text-white flex items-center justify-center text-xl sm:text-2xl font-black shadow-sm shrink-0">
-                  {clientName[0] || 'C'}
-                </div>
-              )}
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#FF6E00] to-[#E86300] text-white flex items-center justify-center text-xl sm:text-2xl font-black shadow-sm shrink-0 relative">
+                <span className="select-none">{clientName[0] || 'C'}</span>
+                {displayAvatar && (
+                  <img
+                    src={displayAvatar}
+                    alt={clientName}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
               <div className="space-y-0.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold text-[#8C847A] uppercase tracking-wider">

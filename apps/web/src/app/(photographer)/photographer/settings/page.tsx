@@ -30,6 +30,8 @@ import {
   ShieldCheck,
   RotateCcw,
   Sparkles,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -68,6 +70,8 @@ export default function PhotographerSettingsPage() {
     displayAvatar,
     initials,
     updateProfile,
+    uploadAvatar,
+    removeAvatar,
   } = useCurrentUserProfile();
 
   const [activeTab, setActiveTab] = useState<PhotographerTab>('profile');
@@ -77,6 +81,71 @@ export default function PhotographerSettingsPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Avatar Upload State
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [avatarImgError, setAvatarImgError] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarMessage(null);
+
+    try {
+      const res = await uploadAvatar(file);
+      if (res.success && res.url) {
+        setAvatarImgError(false);
+        setPrefs((prev) => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            avatar: res.url!,
+          },
+        }));
+        setAvatarMessage({ type: 'success', text: 'Profile picture updated successfully.' });
+        setTimeout(() => setAvatarMessage(null), 4000);
+      } else {
+        setAvatarMessage({ type: 'error', text: res.error || 'Failed to upload image.' });
+        setTimeout(() => setAvatarMessage(null), 5000);
+      }
+    } catch (err: any) {
+      setAvatarMessage({ type: 'error', text: err.message || 'Error uploading image.' });
+      setTimeout(() => setAvatarMessage(null), 5000);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setIsUploadingAvatar(true);
+    setAvatarMessage(null);
+    try {
+      const res = await removeAvatar();
+      if (res.success) {
+        setAvatarImgError(false);
+        setPrefs((prev) => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            avatar: '',
+          },
+        }));
+        setAvatarMessage({ type: 'success', text: 'Profile picture removed.' });
+        setTimeout(() => setAvatarMessage(null), 4000);
+      } else {
+        setAvatarMessage({ type: 'error', text: res.error || 'Failed to remove picture.' });
+      }
+    } catch (err: any) {
+      setAvatarMessage({ type: 'error', text: err.message || 'Error removing picture.' });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // Password Modal
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -286,36 +355,101 @@ export default function PhotographerSettingsPage() {
       {activeTab === 'profile' && (
         <div className="space-y-6">
           <Card className="p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-contour-subtle pb-4">
-              <div className="flex items-center gap-4">
-                {displayAvatar || prefs.profile.avatar ? (
-                  <img
-                    src={displayAvatar || prefs.profile.avatar}
-                    alt={prefs.profile.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-brand/30 shadow-sm"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-2xl font-black border-2 border-brand/30 shadow-sm shrink-0">
-                    {initials}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-contour-subtle pb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                {/* Avatar with Camera badge */}
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-brand/30 shadow-md flex items-center justify-center bg-canvas-secondary relative">
+                    {(displayAvatar || prefs.profile.avatar) && !avatarImgError ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={displayAvatar || prefs.profile.avatar}
+                        alt={prefs.profile.name}
+                        className="w-full h-full object-cover"
+                        onError={() => setAvatarImgError(true)}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#FF6E00] text-white flex items-center justify-center text-2xl sm:text-3xl font-black select-none">
+                        {initials}
+                      </div>
+                    )}
+
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-[10px] font-bold mt-1">Uploading</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div>
+
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="absolute bottom-0 right-0 p-2 bg-[#FF6E00] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Upload / Change profile photo"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Details & Actions */}
+                <div className="space-y-1.5">
                   <h2 className="text-xl font-bold text-ink-primary">{prefs.profile.name}</h2>
                   <p className="text-xs text-ink-secondary">{prefs.profile.handle} • {prefs.profile.city}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="brand" size="sm">{prefs.profile.experienceYears} Years Exp</Badge>
                     <span className="text-xs font-bold text-ink-primary">★ {prefs.profile.rating}</span>
                   </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      leftIcon={<Upload className="w-3.5 h-3.5" />}
+                    >
+                      {isUploadingAvatar ? 'Uploading...' : 'Upload Photo'}
+                    </Button>
+
+                    {(displayAvatar || prefs.profile.avatar) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleAvatarRemove}
+                        disabled={isUploadingAvatar}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                      >
+                        Remove
+                      </Button>
+                    )}
+
+                    <span className="text-[11px] text-ink-muted">JPG, PNG or WebP • Max 5MB</span>
+                  </div>
+
+                  {avatarMessage && (
+                    <p className={`text-xs font-semibold pt-1 ${avatarMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {avatarMessage.text}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <Link
                 href={creatorProfile?.id ? `/photographers/${creatorProfile.id}` : '/photographer/portfolio'}
                 target="_blank"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-brand bg-brand-subtle hover:bg-brand/20 transition-colors border border-brand-border"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-brand bg-brand-subtle hover:bg-brand/20 transition-colors border border-brand-border shrink-0 self-start sm:self-center"
               >
                 <span>View Public Profile</span>
                 <ExternalLink className="w-3.5 h-3.5" />

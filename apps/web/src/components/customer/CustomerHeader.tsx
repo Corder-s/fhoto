@@ -192,11 +192,19 @@ export const CustomerHeader: React.FC = () => {
               }}
               className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-[#E0D8CD] bg-white hover:bg-[#FAF7F2] transition-all"
             >
-              <img
-                src={displayAvatar}
-                alt={displayName}
-                className="w-7 h-7 rounded-full object-cover border border-[#E8E1D6]"
-              />
+              <div className="w-7 h-7 rounded-full overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-[10px] font-black border border-[#E8E1D6] shrink-0 relative">
+                <span className="select-none">{displayName[0]?.toUpperCase() || 'C'}</span>
+                {displayAvatar && (
+                  <img
+                    src={displayAvatar}
+                    alt={displayName}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
               <span className="hidden md:inline text-xs font-bold text-[#1A1816]">
                 {displayName}
               </span>

@@ -18,7 +18,8 @@ import {
   Calendar,
   AlertCircle,
   Eye,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 // Only database-backed photographers are rendered here; the sample list is not a
 // fallback, so a pending or rejected profile cannot appear through a deep link.
@@ -30,6 +31,14 @@ import { PortfolioLightbox } from '../../../components/gallery/PortfolioLightbox
 import { BookingModal } from '../../../components/booking/BookingModal';
 import { useAuth } from '../../../lib/auth';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
+import { useCurrentUserProfile } from '../../../context/UserProfileContext';
+
+function getInitials(name: string): string {
+  if (!name) return 'P';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 function PhotographerProfileInner({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
@@ -151,9 +160,50 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
 
   const { user, isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
+  const { uploadAvatar } = useCurrentUserProfile();
 
   // Copy Profile Link Toast State
   const [copiedToast, setCopiedToast] = useState(false);
+
+  // Avatar upload and fallback state
+  const [avatarError, setAvatarError] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarToast, setAvatarToast] = useState<string | null>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const isOwner = Boolean(
+    user &&
+    creator &&
+    ((creator as any).userId === user.id || creator.id === user.id)
+  );
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarToast(null);
+
+    try {
+      const res = await uploadAvatar(file);
+      if (res.success && res.url) {
+        const uploadedAvatarUrl: string = res.url;
+        setCreator((prev) => (prev ? { ...prev, avatarUrl: uploadedAvatarUrl } : prev));
+        setAvatarError(false);
+        setAvatarToast('Profile photo updated successfully!');
+        setTimeout(() => setAvatarToast(null), 4000);
+      } else {
+        setAvatarToast(res.error || 'Failed to upload photo.');
+        setTimeout(() => setAvatarToast(null), 5000);
+      }
+    } catch (err: any) {
+      setAvatarToast(err.message || 'Error uploading photo.');
+      setTimeout(() => setAvatarToast(null), 5000);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   // LOADING SKELETON
   if (isLoading && !creator) {
@@ -295,13 +345,50 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
             <div className="flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
               {/* Avatar + Main Details */}
               <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-canvas-secondary border-4 border-white shadow-md shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={creator.avatarUrl}
-                    alt={creator.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative group shrink-0">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-canvas-secondary border-4 border-white shadow-md shrink-0 flex items-center justify-center relative">
+                    {creator.avatarUrl && !avatarError ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={creator.avatarUrl}
+                        alt={creator.name}
+                        className="w-full h-full object-cover"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-tr from-[#FF6E00] to-amber-500 text-white flex items-center justify-center text-3xl sm:text-4xl font-black select-none tracking-tight">
+                        {getInitials(creator.name)}
+                      </div>
+                    )}
+
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span className="text-[10px] font-bold mt-1">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {isOwner && (
+                    <>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        onChange={handleAvatarFileChange}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="absolute bottom-0 right-0 p-2 sm:p-2.5 bg-[#FF6E00] hover:bg-[#e06100] text-white rounded-full shadow-lg border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                        title="Upload / Change profile photo"
+                      >
+                        <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -337,6 +424,27 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
                       {creator.availabilityStatus}
                     </Badge>
                   </div>
+
+                  {isOwner && (
+                    <div className="pt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-brand bg-brand-subtle hover:bg-brand/20 transition-colors border border-brand-border cursor-pointer disabled:opacity-50"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{creator.avatarUrl && !avatarError ? 'Change Profile Picture' : 'Upload Profile Picture'}</span>
+                      </button>
+
+                      {avatarToast && (
+                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md inline-flex items-center gap-1 animate-fadeIn">
+                          <Check className="w-3 h-3" />
+                          {avatarToast}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

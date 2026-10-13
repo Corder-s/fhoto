@@ -172,20 +172,19 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             }}
             className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#FAF7F2] transition-colors cursor-pointer"
           >
-            {displayAvatar ? (
-              <img
-                src={displayAvatar}
-                alt={accountName}
-                className="w-8 h-8 rounded-full object-cover border border-[#E8E2D8]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-xs font-black border border-[#E8E2D8] shadow-2xs">
-                {initials}
-              </div>
-            )}
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-xs font-black border border-[#E8E2D8] shadow-2xs shrink-0 relative">
+              <span className="select-none">{initials}</span>
+              {displayAvatar && (
+                <img
+                  src={displayAvatar}
+                  alt={accountName}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+            </div>
             <div className="text-left hidden md:block">
               <p className="text-xs font-black text-[#1A1816] leading-tight">
                 {accountName}

@@ -37,8 +37,41 @@ export default function PhotographerBusinessPage() {
     displayAvatar,
     initials,
     updateProfile,
+    uploadAvatar,
     loading: isContextLoading,
   } = useCurrentUserProfile();
+
+  // Avatar Upload State
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarToast, setAvatarToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [avatarImgError, setAvatarImgError] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarToast(null);
+
+    try {
+      const res = await uploadAvatar(file);
+      if (res.success) {
+        setAvatarImgError(false);
+        setAvatarToast({ type: 'success', text: 'Profile picture updated successfully.' });
+        setTimeout(() => setAvatarToast(null), 4000);
+      } else {
+        setAvatarToast({ type: 'error', text: res.error || 'Failed to upload photo.' });
+        setTimeout(() => setAvatarToast(null), 5000);
+      }
+    } catch (err: any) {
+      setAvatarToast({ type: 'error', text: err.message || 'Error uploading photo.' });
+      setTimeout(() => setAvatarToast(null), 5000);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   // Form Fields
   const [accountFullName, setAccountFullName] = useState('');
@@ -241,25 +274,48 @@ export default function PhotographerBusinessPage() {
       <Card className="p-6 bg-white border-contour-subtle shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-contour-subtle pb-6">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt={businessName}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black border-2 border-white shadow-md shrink-0">
-                  {initials}
-                </div>
-              )}
-              <span className="absolute bottom-0 right-0 p-1 bg-brand text-white rounded-full shadow-xs">
+            <div className="relative group shrink-0">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md flex items-center justify-center bg-canvas-secondary relative">
+                {displayAvatar && !avatarImgError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={displayAvatar}
+                    alt={businessName}
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarImgError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black select-none">
+                    {initials}
+                  </div>
+                )}
+
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-0 right-0 p-1.5 bg-[#FF6E00] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                title="Change profile photo"
+              >
                 <Camera className="w-3 h-3" />
-              </span>
+              </button>
             </div>
+
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-ink-primary">{businessName || 'Your Studio Name'}</h2>
@@ -278,6 +334,23 @@ export default function PhotographerBusinessPage() {
                   <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                   {creatorProfile?.average_rating ? Number(creatorProfile.average_rating).toFixed(1) : '5.0'} ({creatorProfile?.total_reviews || 0} client reviews)
                 </span>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-brand hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>{isUploadingAvatar ? 'Uploading...' : 'Upload Profile Photo'}</span>
+                </button>
+                {avatarToast && (
+                  <span className={`text-[11px] font-semibold ${avatarToast.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    • {avatarToast.text}
+                  </span>
+                )}
               </div>
             </div>
           </div>

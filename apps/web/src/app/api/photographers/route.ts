@@ -107,6 +107,19 @@ export async function GET(request: Request) {
       portfolioByCreator[p.creator_id].push(p);
     });
 
+    // Fetch user profiles to resolve user avatar URLs
+    const userIds = creators.map((c: any) => c.user_id).filter(Boolean);
+    const profilesByUser: Record<string, any> = {};
+    if (userIds.length > 0) {
+      const { data: profileRows } = await client
+        .from('profiles')
+        .select('id, avatar_url, full_name')
+        .in('id', userIds);
+      (profileRows || []).forEach((p: any) => {
+        profilesByUser[p.id] = p;
+      });
+    }
+
     // Format results to standard API structure
     const photographers = creators.map((cp: any) => {
       const services = (servicesByCreator[cp.id] || []).filter((s: any) => s.is_active !== false);
@@ -121,6 +134,11 @@ export async function GET(request: Request) {
 
       const primaryCover = portfolio[0]?.preview_url || cp.portfolio_url || '/reference-assets/hero_scene.jpg';
       const secondaryCover = portfolio[1]?.preview_url || primaryCover;
+
+      const userProfile = profilesByUser[cp.user_id];
+      const userAvatar = userProfile?.avatar_url || null;
+      const isPortfolioImg = cp.portfolio_url && /\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i.test(cp.portfolio_url);
+      const resolvedAvatar = userAvatar || (isPortfolioImg ? cp.portfolio_url : null) || primaryCover;
 
       // Extract specialty chips from service titles or bio
       const specialties: string[] = services.map((s: any) => s.title.replace(/\b(Shoot|Package|Session)\b/gi, '').trim());
@@ -143,7 +161,7 @@ export async function GET(request: Request) {
         rating: Number(cp.average_rating) || 5.0,
         reviewCount: cp.total_reviews || 0,
         availabilityStatus: cp.is_available ? 'Available Today' : 'Book in Advance',
-        avatarUrl: cp.portfolio_url || primaryCover,
+        avatarUrl: resolvedAvatar,
         coverImageUrl: primaryCover,
         secondaryCoverUrl: secondaryCover,
         isVerified: cp.verification_status === 'approved',

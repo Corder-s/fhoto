@@ -75,6 +75,8 @@ interface UserProfileContextValue {
   initials: string;
   refreshProfile: () => Promise<void>;
   updateProfile: (params: UpdateProfileParams) => Promise<{ success: boolean; error?: string }>;
+  uploadAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
+  removeAvatar: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const defaultStats: ProfileDashboardStats = {
@@ -149,7 +151,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setLoading(false);
       }
     }
-  }, []);
+  }, [authUser]);
 
   // Sync on auth user change
   useEffect(() => {
@@ -247,6 +249,100 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     [authUser]
   );
 
+  const uploadAvatar = useCallback(
+    async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+      if (!authUser?.id) {
+        return { success: false, error: 'User is not authenticated' };
+      }
+
+      if (!file) {
+        return { success: false, error: 'No image file provided' };
+      }
+
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        return { success: false, error: 'Please select a JPG, PNG, WebP or GIF image.' };
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        return { success: false, error: 'Image size must be less than 5 MB.' };
+      }
+
+      try {
+        setError(null);
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        const res = await fetch('/api/profile/avatar', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.url) {
+          throw new Error(data.error || 'Failed to upload profile picture.');
+        }
+
+        // Update local profile state immediately
+        setProfile((prev) => (prev ? { ...prev, avatar_url: data.url } : prev));
+
+        // Sync auth user session with new avatar
+        const updatedAuthUser: AuthUser = {
+          ...authUser,
+          avatarUrl: data.url,
+        };
+        saveAuthSession(updatedAuthUser);
+
+        // Broadcast change event
+        window.dispatchEvent(new Event('snapshoot:profile-change'));
+
+        return { success: true, url: data.url };
+      } catch (err: any) {
+        console.error('Error uploading avatar:', err);
+        setError(err.message);
+        return { success: false, error: err.message };
+      }
+    },
+    [authUser]
+  );
+
+  const removeAvatar = useCallback(
+    async (): Promise<{ success: boolean; error?: string }> => {
+      if (!authUser?.id) {
+        return { success: false, error: 'User is not authenticated' };
+      }
+
+      try {
+        setError(null);
+        const res = await fetch('/api/profile/avatar', {
+          method: 'DELETE',
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to remove profile picture.');
+        }
+
+        setProfile((prev) => (prev ? { ...prev, avatar_url: null } : prev));
+
+        const updatedAuthUser: AuthUser = {
+          ...authUser,
+          avatarUrl: undefined,
+        };
+        saveAuthSession(updatedAuthUser);
+
+        window.dispatchEvent(new Event('snapshoot:profile-change'));
+
+        return { success: true };
+      } catch (err: any) {
+        console.error('Error removing avatar:', err);
+        setError(err.message);
+        return { success: false, error: err.message };
+      }
+    },
+    [authUser]
+  );
+
   // Policy-compliant display selectors:
   // Account name: authentic profile full_name, fallback to authUser.name, fallback to 'Creator' (never mock names!)
   const accountName = profile?.full_name || authUser?.name || (authUser?.email ? authUser.email.split('@')[0] : 'Creator');
@@ -279,6 +375,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         initials,
         refreshProfile,
         updateProfile,
+        uploadAvatar,
+        removeAvatar,
       }}
     >
       {children}

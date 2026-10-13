@@ -204,20 +204,19 @@ export const SellerDashboardView: React.FC = () => {
         <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-6 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-start gap-4">
-              {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt={professionalName}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#FFE8D6] shadow-xs shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black border-2 border-[#FFE8D6] shadow-xs shrink-0">
-                  {initials}
-                </div>
-              )}
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black border-2 border-[#FFE8D6] shadow-xs shrink-0 relative">
+                <span className="select-none">{initials}</span>
+                {displayAvatar && (
+                  <img
+                    src={displayAvatar}
+                    alt={professionalName}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-black text-[#1A1816] truncate">{professionalName}</h3>
