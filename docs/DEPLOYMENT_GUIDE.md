@@ -136,6 +136,24 @@ With the NestJS service in production, `POST /api/v1/auth/login` must return 503
 
 Smoke test with a session: `SMOKE_BASE_URL=https://<web> SMOKE_COOKIE='<cookie header>' SMOKE_CREATOR_ID=<approved creator id> node scratch/test-apis.js`. Do not paste the cookie into shared logs.
 
+### Preview URLs and Vercel Deployment Protection
+
+Vercel's Deployment Protection (Vercel Authentication) sits in front of preview URLs for accounts
+that are not members of the Vercel team, so `https://<branch>-fhoto-<team>.vercel.app` answers
+Vercel's own sign-in page to a curl from another machine or a CI job. That is Vercel refusing, not
+the app. To exercise a preview from outside, browse it while signed in to Vercel, or temporarily
+disable protection (or pass the project's `x-vercel-protection-bypass` value). Production is not
+behind protection, so the checks above work there.
+
+### A `501` from the new routes means the migration is missing
+
+`/api/photographers/verification`, `/api/admin/verification` and `/api/admin/roles` answer
+`501 — Verification and administrator-permission storage is not set up on this project yet` when
+the database they talk to has not had
+`20261013000002_owner_roles_admin_permissions_and_verification.sql` applied. The deployment is
+fine; apply the migration to the project that `NEXT_PUBLIC_SUPABASE_URL` points at. Do not "fix"
+this by editing policies or granting wider keys.
+
 ## 5. Rollback
 
 - Web: redeploy the previous build. Database migrations are not reversed automatically. The hardening and access migrations are idempotent, so re-applying them is safe. Rolling back past `20261013000002` leaves the extra `creator_verification_submissions` table and `admin_permissions` table in place; the older app code ignores them.

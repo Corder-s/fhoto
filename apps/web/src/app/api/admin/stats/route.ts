@@ -18,6 +18,18 @@ export async function GET() {
     monthStart.setUTCHours(0, 0, 0, 0);
     const monthIso = monthStart.toISOString();
 
+    const openSubmissionCount = async (client: typeof admin): Promise<number> => {
+      const result = await client
+        .from('creator_verification_submissions')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['pending', 'needs_info']);
+      if (result.error) {
+        console.warn('Open verification count unavailable:', result.error.message);
+        return 0;
+      }
+      return result.count ?? 0;
+    };
+
     const count = async (build: (c: typeof admin) => PromiseLike<{ count: number | null; error: { message: string } | null }>) => {
       const { count: n, error } = await build(admin);
       if (error) throw new Error(error.message);
@@ -42,13 +54,10 @@ export async function GET() {
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).gte('created_at', monthIso)),
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'disputed')),
       // Applications awaiting a reviewer, including ones sent back for more
-      // information. This is the number the queue header shows.
-      count((t) =>
-        t
-          .from('creator_verification_submissions')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['pending', 'needs_info'])
-      ),
+      // information. This is the number the queue header shows. It must not take
+      // the whole dashboard down on a database that has not applied
+      // 20261013000002 yet, so it is resolved separately and tolerantly.
+      openSubmissionCount(admin),
     ]);
 
     // Revenue = successfully paid payments (gross customer amount, INR).

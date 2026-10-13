@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeAdmin, jsonError } from '@/lib/server/session';
-import { listVerificationSubmissions, reviewVerificationSubmission, SUBMISSION_STATUSES } from '@/lib/server/verification';
+import {
+  isMissingRelationError,
+  listVerificationSubmissions,
+  MIGRATION_REQUIRED_MESSAGE,
+  reviewVerificationSubmission,
+  SUBMISSION_STATUSES,
+} from '@/lib/server/verification';
 import { isUuid } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +31,9 @@ export async function GET(req: NextRequest) {
 
   const { rows, error } = await listVerificationSubmissions(admin, { status });
   if (error) {
+    if (isMissingRelationError(error)) {
+      return jsonError(501, MIGRATION_REQUIRED_MESSAGE);
+    }
     console.error('Verification queue failed:', error);
     return jsonError(500, 'Could not load verification submissions.');
   }

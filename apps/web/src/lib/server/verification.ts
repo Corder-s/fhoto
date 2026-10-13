@@ -24,6 +24,26 @@ import {
  */
 
 export const SUBMISSION_STATUSES = ['pending', 'approved', 'rejected', 'needs_info', 'all'] as const;
+
+/**
+ * Postgres 42P01 (undefined_table) means this project has not had
+ * supabase/migrations/20261013000002_owner_roles_admin_permissions_and_verification.sql
+ * applied yet. Routes answer 501 with that instruction instead of a bare 500,
+ * because nobody should have to guess that the fix is a deployment step.
+ */
+export function isMissingRelationError(
+  error: { code?: string; message?: string } | string | null | undefined
+) {
+  if (!error) return false;
+  if (typeof error === 'string') return /does not exist|could not find the table/i.test(error);
+  return error.code === '42P01' || /does not exist|could not find the table/i.test(error.message || '');
+}
+
+export const MIGRATION_REQUIRED_MESSAGE =
+  'Verification and administrator-permission storage is not set up on this project yet. Apply ' +
+  'supabase/migrations/20261013000002_owner_roles_admin_permissions_and_verification.sql ' +
+  '(supabase db push, or the SQL editor) and try again.';
+
 export type SubmissionStatusFilter = (typeof SUBMISSION_STATUSES)[number];
 
 export interface SubmissionRow {
@@ -145,6 +165,20 @@ export async function getMyVerification(admin: SupabaseClient, userId: string) {
   return { creator: creator || null, submissions, error: null };
 }
 
+/**
+ * One place that turns a database failure into the response a caller should see:
+ * 501 with the migration instruction when the new tables are missing, 500 with a
+ * generic message otherwise (the raw Postgres text stays in the server log).
+ */
+function dbFailure(
+  error: { code?: string; message?: string } | null | undefined,
+  fallback: string
+): { ok: false; status: number; error: string } {
+  if (isMissingRelationError(error)) return { ok: false, status: 501, error: MIGRATION_REQUIRED_MESSAGE };
+  if (error) console.error('[verification] database failure:', error.code || '', error.message || '');
+  return { ok: false, status: 500, error: fallback };
+}
+
 function referenceCode(seed: string): string {
   const tail = seed.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase().padStart(6, '0');
   const random = Math.floor(Math.random() * 0xffffff).toString(16).toUpperCase().padStart(6, '0');
@@ -198,7 +232,7 @@ export async function fileVerificationApplication(
     .eq('status', 'pending')
     .maybeSingle();
   if (existingPending.error) {
-    return { ok: false, status: 500, error: 'Could not check your existing application.' };
+    return dbFailure(existingPending.error, 'Could not check your existing application.');
   }
   if (existingPending.data) {
     return { ok: false, status: 409, error: 'Your application is already under review.' };
@@ -230,7 +264,7 @@ export async function fileVerificationApplication(
 
   if (insertError || !submission) {
     console.error('Verification submission failed:', insertError?.message);
-    return { ok: false, status: 500, error: 'Could not submit your verification application.' };
+    return dbFailure(insertError, 'Could not submit your verification application.');
   }
 
   // Public profile details follow the application. verification_status is
@@ -297,7 +331,7 @@ export async function reviewVerificationSubmission(
     .eq('id', options.submissionId)
     .maybeSingle();
 
-  if (fetchError) return { ok: false, status: 500, error: 'Could not load the application.' };
+  if (fetchError) return dbFailure(fetchError, 'Could not load the application.');
   if (!submission) return { ok: false, status: 404, error: 'Verification submission not found.' };
 
   if (submission.user_id === options.reviewerId) {
@@ -326,7 +360,7 @@ export async function reviewVerificationSubmission(
 
   if (updateError) {
     console.error('Verification review failed:', updateError.message);
-    return { ok: false, status: 500, error: 'Could not record the review decision.' };
+    return dbFailure(updateError, 'Could not record the review decision.');
   }
 
   // Reflect the state the database settled on rather than assuming it matches

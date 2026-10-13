@@ -3,6 +3,8 @@ import { authorize, jsonError } from '@/lib/server/session';
 import {
   fileVerificationApplication,
   getMyVerification,
+  isMissingRelationError,
+  MIGRATION_REQUIRED_MESSAGE,
   revalidatePublicDirectory,
 } from '@/lib/server/verification';
 
@@ -22,7 +24,11 @@ export async function GET() {
 
   try {
     const result = await getMyVerification(admin, user.id);
-    if (result.error) return jsonError(500, 'Could not load your verification status.');
+    if (result.error) {
+      if (isMissingRelationError(result.error)) return jsonError(501, MIGRATION_REQUIRED_MESSAGE);
+      console.error('Photographer verification read failed:', result.error);
+      return jsonError(500, 'Could not load your verification status.');
+    }
 
     return NextResponse.json(
       {
