@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-10-13 — Owner dashboard, administrator permissions, and photographer verification (branch `arena/d4413e1c-fhoto`)
+
+### Added
+
+- **Migration `20261013000002_owner_roles_admin_permissions_and_verification.sql`** (additive, idempotent): `owner` in `user_roles.role`; `public.is_owner()`; `public.is_admin()` now accepts owners so every existing policy covers them; `admin_permissions`; `creator_verification_submissions` (one open application per creator, private document metadata, review columns); `suspended` as a creator verification state; column guards and two mirror triggers so a filing or a review keeps `creator_profiles.verification_status`, the admin queue, the photographer's notifications, and the public directory in step.
+- `GET /api/owner/stats` — executive figures computed from the tables (accounts, administrators, owners, open verifications, creator profiles per verification state, bookings per status, gross booked value, platform fees, paid revenue, supply per city).
+- `GET/POST /api/admin/roles` — administrators with their effective permissions, search over registered accounts, promote an existing account, replace a permission set, revoke, and owner-only `grantOwner` / `revokeOwner`.
+- `GET/PATCH /api/admin/verification` and `GET /api/admin/verification/document` — the review queue, the decision write, and 120-second signed URLs for private documents.
+- `GET/POST/DELETE /api/photographers/verification` — the applicant side of the same workflow: state, filing (ID numbers stored masked), and withdrawal of an unreviewed application.
+- `apps/web/src/middleware.ts` — a session check in front of `/admin`, `/owner`, `/photographer`, and `/customer`. Anonymous visitors are redirected to `/login?next=<path>`; `/login` honours `next` through the existing `resolvePostAuthRedirect` sanitizer.
+- `apps/web/src/lib/server/verification.ts` — queue read, filing, review, and directory revalidation in one place, so the two dashboards cannot disagree.
+- `components/admin/VerificationQueue.tsx`, `components/admin/AdministratorPanel.tsx`, `components/owner/OwnerDashboardView.tsx`.
+
+### Changed
+
+- `/owner/dashboard` no longer renders fabricated revenue. The previous page printed a fixed combined net revenue, a take-rate split, three subscription tiers with counts, an MRR/ARR figure, a churn rate, growth arrows, and a "Live Production Metrics" badge — none of it computed. It is now live data plus the access-control manager, and it states plainly that subscription revenue is not in this schema (KNOWN_ISSUES #27).
+- `/photographer/verification` no longer offers a dropdown of fake lifecycle states with an invented ticket id and a hardcoded document checklist; it reads and writes the database.
+- `AdminDashboardView`: the shallow "approve / reject" list is replaced by the verification queue (reason required for rejection, `needs_info` supported, reloaded from the server after a decision); user filter gains `Admins`; the administrator roster and permission state are shown read-only with the caller's own capabilities.
+- `authorize()` takes a `permission`; every `admin` route now declares which capability it needs, and `/api/auth/session` reports `permissions` and `isOwner` so the UI can reflect them (presentation only — the routes re-check).
+- `resolveSession()` reads `admin_permissions` alongside `user_roles`; a missing table does not lock an admin out.
+- `/api/admin/creators`: `suspend_profile` / `reinstate_profile` change the publication state without touching the login, and a rejection must carry a reason.
+- `/api/admin/users`: an owner's account can only be changed by an owner.
+- `useServerSession()` exposes the permission set; `packages/shared` gains `AppRoleType`, `AdminPermissionType`, `VerificationStatus.SUSPENDED`, and the verification size limits.
+
+### Security
+
+- Privilege escalation surface reviewed: `user_roles` and `admin_permissions` have no client write policy, `handle_new_auth_user()` still downgrades any requested role that is not `creator`, and `/api/auth/register` cannot ask for `admin` or `owner`.
+- A review decision cannot be written by an applicant: the submission guard resets a client insert to `pending`, refuses another user's creator id, and rejects every client update.
+- Service-role keys, document storage paths, and raw ID numbers are absent from client payloads; documents are read through signed URLs scoped to the applicant's own folder.
+
+### Tests
+
+- `tests/web-policy.test.mjs`: 19 → 34 cases (owner role, permission resolution including the legacy-inheritance rule, self-lockout guards, verification filing/decision rules, identifier masking, storage-path safety, submission sanitization).
+- `supabase/tests/rls-policies.test.mjs`: 30 → 42 cases (owner accepted by `user_roles`, `is_admin()`/`is_owner()`, cross-account reads by an owner, self-grant refusal, `has_admin_permission()` for owner/legacy/narrowed/creator, forced-pending filing, foreign creator refusal, one-open-application, queue visibility, publish-and-notify on approval, suspension closing the open application, withdrawal, private bucket scoping) and the idempotency check now replays both hardening and access migrations.
+
+### Not verified
+
+- Nothing was exercised against the live Vercel deployment or the production Supabase project: this sandbox has no network path to `*.vercel.app` or `*.supabase.co`, and no `vercel` or `supabase` CLI credentials. See docs/TEST_RESULTS.md.
+
 ## 2026-10-13 — Vercel deployment fix and deployment variables (branch `arena/67428ada-fhoto`)
 
 ### Fixed

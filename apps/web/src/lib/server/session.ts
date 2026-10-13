@@ -4,10 +4,13 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdminClient } from '../supabase/admin';
 import {
+  type AdminPermission,
   type AppRole,
   hasAnyRole,
+  hasPermission,
   isAccountActive,
   primaryRole,
+  resolvePermissions,
   resolveRoleSet,
 } from './policy';
 
@@ -16,8 +19,8 @@ import {
  *
  * The identity comes from the Supabase session cookie, validated with
  * `auth.getUser()` (which asks Supabase Auth whether the session is still valid).
- * Roles and account status are read from the database. Nothing the browser
- * sends about its own role or ID is trusted.
+ * Roles, administrator permissions and account status are read from the
+ * database. Nothing the browser sends about its own role or ID is trusted.
  */
 export interface SessionUser {
   id: string;
@@ -25,6 +28,9 @@ export interface SessionUser {
   name: string;
   roles: AppRole[];
   role: AppRole;
+  /** Effective administrator capabilities. Empty for customers and creators. */
+  permissions: AdminPermission[];
+  isOwner: boolean;
   accountStatus: string;
 }
 
@@ -95,10 +101,14 @@ export async function resolveSession(): Promise<SessionResult> {
   const admin = getSupabaseAdminClient();
   if (!admin) return { status: 'unconfigured' };
 
-  const [{ data: roleRows, error: roleErr }, { data: profile, error: profileErr }] = await Promise.all([
-    admin.from('user_roles').select('role').eq('user_id', user.id),
-    admin.from('profiles').select('full_name, email, account_status').eq('id', user.id).maybeSingle(),
-  ]);
+  const rolesQuery = admin.from('user_roles').select('role').eq('user_id', user.id);
+  const profileQuery = admin.from('profiles').select('full_name, email, account_status').eq('id', user.id).maybeSingle();
+  // Only platform administrators can have grants, so the extra read is skipped
+  // for everyone else.
+  const permissionsQuery = admin.from('admin_permissions').select('permission').eq('user_id', user.id);
+
+  const [{ data: roleRows, error: roleErr }, { data: profile, error: profileErr }, permissionResult] =
+    await Promise.all([rolesQuery, profileQuery, permissionsQuery]);
 
   if (roleErr || profileErr) {
     return { status: 'error', message: (roleErr || profileErr)?.message || 'Could not load account' };
@@ -111,6 +121,11 @@ export async function resolveSession(): Promise<SessionResult> {
     roles.push('customer');
   }
 
+  // A missing admin_permissions table (migration not applied yet) must not lock
+  // an admin out of the whole platform; resolvePermissions treats "no rows" as
+  // the full legacy set, so the error path is safe to swallow here.
+  const permissions = resolvePermissions(roles, permissionResult?.error ? null : permissionResult?.data);
+
   const meta = (user.user_metadata || {}) as Record<string, unknown>;
   const fallbackName = typeof meta.full_name === 'string' ? meta.full_name : (user.email || '').split('@')[0];
 
@@ -122,6 +137,8 @@ export async function resolveSession(): Promise<SessionResult> {
       name: profile?.full_name || fallbackName || 'User',
       roles,
       role: primaryRole(roles) || 'customer',
+      permissions,
+      isOwner: roles.includes('owner'),
       accountStatus: profile?.account_status || 'active',
     },
   };
@@ -132,17 +149,27 @@ export type AuthorizeResult =
   | { ok: false; response: NextResponse };
 
 /**
- * Authenticates the request and checks account status and role membership.
+ * Authenticates the request and checks account status, role membership and —
+ * for platform administrators — the granular permission required by the route.
  *
  * Usage in a route handler:
  *   const auth = await authorize({ roles: ['creator'] });
+ *   const auth = await authorize({
+ *     roles: ['admin', 'owner'],
+ *     permission: 'manage_photographer_verification',
+ *   });
  *   if (!auth.ok) return auth.response;
  *   const { user, admin } = auth;
+ *
+ * `permission` is only enforced for admins. An owner always passes, and an
+ * admin with no explicit grants keeps the full set (see docs/AUTHORIZATION_AND_ROLE_ACCESS.md).
  *
  * Route handlers must still check record ownership (e.g. that a booking belongs
  * to `user.id`) before reading or changing data.
  */
-export async function authorize(options: { roles?: AppRole[] } = {}): Promise<AuthorizeResult> {
+export async function authorize(
+  options: { roles?: AppRole[]; permission?: AdminPermission | null } = {}
+): Promise<AuthorizeResult> {
   const session = await resolveSession();
 
   if (session.status === 'unconfigured') {
@@ -172,6 +199,19 @@ export async function authorize(options: { roles?: AppRole[] } = {}): Promise<Au
     return { ok: false, response: jsonError(403, 'You do not have permission to perform this action.') };
   }
 
+  if (
+    options.permission &&
+    !hasPermission(user.roles, user.permissions, options.permission)
+  ) {
+    return {
+      ok: false,
+      response: jsonError(403, 'Your administrator role does not include this capability.', {
+        code: 'MISSING_PERMISSION',
+        requiredPermission: options.permission,
+      }),
+    };
+  }
+
   const admin = getSupabaseAdminClient();
   if (!admin) {
     return {
@@ -181,6 +221,11 @@ export async function authorize(options: { roles?: AppRole[] } = {}): Promise<Au
   }
 
   return { ok: true, user, admin };
+}
+
+/** Shorthand for administrative routes: admin/owner role plus one capability. */
+export function authorizeAdmin(permission?: AdminPermission | null): Promise<AuthorizeResult> {
+  return authorize({ roles: ['admin', 'owner'], permission });
 }
 
 /** Looks up the creator profile that belongs to the authenticated user (never a client-supplied ID). */

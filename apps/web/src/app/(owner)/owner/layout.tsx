@@ -75,8 +75,21 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // No 'owner' role exists in the database (see docs/AUTHORIZATION_AND_ROLE_ACCESS.md), so this stays closed.
-  if (serverSession.status !== 'authenticated' || !serverSession.user.roles.includes('owner')) {
+  // Ownership is a database role: user_roles.role = 'owner' (see
+  // docs/AUTHORIZATION_AND_ROLE_ACCESS.md). The session comes from the server, so
+  // this is display gating only - /api/owner/stats and /api/admin/roles repeat the
+  // check and answer 403 without it.
+  if (serverSession.status === 'loading') {
+    return (
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const isOwner = serverSession.status === 'authenticated' && serverSession.user.roles.includes('owner');
+
+  if (!isOwner) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
@@ -134,25 +147,39 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
               <span>Executive Overview</span>
             </Link>
             <Link
-              href="/owner/dashboard"
+              href="/owner/dashboard#administrators"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
-              <DollarSign className="w-4 h-4" />
-              <span>Commission Revenue</span>
+              <Settings className="w-4 h-4" />
+              <span>Administrators &amp; Permissions</span>
             </Link>
             <Link
-              href="/owner/dashboard"
+              href="/owner/dashboard#verification-pipeline"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>Verification Pipeline</span>
+            </Link>
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <User className="w-4 h-4" />
+              <span>Review Queue (admin)</span>
+            </Link>
+            <Link
+              href="/owner/dashboard#marketplace-ledger"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
               <BarChart3 className="w-4 h-4" />
-              <span>Supply vs Demand</span>
+              <span>Marketplace Ledger</span>
             </Link>
             <Link
-              href="/owner/dashboard"
+              href="/owner/dashboard#supply-by-city"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-card-sm hover:bg-white/10 hover:text-white transition-colors"
             >
               <PieChart className="w-4 h-4" />
-              <span>City Density</span>
+              <span>City Supply</span>
             </Link>
           </nav>
         </div>

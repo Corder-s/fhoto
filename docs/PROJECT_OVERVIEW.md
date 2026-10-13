@@ -12,8 +12,8 @@ The primary product is a **Next.js 14 App Router** application backed by **Supab
 | --- | --- | --- | --- |
 | Customer | `user_roles.role = 'customer'` | `/customer/*` | Search creators, book a package, see booking status, cancel a pending or accepted booking, pay (sandbox only), view deliverables |
 | Photographer (creator) | `user_roles.role = 'creator'` | `/photographer/*` | Onboard, manage packages (services), portfolio, accept or decline bookings, progress bookings through their lifecycle, add deliverables, request cancellation |
-| Admin | `user_roles.role = 'admin'` | `/admin/*` | Review creator applications, approve or reject, suspend or reinstate accounts, resolve cancellation disputes, force a booking state, view platform stats |
-| Owner | (no database role) | `/owner/*` | Layout is closed. The database has no owner role, so no account can enter. |
+| Admin | `user_roles.role = 'admin'` | `/admin/*` | Review creator applications, approve or reject, suspend or reinstate accounts, resolve cancellation disputes, force a booking state, view platform stats. Each capability is limited by `admin_permissions` once an owner narrows the account |
+| Owner | `user_roles.role = 'owner'` | `/owner/dashboard` | Everything an admin can do, plus the executive view (`/api/owner/stats`) and the only route that grants, narrows, or revokes administrator and owner access (`/api/admin/roles`). Bootstrapped with one SQL row; never self-service |
 
 ## Status of the product
 

@@ -4,11 +4,12 @@
 fhoto/
 ├── apps/
 │   ├── web/                      Next.js 14 app (primary product)
+│   │   ├── src/middleware.ts      session check for /admin, /owner, /photographer, /customer (redirects anonymous to /login?next=)
 │   │   ├── src/app/              App Router pages and route handlers
 │   │   │   ├── (admin)/admin/    admin layout + dashboard, bookings, creators, users
 │   │   │   ├── (customer)/customer/  customer layout + bookings, messages, settings, fixtures (see KNOWN_ISSUES)
 │   │   │   ├── (photographer)/photographer/  photographer layout + onboarding, portfolio, services, bookings, fixtures
-│   │   │   ├── (owner)/owner/    closed owner area (no owner role exists)
+│   │   │   ├── (owner)/owner/    owner area: executive stats and administrator/permission management
 │   │   │   ├── api/              route handlers (see API_DOCUMENTATION.md)
 │   │   │   ├── explore/          public creator discovery (live data)
 │   │   │   ├── photographers/    redirects to /explore (keeps old links working)
@@ -18,7 +19,8 @@ fhoto/
 │   │   ├── src/context/          React contexts (user profile, auth modal, booking)
 │   │   ├── src/lib/
 │   │   │   ├── server/session.ts    authorize(): server-side session + role check
-│   │   │   ├── server/policy.ts     pure policy functions (booking transitions, ownership) — unit tested
+│   │   │   ├── server/policy.ts     pure policy functions (booking transitions, ownership, roles, permissions, verification rules) — unit tested
+│   │   │   ├── server/verification.ts  verification queue, filing, review, and directory revalidation
 │   │   │   ├── supabase/            browser client, server client, admin (service-role) client
 │   │   │   ├── useServerSession.ts  client hook for /api/auth/session (display and route guards)
 │   │   │   ├── auth.ts              client auth helper; role read from user metadata is display-only

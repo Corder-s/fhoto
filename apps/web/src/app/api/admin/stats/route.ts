@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * Platform totals computed from the database (no cached or estimated figures).
  */
 export async function GET() {
-  const auth = await authorize({ roles: ['admin'] });
+  const auth = await authorize({ roles: ['admin', 'owner'] });
   if (!auth.ok) return auth.response;
   const { admin } = auth;
 
@@ -17,6 +17,18 @@ export async function GET() {
     monthStart.setUTCDate(1);
     monthStart.setUTCHours(0, 0, 0, 0);
     const monthIso = monthStart.toISOString();
+
+    const openSubmissionCount = async (client: typeof admin): Promise<number> => {
+      const result = await client
+        .from('creator_verification_submissions')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['pending', 'needs_info']);
+      if (result.error) {
+        console.warn('Open verification count unavailable:', result.error.message);
+        return 0;
+      }
+      return result.count ?? 0;
+    };
 
     const count = async (build: (c: typeof admin) => PromiseLike<{ count: number | null; error: { message: string } | null }>) => {
       const { count: n, error } = await build(admin);
@@ -32,6 +44,7 @@ export async function GET() {
       totalBookings,
       bookingsThisMonth,
       disputedBookings,
+      openSubmissions,
     ] = await Promise.all([
       count((t) => t.from('profiles').select('id', { count: 'exact', head: true })),
       count((t) => t.from('user_roles').select('id', { count: 'exact', head: true }).eq('role', 'customer')),
@@ -40,6 +53,11 @@ export async function GET() {
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true })),
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).gte('created_at', monthIso)),
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'disputed')),
+      // Applications awaiting a reviewer, including ones sent back for more
+      // information. This is the number the queue header shows. It must not take
+      // the whole dashboard down on a database that has not applied
+      // 20261013000002 yet, so it is resolved separately and tolerantly.
+      openSubmissionCount(admin),
     ]);
 
     // Revenue = successfully paid payments (gross customer amount, INR).
@@ -68,6 +86,7 @@ export async function GET() {
         totalBookings,
         bookingsThisMonth,
         disputedBookings,
+        openVerificationSubmissions: openSubmissions,
         totalRevenue,
         revenueThisMonth,
         currency: 'INR',

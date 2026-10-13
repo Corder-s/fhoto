@@ -8,8 +8,17 @@ describe('role resolution', () => {
   it('normalizes known roles and rejects unknown ones', () => {
     assert.equal(policy.normalizeRole('creator'), 'creator');
     assert.equal(policy.normalizeRole('ADMIN'), 'admin');
-    assert.equal(policy.normalizeRole('owner'), null);
+    // 'owner' became a real role with the owner dashboard migration.
+    assert.equal(policy.normalizeRole('owner'), 'owner');
     assert.equal(policy.normalizeRole(undefined), null);
+    assert.equal(policy.normalizeRole('superuser'), null);
+    assert.equal(policy.normalizeRole('service_role'), null);
+  });
+
+  it('ranks owner above admin above creator above customer', () => {
+    assert.equal(policy.primaryRole(['admin', 'owner']), 'owner');
+    assert.equal(policy.primaryRole(['creator', 'admin']), 'admin');
+    assert.equal(policy.primaryRole(['owner']), 'owner');
   });
 
   it('resolves a role set from user_roles rows, ignoring junk', () => {
@@ -149,5 +158,174 @@ describe('input helpers', () => {
     assert.equal(policy.isSafeHttpsUrl('blob:https://app.example/123'), false);
     assert.equal(policy.isSafeHttpsUrl(''), false);
     assert.equal(policy.isSafeHttpsUrl(undefined), false);
+  });
+});
+
+describe('administrator permissions', () => {
+  const ALL = policy.ADMIN_PERMISSIONS;
+
+  it('gives owners every permission', () => {
+    assert.deepEqual(policy.resolvePermissions(['owner'], []), [...ALL]);
+    assert.equal(policy.hasPermission(['owner'], [], 'manage_administrators'), true);
+  });
+
+  it('treats an admin with no rows as unrestricted (legacy accounts)', () => {
+    assert.deepEqual(policy.resolvePermissions(['admin'], []), [...ALL]);
+    assert.equal(policy.hasPermission(['admin'], ALL, 'manage_users'), true);
+  });
+
+  it('narrows an admin down as soon as one permission is recorded', () => {
+    const roles = ['admin'];
+    const rows = [{ permission: 'manage_photographer_verification' }, { permission: 'not_a_permission' }];
+    assert.deepEqual(policy.resolvePermissions(roles, rows), ['manage_photographer_verification']);
+    assert.equal(policy.hasPermission(roles, ['manage_photographer_verification'], 'manage_users'), false);
+    assert.equal(policy.hasPermission(roles, ['manage_photographer_verification'], 'manage_photographer_verification'), true);
+  });
+
+  it('grants no permissions to non-administrators', () => {
+    assert.deepEqual(policy.resolvePermissions(['creator'], [{ permission: 'manage_users' }]), []);
+    assert.equal(policy.hasPermission(['customer'], [], 'manage_users'), false);
+    assert.deepEqual(policy.resolvePermissions([], null), []);
+  });
+
+  it('passes a request with no specific permission to any administrator', () => {
+    assert.equal(policy.hasPermission(['admin'], [], undefined), true);
+    assert.equal(policy.hasPermission(['creator'], [], undefined), false);
+  });
+
+  it('blocks self-lockout and owner removal', () => {
+    const guard = policy.permissionChangeGuard({
+      callerIsOwner: false,
+      callerUserId: 'u1',
+      targetUserId: 'u1',
+      targetIsOwner: false,
+      nextPermissions: ['manage_users'],
+      targetOwnsAdminManagement: true,
+    });
+    assert.match(guard, /revoke your own administrator-management permission/);
+
+    const empty = policy.permissionChangeGuard({
+      callerIsOwner: true,
+      callerUserId: 'owner',
+      targetUserId: 'u2',
+      targetIsOwner: false,
+      nextPermissions: [],
+      targetOwnsAdminManagement: false,
+    });
+    assert.match(empty, /at least one permission/);
+
+    const ownerNarrow = policy.permissionChangeGuard({
+      callerIsOwner: false,
+      callerUserId: 'u1',
+      targetUserId: 'owner',
+      targetIsOwner: true,
+      nextPermissions: ['manage_users'],
+      targetOwnsAdminManagement: true,
+    });
+    assert.match(ownerNarrow, /Only a platform owner/);
+
+    assert.equal(
+      policy.permissionChangeGuard({
+        callerIsOwner: true,
+        callerUserId: 'owner',
+        targetUserId: 'u2',
+        targetIsOwner: false,
+        nextPermissions: ['manage_users'],
+        targetOwnsAdminManagement: false,
+      }),
+      null
+    );
+  });
+});
+
+describe('photographer verification rules', () => {
+  it('publishes only approved creators', () => {
+    assert.equal(policy.isPubliclyListedCreator('approved'), true);
+    for (const hidden of ['pending', 'rejected', 'suspended', 'unsubmitted', null]) {
+      assert.equal(policy.isPubliclyListedCreator(hidden), false, hidden);
+    }
+  });
+
+  it('allows filing only before approval or after a rejection', () => {
+    assert.equal(policy.canFileVerificationApplication('unsubmitted'), true);
+    assert.equal(policy.canFileVerificationApplication('rejected'), true);
+    assert.equal(policy.canFileVerificationApplication('suspended'), true);
+    assert.equal(policy.canFileVerificationApplication('pending'), false);
+    assert.equal(policy.canFileVerificationApplication('approved'), false);
+    assert.match(policy.verificationFilingBlockReason('approved'), /already verified/i);
+  });
+
+  it('maps decisions onto profile states and requires a written reason', () => {
+    assert.deepEqual(
+      policy.verificationDecision('approve'),
+      { ok: true, status: 'approved', profileStatus: 'approved', historyLabel: 'Photographer verification approved' }
+    );
+    assert.equal(policy.verificationDecision('reject').ok, false);
+    assert.equal(policy.verificationDecision('reject', 'blurry ID scan').status, 'rejected');
+    assert.equal(policy.verificationDecision('needs_info', 'need GST certificate').profileStatus, 'pending');
+    assert.equal(policy.verificationDecision('force_approve').status, 400);
+  });
+
+  it('masks identifiers instead of storing them', () => {
+    assert.equal(policy.maskIdentifier('1234 5678 9012'), '•••• 9012');
+    // Keeps the final four characters of whatever was typed, spaces removed.
+    assert.equal(policy.maskIdentifier('ABCDE1234F'), '•••• 234F');
+    assert.equal(policy.maskIdentifier('  07ABCDE1234F1Z5  '), '•••• F1Z5');
+    assert.equal(policy.maskIdentifier('abc'), null);
+    assert.equal(policy.maskIdentifier(undefined), null);
+  });
+
+  it('accepts only own-folder storage paths', () => {
+    assert.equal(policy.isSafeStorageObjectPath('u-1/aadhaar.jpg'), true);
+    assert.equal(policy.isSafeStorageObjectPath('u-1/2026-10-13/x.pdf'), true);
+    assert.equal(policy.isSafeStorageObjectPath('../etc/passwd'), false);
+    assert.equal(policy.isSafeStorageObjectPath('/u-1/a.pdf'), false);
+    assert.equal(policy.isSafeStorageObjectPath('https://evil.test/a.pdf'), false);
+    assert.equal(policy.isSafeStorageObjectPath('a/../../b'), false);
+  });
+
+  it('requires a name, an ID type and a government ID document', () => {
+    assert.equal(policy.sanitizeVerificationSubmission({}).ok, false);
+    assert.equal(
+      policy.sanitizeVerificationSubmission({ legalName: 'Aman Verma' }).ok,
+      false,
+      'an ID type is required'
+    );
+    const minimal = policy.sanitizeVerificationSubmission({
+      legalName: 'Aman Verma',
+      governmentIdType: 'aadhaar',
+      governmentIdNumber: '1234 5678 9012',
+      documents: [{ type: 'government_id', storagePath: 'u-1/id.jpg', fileName: 'id.jpg', sizeBytes: 12000 }],
+    });
+    assert.equal(minimal.ok, true);
+    assert.equal(minimal.value.government_id_masked, '•••• 9012');
+    assert.equal(minimal.value.government_id_number, undefined, 'the raw number is never carried through');
+    assert.equal('status' in minimal.value, false, 'a payload cannot set its own review status');
+  });
+
+  it('rejects junk documents, bad phone numbers and bad GSTINs', () => {
+    const base = {
+      legalName: 'Aman Verma',
+      governmentIdType: 'aadhaar',
+      documents: [{ type: 'government_id', storagePath: 'u-1/id.jpg' }],
+    };
+    assert.equal(policy.sanitizeVerificationSubmission({ ...base, contactPhone: 'call me' }).ok, false);
+    assert.equal(policy.sanitizeVerificationSubmission({ ...base, gstin: 'NOTAGSTIN' }).ok, false);
+    assert.equal(policy.sanitizeVerificationSubmission({ ...base, documents: [{ type: 'other', note: 'no file' }] }).ok, false);
+    const ok = policy.sanitizeVerificationSubmission({ ...base, gstin: '07ABCDE1234F1Z5', contactPhone: '+91 98765 43210' });
+    assert.equal(ok.ok, true);
+    assert.equal(ok.value.gstin, '07ABCDE1234F1Z5');
+  });
+
+  it('drops unknown categories and caps the list', () => {
+    const result = policy.sanitizeVerificationSubmission({
+      legalName: 'Aman Verma',
+      governmentIdType: 'pan',
+      documents: [{ type: 'government_id', externalUrl: 'https://drive.google.com/file/d/1/view' }],
+      categories: ['Wedding', '  Wedding  ', '', 42, 'Events', ...Array.from({ length: 30 }, (_, i) => `cat-${i}`)],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.value.categories[0], 'Wedding');
+    assert.ok(result.value.categories.length <= 20);
   });
 });

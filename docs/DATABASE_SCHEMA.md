@@ -1,18 +1,21 @@
 # Database schema
 
-The system of record is the Supabase Postgres project. Schema is defined by three migrations in `supabase/migrations/`, applied in order:
+The system of record is the Supabase Postgres project. Schema is defined by four migrations in `supabase/migrations/`, applied in order:
 
 1. `20261012000001_master_instantshoot_schema.sql` — tables, enums-as-CHECKs, base triggers, and seed data for categories and fee settings.
 2. `20261012000002_storage_and_rls_policies.sql` — storage buckets and the first RLS policy set.
 3. `20261013000001_security_hardening.sql` — tightened signup, column guards, privacy-aware profile reads, participation-scoped deliverables and messages, and folder-scoped storage writes. Idempotent (`DROP POLICY IF EXISTS` / `CREATE OR REPLACE`).
+4. `20261013000002_owner_roles_admin_permissions_and_verification.sql` — the `owner` role, `admin_permissions`, `creator_verification_submissions` with the triggers that keep the profile's publication state in step with it, and `suspended` as a creator verification state. Idempotent and additive; it changes no existing rows.
 
 ## Tables (public schema)
 
 | Table | Purpose | Key constraints |
 | --- | --- | --- |
 | `profiles` | One row per auth user: name, email, phone, avatar, `account_status` | `account_status` ∈ {active, suspended, pending_verification}; PK = `auth.users.id` |
-| `user_roles` | Role grants | `UNIQUE(user_id, role)`; role ∈ {customer, creator, admin} |
-| `creator_profiles` | Creator (photographer) business profile | `user_id` UNIQUE; `verification_status` (unsubmitted → pending → approved/rejected); `is_available`; rating defaults |
+| `user_roles` | Role grants | `UNIQUE(user_id, role)`; role ∈ {customer, creator, admin, owner} |
+| `creator_profiles` | Creator (photographer) business profile | `user_id` UNIQUE; `verification_status` (unsubmitted → pending → approved/rejected, plus `suspended`); `is_available`; rating defaults |
+| `admin_permissions` | Per-administrator capability grants | `user_id` + `permission` UNIQUE; five permission values (see AUTHORIZATION_AND_ROLE_ACCESS.md); no client write policy |
+| `creator_verification_submissions` | Photographer verification applications and their review | one open application per creator (partial UNIQUE on `creator_id` where `status='pending'`); `documents` is a JSONB array; review columns are server-written |
 | `creator_services` | Packages offered by a creator | `base_price ≥ 0`, `duration_minutes > 0`, `delivery_time_hours > 0`, `service_type` ∈ {instant, scheduled} |
 | `creator_portfolio_items` | Portfolio images (URLs to `creator-portfolios`) | |
 | `creator_availability`, `creator_unavailable_periods` | Weekly availability and blocked dates | |
@@ -36,6 +39,9 @@ Restricted columns are protected in the database, not only in route handlers:
 | --- | --- | --- |
 | `trg_guard_profile_restricted_columns` | profiles | `id`, `account_status`, `email_verified_at`, `phone_verified_at` |
 | `trg_guard_creator_restricted_columns` | creator_profiles | verification status, rating and review aggregates, commission and fee fields |
+| `trg_guard_verification_submission_columns` | creator_verification_submissions | forces a client insert to `pending`, ties the row to the caller's own creator profile, and refuses every client update |
+| `trg_verification_submission_change` | creator_verification_submissions | mirrors a filing or a decision onto `creator_profiles.verification_status` and files a notification |
+| `trg_creator_verification_status_change` | creator_profiles | closes the open application when a review is written on the profile instead (and notifies on suspension) |
 | `trg_guard_booking_restricted_columns` | bookings | price, fee, tax, and total snapshot columns; status moves outside the allowed set |
 
 `is_privileged_session()` is true for `service_role`, `postgres`, `supabase_admin`, and admins (`is_admin()`). Route handlers run with the service-role key, so the guards are the second line of defence for handlers that use the anon client.

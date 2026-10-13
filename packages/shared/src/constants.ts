@@ -2,6 +2,10 @@ import { PlanTier } from './enums.js';
 import { SubscriptionPlanDto } from './types.js';
 
 export const PLATFORM_COMMISSION_PERCENT_DEFAULT = 20.0;
+
+/** Storage limits the `creator-verification` bucket enforces on uploads. */
+export const MAX_VERIFICATION_DOCUMENT_BYTES = 25 * 1024 * 1024;
+export const MAX_VERIFICATION_DOCUMENTS = 12;
 export const GST_RATE_PERCENT = 18.0;
 
 export const OTP_EXPIRATION_SECONDS = 300; // 5 minutes

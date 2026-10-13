@@ -8,6 +8,40 @@ Photographer = account with the `creator` role. Pages live under `apps/web/src/a
 2. `GET /api/photographers/onboarding` returns categories and the current profile. `POST` saves the business profile (name, city, bio, categories) and creates the creator row with `verification_status = pending` after submission.
 3. Until an admin approves the application, the creator does not appear on `/explore` and cannot receive bookings (`/api/bookings/create` returns 404 "not available for bookings").
 
+### 1b. Verification (KYC)
+
+`/photographer/verification` is the lifecycle screen and it is live: every state on it is
+read from the database, and the submit button writes one row.
+
+1. `GET /api/photographers/verification` returns the creator profile's
+   `verification_status`, the applicant's submissions, and whether filing is currently
+   allowed. Nothing is simulated locally any more — the page used to have a state
+   dropdown that faked "Under Active Review".
+2. Documents are uploaded by the browser straight into the private
+   `creator-verification/<own uid>/…` folder (RLS restricts the write to the applicant's
+   own folder and the read to the applicant plus administrators), or an https link to a
+   shared file is attached instead.
+3. `POST /api/photographers/verification` validates the payload and inserts a submission
+   with `status = 'pending'`. The ID number is reduced to its last four characters before
+   it is stored; the raw value never reaches the database. A missing government-ID
+   document, an over-long file list, a bad GSTIN, or a traversal-shaped storage path is
+   refused with 400.
+4. The insert trigger sets `creator_profiles.verification_status = 'pending'`, so the
+   admin queue sees the application without the API touching two tables. Filing while a
+   decision is already recorded, or while approved, is a 409.
+5. An administrator with `manage_photographer_verification` reviews it
+   (`/api/admin/verification`). The decision updates the submission, the update trigger
+   publishes or unpublishes the profile, and a `notifications` row is filed for the
+   photographer — which is why the photographer's dashboard and the public directory
+   change without any client-side involvement.
+6. `DELETE /api/photographers/verification?submissionId=` withdraws an application that is
+   still pending and returns the profile to `unsubmitted`; a reviewed application is
+   immutable to its author.
+7. `rejected` and `suspended` both hide the public profile. A rejection carries the
+   reviewer's reason on the page, and re-applying files a new application.
+8. After approval the profile appears in `/explore` and `/api/photographers`, both of
+   which filter on `verification_status = 'approved'` server-side.
+
 ## 2. Packages (services)
 
 - `/photographer/services` (SellerDashboardView) manages packages through `/api/photographers/services`.

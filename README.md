@@ -8,7 +8,7 @@ Instantshoot connects customers with photographers and other creative profession
 
 ## Status
 
-Live: sign-up and sign-in, creator discovery, creator onboarding, packages, portfolio, booking creation and management for all three roles, admin review and suspension, admin stats, sandbox payments, deliverable records.
+Live: sign-up and sign-in, creator discovery, creator onboarding, packages, portfolio, booking creation and management for all three roles, admin review and suspension, admin stats, sandbox payments, deliverable records, the photographer verification pipeline (application → admin review → publication), and the owner dashboard with administrator and permission management.
 
 Not finished: real payment gateway, refunds and payouts, deliverable upload from the UI, and several screens that still show sample data. The full list, with what each gap means, is in [docs/FEATURE_INVENTORY.md](docs/FEATURE_INVENTORY.md) and [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md). The app is not ready for real payments.
 
@@ -81,7 +81,10 @@ Notes:
 
 1. **Authentication → URL Configuration:** set Site URL to the production origin and add `https://<your-domain>/reset-password` to the redirect URLs (password recovery). Add `https://<preview-domain>/**` too if preview sign-in should work.
 2. Apply the migrations to the production project: `supabase link --project-ref <ref> && supabase db push`.
-3. Create the first admin by inserting a `user_roles` row with `role = 'admin'` (see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
+3. Create the first **owner** by inserting a `user_roles` row with `role = 'owner'` for an
+   existing account (one row; the exact SQL is in [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
+   That owner then promotes and narrows administrators from `/owner/dashboard`; there is no
+   self-service path to either role.
 4. Never run `scratch/seed_*.js` against production.
 
 ### 4. Deploying the NestJS service too
@@ -94,6 +97,9 @@ Notes:
 curl -s https://<your-domain>/api/auth/session            # configured:true, authenticated:false
 curl -s -o /dev/null -w "%{http_code}\n" https://<your-domain>/api/bookings/create -X POST   # 401
 curl -s -o /dev/null -w "%{http_code}\n" https://<your-domain>/api/v1/health                 # 200 only when NestJS is deployed
+curl -s -o /dev/null -w "%{http_code}\n" https://<your-domain>/api/admin/stats               # 401
+curl -s -o /dev/null -w "%{http_code}\n" https://<your-domain>/api/owner/stats               # 401
+curl -s -o /dev/null -w "%{http_code}\n" https://<your-domain>/owner/dashboard              # 307 to /login?next=/owner/dashboard
 ```
 
 If the build fails with `Module not found: Can't resolve '@snapshoot/shared'`, the shared package was not compiled before `next build`. The default build command handles this; a custom build command must include `npm run build:shared` (or `tsc -p ../../packages/shared/tsconfig.json`) first. See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
@@ -101,8 +107,8 @@ If the build fails with `Module not found: Can't resolve '@snapshoot/shared'`, t
 ## Verification
 
 ```bash
-npm run test:unit      # policy unit tests (19)
-npm run test:db        # RLS and trigger tests on PGlite (30)
+npm run test:unit      # policy unit tests (34)
+npm run test:db        # RLS and trigger tests on PGlite, all four migrations (42)
 npm test --workspace=apps/api
 cd apps/web && npx tsc --noEmit && npx next lint && npm run build
 ```

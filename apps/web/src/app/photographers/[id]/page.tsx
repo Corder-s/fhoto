@@ -20,7 +20,9 @@ import {
   Eye,
   Check
 } from 'lucide-react';
-import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer, PhotographerServicePackage } from '../../../data/photographers';
+// Only database-backed photographers are rendered here; the sample list is not a
+// fallback, so a pending or rejected profile cannot appear through a deep link.
+import type { SamplePhotographer, PhotographerServicePackage } from '../../../data/photographers';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';

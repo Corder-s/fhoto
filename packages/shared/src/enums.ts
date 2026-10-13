@@ -16,6 +16,29 @@ export enum VerificationStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  /** Published state withdrawn by the platform; the sign-in keeps working. */
+  SUSPENDED = 'SUSPENDED',
+}
+
+/**
+ * Supabase role values in `user_roles.role`. The web app enforces these in
+ * `apps/web/src/lib/server/policy.ts`; `RoleType` above is the NestJS API's own
+ * uppercase vocabulary and is not the same thing.
+ */
+export enum AppRoleType {
+  CUSTOMER = 'customer',
+  CREATOR = 'creator',
+  ADMIN = 'admin',
+  OWNER = 'owner',
+}
+
+/** Rows in `admin_permissions.permission`. An owner implicitly holds all of them. */
+export enum AdminPermissionType {
+  MANAGE_PHOTOGRAPHER_VERIFICATION = 'manage_photographer_verification',
+  MANAGE_USERS = 'manage_users',
+  MANAGE_BOOKINGS = 'manage_bookings',
+  MANAGE_PLATFORM_SETTINGS = 'manage_platform_settings',
+  MANAGE_ADMINISTRATORS = 'manage_administrators',
 }
 
 export enum BookingStatus {

@@ -8,6 +8,9 @@ export interface ServerSessionUser {
   name: string;
   role: string;
   roles: string[];
+  /** Effective administrator capabilities; empty for customers and creators. */
+  permissions: string[];
+  isOwner: boolean;
   accountStatus: string;
 }
 
