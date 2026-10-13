@@ -1,143 +1,115 @@
-// End-to-end API Smoke Test for Instantshoot Server Routes
-const http = require('http');
+// API smoke test for the Next.js route handlers.
+//
+// Usage:
+//   SMOKE_BASE_URL=http://localhost:3000 node scratch/test-apis.js
+//
+// Always runs (no session needed): every protected route must refuse anonymous callers.
+// Runs only when SMOKE_COOKIE (a Supabase session cookie header value for a CUSTOMER
+// account, copied from a signed-in browser) and SMOKE_CREATOR_ID (an approved
+// creator_profiles.id) are provided. Credentials are never stored in this file.
+//
+// Exits non-zero if any assertion fails. It never prints the cookie value.
 
-function post(url, data) {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify(data);
-    const u = new URL(url);
-    const options = {
-      hostname: u.hostname,
-      port: u.port,
-      path: u.pathname + u.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-      },
-    };
+const BASE = (process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const COOKIE = process.env.SMOKE_COOKIE || '';
+const CREATOR_ID = process.env.SMOKE_CREATOR_ID || '';
 
-    const req = http.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, data: JSON.parse(body) });
-        } catch {
-          resolve({ status: res.statusCode, raw: body });
-        }
-      });
-    });
+let failures = 0;
+let passes = 0;
 
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
-}
-
-function get(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const options = {
-      hostname: u.hostname,
-      port: u.port,
-      path: u.pathname + u.search,
-      method: 'GET',
-    };
-
-    const req = http.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, data: JSON.parse(body) });
-        } catch {
-          resolve({ status: res.statusCode, raw: body });
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-async function runTests() {
-  console.log('=== INSTANTSHOOT SERVER API SMOKE TESTS ===\n');
-
-  // Test 1: Booking Creation
-  console.log('TEST 1: POST /api/bookings/create');
-  const bookingRes = await post('http://localhost:3000/api/bookings/create', {
-    creatorId: 'pro-aman',
-    eventTitle: 'Cinematic Pre-Wedding Shoot',
-    eventDate: '2026-10-25',
-    eventLocation: 'Lodhi Gardens, New Delhi',
-    customerNotes: 'Prefers golden hour lighting',
-    bookingType: 'scheduled',
-  });
-  console.log('Status:', bookingRes.status);
-  console.log('Response:', JSON.stringify(bookingRes.data, null, 2));
-
-  if (!bookingRes.data?.success) {
-    throw new Error('Booking creation failed');
+function check(name, ok, detail = '') {
+  if (ok) {
+    passes += 1;
+    console.log(`PASS  ${name}${detail ? `  (${detail})` : ''}`);
+  } else {
+    failures += 1;
+    console.log(`FAIL  ${name}${detail ? `  (${detail})` : ''}`);
   }
-  const bookingId = bookingRes.data.booking.id;
-
-  // Test 2: Payment Intent Creation (Dev Sandbox)
-  console.log('\nTEST 2: POST /api/payments/create-intent');
-  const idempotencyKey = `idemp_test_${Date.now()}`;
-  const paymentRes = await post('http://localhost:3000/api/payments/create-intent', {
-    bookingId,
-    customerId: 'cust-test-1',
-    idempotencyKey,
-  });
-  console.log('Status:', paymentRes.status);
-  console.log('Response:', JSON.stringify(paymentRes.data, null, 2));
-
-  // Test 3: Idempotent Payment Intent Retrieval
-  console.log('\nTEST 3: POST /api/payments/create-intent (Idempotency Re-check)');
-  const idempRes = await post('http://localhost:3000/api/payments/create-intent', {
-    bookingId,
-    customerId: 'cust-test-1',
-    idempotencyKey,
-  });
-  console.log('Status:', idempRes.status);
-  console.log('Idempotency matched:', idempRes.data.idempotencyKey === idempotencyKey);
-
-  // Test 4: Deliverables Management (Google Drive link validation)
-  console.log('\nTEST 4: POST /api/deliverables (Invalid Google Drive link)');
-  const invalidDriveRes = await post('http://localhost:3000/api/deliverables', {
-    bookingId,
-    creatorId: 'pro-aman',
-    title: 'Raw Photography Archives',
-    deliverableType: 'raw_photos',
-    storageProvider: 'google_drive',
-    externalUrl: 'https://invalid-site.com/not-drive',
-  });
-  console.log('Status:', invalidDriveRes.status, '(Expected 400)');
-  console.log('Validation Error:', invalidDriveRes.data?.error);
-
-  console.log('\nTEST 5: POST /api/deliverables (Valid Google Drive link)');
-  const validDriveRes = await post('http://localhost:3000/api/deliverables', {
-    bookingId,
-    creatorId: 'pro-aman',
-    title: 'Client Proofing High-Res Gallery',
-    deliverableType: 'edited_photos',
-    storageProvider: 'google_drive',
-    externalUrl: 'https://drive.google.com/drive/folders/1A2B3C4D5E6F7G8H9I0J-KLMNOPQRSTUVWXYZ',
-  });
-  console.log('Status:', validDriveRes.status);
-  console.log('Response:', JSON.stringify(validDriveRes.data, null, 2));
-
-  // Test 6: GET /api/deliverables
-  console.log('\nTEST 6: GET /api/deliverables');
-  const getDeliverablesRes = await get(`http://localhost:3000/api/deliverables?bookingId=${bookingId}`);
-  console.log('Status:', getDeliverablesRes.status);
-  console.log('Deliverables Count:', getDeliverablesRes.data?.deliverables?.length);
-
-  console.log('\n=== ALL SMOKE TESTS COMPLETED SUCCESSFULLY! ===');
 }
 
-runTests().catch((err) => {
-  console.error('Test execution failed:', err);
+async function request(method, path, { body, cookie } = {}) {
+  const headers = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (cookie) headers.Cookie = cookie;
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    redirect: 'manual',
+  });
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    json = null;
+  }
+  return { status: res.status, json };
+}
+
+async function anonymousChecks() {
+  console.log('--- Anonymous callers must be refused ---');
+  const cases = [
+    ['POST', '/api/bookings/create', { creatorId: 'any', eventDate: '2030-01-01' }],
+    ['POST', '/api/payments/create-intent', { bookingId: '00000000-0000-4000-8000-000000000000' }],
+    ['POST', '/api/deliverables', { bookingId: '00000000-0000-4000-8000-000000000000', title: 'x' }],
+    ['GET', '/api/deliverables?bookingId=00000000-0000-4000-8000-000000000000', undefined],
+    ['POST', '/api/photographers/services', { title: 'x', basePrice: 1 }],
+    ['GET', '/api/admin/stats', undefined],
+    ['GET', '/api/admin/users', undefined],
+  ];
+  for (const [method, path, body] of cases) {
+    const res = await request(method, path, { body });
+    check(`${method} ${path} without session -> 401`, res.status === 401, `got ${res.status}`);
+  }
+}
+
+async function authenticatedChecks() {
+  if (!COOKIE || !CREATOR_ID) {
+    console.log('--- Signed-in checks skipped (set SMOKE_COOKIE and SMOKE_CREATOR_ID to run) ---');
+    return;
+  }
+  console.log('--- Signed-in customer checks ---');
+  const session = await request('GET', '/api/auth/session', { cookie: COOKIE });
+  check('GET /api/auth/session with cookie -> 200 authenticated', session.status === 200 && session.json?.authenticated === true, `got ${session.status}`);
+
+  const booking = await request('POST', '/api/bookings/create', {
+    cookie: COOKIE,
+    body: {
+      creatorId: CREATOR_ID,
+      eventTitle: 'Smoke test booking',
+      eventDate: '2030-01-15',
+      eventLocation: 'Smoke test location',
+      customerNotes: 'Automated smoke test',
+      bookingType: 'scheduled',
+    },
+  });
+  check('POST /api/bookings/create with session -> success', booking.status < 300 && booking.json?.success === true, `got ${booking.status}`);
+
+  const bookingId = booking.json?.booking?.id;
+  if (!bookingId) {
+    check('booking id returned', false);
+    return;
+  }
+
+  const invalidDrive = await request('POST', '/api/deliverables', {
+    cookie: COOKIE,
+    body: { bookingId, title: 'Bad link', deliverableType: 'raw_photos', storageProvider: 'google_drive', externalUrl: 'https://invalid-site.example/not-drive' },
+  });
+  check('POST /api/deliverables with non-Drive link -> 400', invalidDrive.status === 400, `got ${invalidDrive.status}`);
+
+  const list = await request('GET', `/api/deliverables?bookingId=${bookingId}`, { cookie: COOKIE });
+  check('GET /api/deliverables for own booking -> 200', list.status === 200, `got ${list.status}`);
+}
+
+async function main() {
+  console.log(`=== API smoke test against ${BASE} ===`);
+  await anonymousChecks();
+  await authenticatedChecks();
+  console.log(`\nResult: ${passes} passed, ${failures} failed`);
+  if (failures > 0) process.exit(1);
+}
+
+main().catch((err) => {
+  console.error('Smoke test could not run:', err.message);
   process.exit(1);
 });

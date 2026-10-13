@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authorize, jsonError } from '@/lib/server/session';
+import { cleanText, isUuid } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Administrative booking management. Every handler requires an active account
+ * with the 'admin' role; the acting admin is taken from the session, never from the body.
+ */
 export async function GET(req: NextRequest) {
+  const auth = await authorize({ roles: ['admin'] });
+  if (!auth.ok) return auth.response;
+  const { admin } = auth;
+
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
 
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    let query = client
+    let query = admin
       .from('bookings')
       .select(`
         id,
@@ -90,54 +91,69 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, bookings: filtered });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    console.error('Admin bookings GET failed:', err);
+    return jsonError(500, 'Could not load bookings.');
   }
 }
 
+/**
+ * PATCH /api/admin/bookings
+ * Body: { bookingId, action: 'resolve_cancellation' | 'force_cancel' | 'force_confirm', decision?, adminNotes? }
+ */
 export async function PATCH(req: NextRequest) {
+  const auth = await authorize({ roles: ['admin'] });
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  let body: Record<string, any>;
   try {
-    const body = await req.json();
-    const { bookingId, action, decision, adminNotes, adminId } = body;
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON payload.');
+  }
 
-    if (!bookingId || !action) {
-      return NextResponse.json({ success: false, error: 'Missing bookingId or action' }, { status: 400 });
-    }
+  const { bookingId, action, decision } = body;
+  const adminNotes = cleanText(body.adminNotes, 500);
 
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
+  if (!bookingId || !action) {
+    return NextResponse.json({ success: false, error: 'Missing bookingId or action' }, { status: 400 });
+  }
+  if (!isUuid(bookingId)) {
+    return jsonError(400, 'Invalid bookingId.');
+  }
 
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    const { data: currentBooking, error: fetchErr } = await client
+  try {
+    const { data: currentBooking, error: fetchErr } = await admin
       .from('bookings')
       .select('id, booking_status, cancellation_reason')
       .eq('id', bookingId)
-      .single();
+      .maybeSingle();
 
     if (fetchErr || !currentBooking) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
 
-    let targetStatus = currentBooking.booking_status;
-    let updateFields: any = { updated_at: new Date().toISOString() };
+    let targetStatus: string = currentBooking.booking_status;
+    const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() };
     let historyReason = '';
 
     if (action === 'resolve_cancellation') {
+      if (currentBooking.booking_status !== 'disputed') {
+        return jsonError(409, 'Only bookings with a pending cancellation request can be resolved.');
+      }
       if (decision === 'approve') {
-        // Admin approves photographer's cancellation request
         targetStatus = 'cancelled';
         updateFields.booking_status = targetStatus;
         updateFields.cancellation_reason = `Admin Approved Cancellation: ${adminNotes || 'Photographer emergency accepted'}`;
         updateFields.payment_status = 'refunded';
         historyReason = `Admin approved photographer cancellation: ${adminNotes || 'Emergency accepted'}`;
       } else if (decision === 'reject') {
-        // Admin rejects photographer's cancellation request; booking remains confirmed
         targetStatus = 'confirmed';
         updateFields.booking_status = targetStatus;
         historyReason = `Admin rejected photographer cancellation request: ${adminNotes || 'Photographer must fulfill commitment'}`;
+      } else {
+        return jsonError(400, 'decision must be "approve" or "reject".');
       }
     } else if (action === 'force_cancel') {
       targetStatus = 'cancelled';
@@ -149,9 +165,11 @@ export async function PATCH(req: NextRequest) {
       targetStatus = 'confirmed';
       updateFields.booking_status = targetStatus;
       historyReason = `Admin forcefully confirmed booking: ${adminNotes || 'Admin override'}`;
+    } else {
+      return jsonError(400, `Unknown action: ${action}`);
     }
 
-    const { data: updated, error: updateErr } = await client
+    const { data: updated, error: updateErr } = await admin
       .from('bookings')
       .update(updateFields)
       .eq('id', bookingId)
@@ -162,16 +180,18 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
     }
 
-    await client.from('booking_status_history').insert({
+    const { error: historyErr } = await admin.from('booking_status_history').insert({
       booking_id: bookingId,
       previous_status: currentBooking.booking_status,
       new_status: targetStatus,
-      changed_by: adminId || null,
+      changed_by: user.id,
       change_reason: historyReason,
     });
+    if (historyErr) console.error('Could not record admin history:', historyErr.message);
 
     return NextResponse.json({ success: true, booking: updated });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    console.error('Admin bookings PATCH failed:', err);
+    return jsonError(500, 'Could not update booking.');
   }
 }

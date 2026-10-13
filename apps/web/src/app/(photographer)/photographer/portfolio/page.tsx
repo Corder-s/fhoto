@@ -20,6 +20,7 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Modal } from '../../../../components/ui/Modal';
 import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
+import { getSupabaseBrowserClient, isSupabaseConfigured } from '../../../../lib/supabase/client';
 
 interface PortfolioDisplayItem {
   id: string;
@@ -166,44 +167,68 @@ export default function PhotographerPortfolioPage() {
       setUploadError('Please select a valid image file (JPG, PNG, WebP).');
       return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Images must be 10 MB or smaller.');
+      return;
+    }
+    if (!authUser?.id) {
+      setUploadError('Sign in again to upload portfolio images.');
+      return;
+    }
 
     setUploadError('');
     setIsUploading(true);
     setUploadProgress(20);
 
-    const objectUrl = URL.createObjectURL(file);
-    objectUrlsRef.current.push(objectUrl);
-
-    // Save to Supabase API
     try {
+      // 1. Store the image in the creator's own folder of the public portfolio bucket.
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase || !isSupabaseConfigured()) {
+        throw new Error('Image storage is not configured for this environment.');
+      }
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-80);
+      const objectPath = `${authUser.id}/${Date.now()}-${safeName}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('creator-portfolios')
+        .upload(objectPath, file, { contentType: file.type, upsert: false });
+      if (uploadErr) throw new Error(uploadErr.message || 'Could not upload the image.');
+      setUploadProgress(60);
+
+      const { data: publicData } = supabase.storage.from('creator-portfolios').getPublicUrl(objectPath);
+      const publicUrl = publicData.publicUrl;
+
+      // 2. Record the portfolio item. The server accepts only https URLs owned by this creator.
+      const title = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      const category = selectedCategory === 'All' ? 'Portrait' : selectedCategory;
       const res = await fetch('/api/photographers/portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: authUser?.id,
+          userId: authUser.id,
           creatorId: creatorProfile?.id,
-          title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-          description: selectedCategory === 'All' ? 'Portrait' : selectedCategory,
-          previewUrl: objectUrl,
+          title,
+          description: category,
+          previewUrl: publicUrl,
         }),
       });
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success || !data.item) {
+        throw new Error(data.error || 'Could not save the portfolio item.');
+      }
       setUploadProgress(100);
 
       const newItem: PortfolioDisplayItem = {
-        id: data.item ? data.item.id : `port-${Date.now()}`,
-        title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-        category: selectedCategory === 'All' ? 'Portrait' : selectedCategory,
-        imageUrl: objectUrl,
+        id: data.item.id,
+        title,
+        category,
+        imageUrl: publicUrl,
         isCover: false,
         uploadedAt: new Date().toISOString().split('T')[0],
         tags: ['Uploaded'],
       };
-
-      setItems([newItem, ...items]);
-    } catch (err) {
-      console.error('Error saving uploaded file record:', err);
+      setItems((prev) => [newItem, ...prev]);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

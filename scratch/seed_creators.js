@@ -1,14 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sgxfohggaiuxksdmldih.supabase.co';
+// Development seed script. Nothing is hardcoded: configure these environment variables
+// (never commit their values):
+//   NEXT_PUBLIC_SUPABASE_URL      - your Supabase project URL (a non-production project)
+//   SUPABASE_SERVICE_ROLE_KEY     - service role key (server-only)
+//   SEED_CREATOR_PASSWORD         - initial password for the seeded creator accounts (12+ chars)
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SEED_PASSWORD = process.env.SEED_CREATOR_PASSWORD;
+
+if (!url || !serviceKey || !SEED_PASSWORD || SEED_PASSWORD.length < 12) {
+  console.error(
+    'Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SEED_CREATOR_PASSWORD (12+ characters) before running this seed.'
+  );
+  process.exit(1);
+}
 
 const admin = createClient(url, serviceKey);
 
 const CREATORS_DATA = [
   {
     email: 'aman.verma.creator@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Aman Verma',
     phone: '+91 9876543201',
     avatarUrl: '/reference-assets/avatar_aman.jpg',
@@ -57,7 +70,7 @@ const CREATORS_DATA = [
   },
   {
     email: 'riya.sen.creator@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Riya Sen',
     phone: '+91 9876543202',
     avatarUrl: '/reference-assets/avatar_riya.jpg',
@@ -101,7 +114,7 @@ const CREATORS_DATA = [
   },
   {
     email: 'karan.malhotra.creator@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Karan Malhotra',
     phone: '+91 9876543203',
     avatarUrl: '/reference-assets/avatar_karan.jpg',
@@ -145,7 +158,7 @@ const CREATORS_DATA = [
   },
   {
     email: 'arjun.kapoor.visuals@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Arjun Kapoor',
     phone: '+91 9876543204',
     avatarUrl: '/reference-assets/avatar_aman.jpg',
@@ -189,7 +202,7 @@ const CREATORS_DATA = [
   },
   {
     email: 'meera.singhal.creator@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Meera Singhal',
     phone: '+91 9876543205',
     avatarUrl: '/reference-assets/avatar_riya.jpg',
@@ -233,7 +246,7 @@ const CREATORS_DATA = [
   },
   {
     email: 'devika.roy.cinema@instantshoot.in',
-    password: 'CreatorPass2026!#',
+    password: SEED_PASSWORD,
     fullName: 'Devika Roy',
     phone: '+91 9876543206',
     avatarUrl: '/reference-assets/avatar_karan.jpg',

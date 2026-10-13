@@ -11,9 +11,12 @@
     "dev:api": "npm run start:dev --workspace=apps/api",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces",
+    "test:db": "node --test supabase/tests/rls-policies.test.mjs",
+    "test:unit": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "prettier": "^3.3.3",
     "typescript": "^5.6.2"
   }

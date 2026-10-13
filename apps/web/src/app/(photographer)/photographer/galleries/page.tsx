@@ -585,7 +585,7 @@ export default function PhotographerGalleriesPage() {
                   className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
                 />
                 <p className="text-[11px] text-ink-muted">
-                  Ensure link sharing is set to "Anyone with the link can view". Platform verifies URL format before customer notification.
+                  Ensure link sharing is set to &quot;Anyone with the link can view&quot;. Platform verifies URL format before customer notification.
                 </p>
               </div>
             ) : (

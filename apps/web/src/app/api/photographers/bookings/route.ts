@@ -1,41 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authorize, getOwnCreatorProfile, jsonError } from '@/lib/server/session';
+import { cleanText, isUuid, matchesSessionUser, photographerBookingAction } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET /api/photographers/bookings
+ * Lists bookings assigned to the authenticated photographer's own creator profile.
+ * `creatorId` / `userId` parameters are accepted for compatibility but must belong to the caller.
+ */
 export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const creatorId = searchParams.get('creatorId');
-    const userId = searchParams.get('userId');
+  const auth = await authorize({ roles: ['creator'] });
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
 
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
+  const { searchParams } = new URL(req.url);
+  if (!matchesSessionUser(user.id, searchParams.get('userId'))) {
+    return jsonError(403, 'You can only view your own bookings.');
+  }
 
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
+  const creator = await getOwnCreatorProfile(admin, user.id);
+  if (!creator) return NextResponse.json({ success: true, bookings: [] });
 
-    let targetCreatorId = creatorId;
+  const requestedCreator = searchParams.get('creatorId');
+  if (requestedCreator && requestedCreator !== creator.id) {
+    return jsonError(403, 'You can only view bookings for your own studio.');
+  }
 
-    if (!targetCreatorId && userId) {
-      const { data: creator } = await client
-        .from('creator_profiles')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+  const { data: bookings, error } = await admin
+    .from('bookings')
+    .select(`
 
-      targetCreatorId = creator?.id;
-    }
-
-    if (!targetCreatorId) {
-      return NextResponse.json({ success: true, bookings: [] });
-    }
-
-    const { data: bookings, error } = await client
-      .from('bookings')
-      .select(`
         id,
         booking_reference,
         event_title,
@@ -63,110 +58,100 @@ export async function GET(req: NextRequest) {
           duration_minutes
         )
       `)
-      .eq('creator_id', targetCreatorId)
-      .order('event_date', { ascending: false });
+    .eq('creator_id', creator.id)
+    .order('event_date', { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, bookings: bookings || [] });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  if (error) {
+    console.error('Could not load photographer bookings:', error.message);
+    return jsonError(500, 'Could not load bookings.');
   }
+
+  return NextResponse.json({ success: true, bookings: bookings || [] });
 }
 
+/**
+ * PATCH /api/photographers/bookings
+ * Body: { bookingId, action, reason?, newStatus? }
+ * Allowed actions are defined in photographerBookingAction (lib/server/policy.ts).
+ * A photographer can act only on bookings where booking.creator_id is their own studio.
+ */
 export async function PATCH(req: NextRequest) {
+  const auth = await authorize({ roles: ['creator'] });
+  if (!auth.ok) return auth.response;
+  const { user, admin } = auth;
+
+  let body: Record<string, any>;
   try {
-    const body = await req.json();
-    const { bookingId, action, reason, newStatus, userId } = body;
-
-    if (!bookingId || !action) {
-      return NextResponse.json({ success: false, error: 'Missing bookingId or action' }, { status: 400 });
-    }
-
-    const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Database client unavailable' }, { status: 503 });
-    }
-
-    // Fetch current booking state
-    const { data: currentBooking, error: fetchErr } = await client
-      .from('bookings')
-      .select('id, booking_status, creator_id, cancellation_reason')
-      .eq('id', bookingId)
-      .single();
-
-    if (fetchErr || !currentBooking) {
-      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
-    }
-
-    let targetStatus = currentBooking.booking_status;
-    let updateFields: any = { updated_at: new Date().toISOString() };
-    let historyReason = '';
-
-    if (action === 'accept' || action === 'approve') {
-      targetStatus = 'confirmed';
-      updateFields.booking_status = targetStatus;
-      historyReason = 'Photographer accepted and confirmed booking assignment';
-    } else if (action === 'decline' || action === 'reject') {
-      if (currentBooking.booking_status === 'confirmed' || currentBooking.booking_status === 'in_progress') {
-        return NextResponse.json(
-          { success: false, error: 'Confirmed shoots cannot be directly declined. Please submit a cancellation request to Admin.' },
-          { status: 403 }
-        );
-      }
-      targetStatus = 'rejected';
-      updateFields.booking_status = targetStatus;
-      updateFields.cancellation_reason = reason || 'Photographer unavailable for requested schedule';
-      historyReason = `Photographer declined booking request: ${reason || 'Schedule conflict'}`;
-    } else if (action === 'request_cancellation') {
-      // Once approved/confirmed, creator cannot directly cancel without admin mediation
-      targetStatus = 'disputed';
-      const fullReason = `[Photographer Emergency Cancellation Request]: ${reason || 'Unforeseen conflict'}`;
-      updateFields.booking_status = targetStatus;
-      updateFields.cancellation_reason = fullReason;
-      historyReason = fullReason;
-    } else if (action === 'update_status') {
-      const allowedStatuses = ['on_the_way', 'arrived_at_venue', 'in_progress', 'completed'];
-      if (!allowedStatuses.includes(newStatus)) {
-        return NextResponse.json({ success: false, error: `Invalid status transition: ${newStatus}` }, { status: 400 });
-      }
-      targetStatus = newStatus;
-      updateFields.booking_status = targetStatus;
-      historyReason = `Shoot progressed to ${newStatus}`;
-    } else {
-      return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
-    }
-
-    // Update booking in Supabase
-    const { data: updated, error: updateErr } = await client
-      .from('bookings')
-      .update(updateFields)
-      .eq('id', bookingId)
-      .select()
-      .single();
-
-    if (updateErr) {
-      return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
-    }
-
-    // Log state change in booking_status_history
-    try {
-      await client.from('booking_status_history').insert({
-        booking_id: bookingId,
-        previous_status: currentBooking.booking_status,
-        new_status: targetStatus,
-        change_reason: historyReason,
-      });
-    } catch (histErr) {
-      console.warn('Could not record status history:', histErr);
-    }
-
-    return NextResponse.json({ success: true, booking: updated });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    body = await req.json();
+  } catch {
+    return jsonError(400, 'Invalid JSON payload.');
   }
+
+  const { bookingId, action, newStatus } = body;
+  if (!bookingId || !action) {
+    return jsonError(400, 'Missing bookingId or action');
+  }
+  if (!isUuid(bookingId)) return jsonError(400, 'Invalid bookingId.');
+  if (!matchesSessionUser(user.id, body.userId)) {
+    return jsonError(403, 'You can only manage your own bookings.');
+  }
+
+  const creator = await getOwnCreatorProfile(admin, user.id);
+  if (!creator) return jsonError(403, 'Creator profile not found for this account.');
+  if (creator.verification_status !== 'approved') {
+    return jsonError(403, 'Your photographer account must be approved before managing bookings.');
+  }
+
+  const { data: currentBooking, error: fetchErr } = await admin
+    .from('bookings')
+    .select('id, booking_status, creator_id')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  // Same answer for "missing" and "belongs to another photographer".
+  if (fetchErr) return jsonError(500, 'Could not load booking.');
+  if (!currentBooking || currentBooking.creator_id !== creator.id) {
+    return jsonError(404, 'Booking not found');
+  }
+
+  const reason = cleanText(body.reason, 500) || undefined;
+  const transition = photographerBookingAction(currentBooking.booking_status, action, newStatus, reason);
+  if (!transition.ok) {
+    return jsonError(transition.status, transition.error);
+  }
+
+  const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (transition.nextStatus) updateFields.booking_status = transition.nextStatus;
+  if (action === 'decline' || action === 'reject') {
+    updateFields.cancellation_reason = reason || 'Photographer unavailable for requested schedule';
+  }
+  if (action === 'request_cancellation') {
+    updateFields.cancellation_reason = transition.historyReason;
+  }
+
+  const { data: updated, error: updateErr } = await admin
+    .from('bookings')
+    .update(updateFields)
+    .eq('id', bookingId)
+    .eq('creator_id', creator.id)
+    .select()
+    .single();
+
+  if (updateErr || !updated) {
+    console.error('Could not update booking:', updateErr?.message);
+    return jsonError(500, 'Could not update the booking.');
+  }
+
+  // Milestones (on_the_way / arrived_at_venue) do not change booking_status, so the history
+  // row records the previous status for both cases.
+  const { error: historyErr } = await admin.from('booking_status_history').insert({
+    booking_id: bookingId,
+    previous_status: currentBooking.booking_status,
+    new_status: transition.nextStatus || currentBooking.booking_status,
+    changed_by: user.id,
+    change_reason: transition.historyReason,
+  });
+  if (historyErr) console.error('Could not record status history:', historyErr.message);
+
+  return NextResponse.json({ success: true, booking: updated, milestone: transition.milestone });
 }

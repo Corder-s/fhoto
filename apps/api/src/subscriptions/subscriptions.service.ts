@@ -15,6 +15,7 @@ import {
   SubscriptionPlanDto,
   PhotographerSubscriptionDto,
 } from '@snapshoot/shared';
+import { getGatewaySecret, isTestSignatureAllowed } from '../auth/auth-config';
 
 export interface InvoiceDto {
   id: string;
@@ -53,8 +54,12 @@ export interface VerifyCheckoutDto {
 @Injectable()
 export class SubscriptionsService {
   private readonly razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
-  private readonly razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
-  private readonly razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'webhook_secret_placeholder';
+  private get razorpayKeySecret(): string {
+    return getGatewaySecret('RAZORPAY_KEY_SECRET');
+  }
+  private get razorpayWebhookSecret(): string {
+    return getGatewaySecret('RAZORPAY_WEBHOOK_SECRET');
+  }
 
   // Processed webhook events for strict idempotency
   private processedWebhookEventIds: Set<string> = new Set();
@@ -226,8 +231,9 @@ export class SubscriptionsService {
     // Also allow sandbox test-token verification for local test runners
     const isSandboxSignatureValid =
       dto.signature === expectedSignature ||
-      dto.signature === `test_sig_${dto.gatewayPaymentId}` ||
-      dto.signature.startsWith('valid_test_signature_');
+      (isTestSignatureAllowed() &&
+        (dto.signature === `test_sig_${dto.gatewayPaymentId}` ||
+          dto.signature.startsWith('valid_test_signature_')));
 
     if (!isSandboxSignatureValid) {
       throw new UnauthorizedException(
@@ -357,7 +363,7 @@ export class SubscriptionsService {
       .digest('hex');
 
     const isValidSignature =
-      signature === expectedSig || signature === 'test_webhook_valid_signature';
+      signature === expectedSig || (isTestSignatureAllowed() && signature === 'test_webhook_valid_signature');
 
     if (!isValidSignature) {
       throw new UnauthorizedException('Invalid Razorpay webhook signature.');

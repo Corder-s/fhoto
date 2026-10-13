@@ -69,8 +69,10 @@ export class AuthController {
     return this.authService.loginWithPassword(body.email, body.role);
   }
 
+
+  /** Not implemented here: password reset runs in the web app through Supabase Auth. */
   @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
   async forgotPassword(@Body() body: { identifier: string; method?: 'email' | 'phone' }) {
     return this.authService.requestPasswordReset(body.identifier, body.method || 'email');
   }

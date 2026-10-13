@@ -36,7 +36,7 @@ import {
   Flame,
   Info
 } from 'lucide-react';
-import { SAMPLE_PHOTOGRAPHERS, SamplePhotographer } from '../../data/photographers';
+import type { SamplePhotographer } from '../../data/photographers';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -204,23 +204,15 @@ function ExploreContent() {
             };
           });
 
-          // Combine live Supabase creators with verified directory profiles so catalog is always rich
-          const existingIds = new Set(mapped.map((c) => c.id));
-          const combined = [...mapped];
-          SAMPLE_PHOTOGRAPHERS.forEach((sample) => {
-            if (!existingIds.has(sample.id)) {
-              combined.push(sample);
-            }
-          });
-
-          setDbCreators(combined);
+          // Only live, approved photographers from the database are shown (no sample fallback).
+          setDbCreators(mapped);
         } else {
-          setDbCreators(SAMPLE_PHOTOGRAPHERS);
+          setDbCreators([]);
         }
       })
       .catch((err) => {
         console.error('Failed to load creators from API:', err);
-        setDbCreators(SAMPLE_PHOTOGRAPHERS);
+        setDbCreators([]);
       })
       .finally(() => {
         if (!isCancelled) setIsLoadingDb(false);
@@ -290,7 +282,7 @@ function ExploreContent() {
 
   // Comprehensive Multi-Parameter Search Filtering Logic
   const filteredPhotographers = useMemo(() => {
-    const baseList = dbCreators.length > 0 ? dbCreators : SAMPLE_PHOTOGRAPHERS;
+    const baseList = dbCreators;
     let result = [...baseList];
 
     // Location Filter
@@ -406,13 +398,13 @@ function ExploreContent() {
 
   // Compare creators selected
   const comparedCreators = useMemo(() => {
-    const list = dbCreators.length > 0 ? dbCreators : SAMPLE_PHOTOGRAPHERS;
+    const list = dbCreators;
     return list.filter((p) => compareList.includes(p.id));
   }, [compareList, dbCreators]);
 
   // Handle AI Matchmaker Submission
   const handleRunMatchmaker = () => {
-    const list = dbCreators.length > 0 ? dbCreators : SAMPLE_PHOTOGRAPHERS;
+    const list = dbCreators;
     const matched = list.find((p) => 
       matchesCategory(p.categories, mmGenre)
     ) || list[0];
@@ -849,7 +841,7 @@ function ExploreContent() {
               </p>
               {hasActiveFilters && (
                 <span className="text-xs text-[#8C847A] font-semibold">
-                  (filtered from {dbCreators.length || SAMPLE_PHOTOGRAPHERS.length} total)
+                  (filtered from {dbCreators.length} total)
                 </span>
               )}
             </div>

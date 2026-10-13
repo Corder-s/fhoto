@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authorize } from '@/lib/server/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  // Venue search is for signed-in users (booking and studio forms); it is not a public proxy.
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q')?.trim();

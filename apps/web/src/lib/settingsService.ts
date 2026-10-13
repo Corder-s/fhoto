@@ -466,7 +466,7 @@ export async function saveCustomerPreferencesToSupabase(
         email: prefs.profile.email,
         phone_number: prefs.profile.phone || null,
         avatar_url: prefs.profile.avatar || null,
-        account_status: prefs.profile.accountStatus?.toLowerCase() || 'active',
+        // account_status is platform-owned (admin/suspension). It is intentionally not written from the client.
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'id' }

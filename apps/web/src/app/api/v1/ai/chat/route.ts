@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { authorize } from '@/lib/server/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +12,13 @@ Key Platform Policies:
 - Pricing: All package prices are all-inclusive with zero hidden travel or equipment fees within city limits. Packages range from ₹3,999 (Mini Shoot, 1 hr) to ₹24,999 (Full Day Wedding / Event).
 - Cancellation & Refunds: 100% full refund if canceled more than 24 hours before shoot time. 50% creator compensation fee if canceled within 24 hours. 100% immediate refund if photographer fails to arrive.
 - Delivery Turnaround: Digital edited photos delivered to client private online gallery within 48 hours to 7 days depending on package.
-- Top Photographers: Aman Verma (New Delhi, Portrait & Wedding, 4.96 rating, 8 yrs exp), Priya Sen (Mumbai, Fashion & Commercial, 4.92 rating), Rohan Mehra (Bengaluru, Events & Pre-wedding, 4.88 rating), Kabir Kapoor (Goa, Destination Wedding, 4.95 rating).
 `;
 
 export async function POST(req: NextRequest) {
+  // The assistant is offered only to signed-in users (see AiChatWidgetRoot); enforce it here too.
+  const auth = await authorize();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await req.json().catch(() => ({}));
     const message = (body?.message || '').trim();
@@ -66,7 +70,6 @@ export async function POST(req: NextRequest) {
     // Check Gemini API Key
     const apiKey =
       process.env.GEMINI_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
       '';
 
     if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
         isConfigured: false,
         assistantRole: 'CUSTOMER',
         reply:
-          '⚠️ Google Gemini Provider Not Configured:\nGEMINI_API_KEY is not configured in your environment (.env or .env.local). To activate real dynamic AI responses, please add your Google Gemini API key.',
+          '⚠️ Google Gemini Provider Not Configured:\nGEMINI_API_KEY is not configured in your server environment (.env.local). To activate real dynamic AI responses, please add your Google Gemini API key.',
         error: 'GEMINI_API_KEY_MISSING',
         suggestions: ['Find wedding photographers', 'How does shoot OTP work?', 'Pricing plans'],
       });

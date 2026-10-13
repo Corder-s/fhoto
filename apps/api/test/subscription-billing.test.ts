@@ -1,6 +1,10 @@
 import { describe, it, beforeEach } from 'node:test';
 import * as assert from 'node:assert';
 import * as crypto from 'crypto';
+
+// Test environment: sandbox signature shortcuts are honoured only in non-production mock mode.
+// They are rejected when NODE_ENV=production. Assertions are unchanged.
+process.env.ENABLE_MOCK_AUTH = 'true';
 import { SubscriptionsService } from '../src/subscriptions/subscriptions.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import {

@@ -1148,7 +1148,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             </p>
           ) : (
             <p className="text-xs text-[#736B63]">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 type="button"
                 onClick={() => {

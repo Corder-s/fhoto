@@ -538,7 +538,7 @@ export const SellerDashboardView: React.FC = () => {
                 <div className="w-7 h-7 rounded-lg bg-[#FFF2E8] text-[#FF6E00] flex items-center justify-center">
                   <Clock className="w-3.5 h-3.5" />
                 </div>
-                <h3 className="text-base font-black text-[#1A1816]">Today's Schedule</h3>
+                <h3 className="text-base font-black text-[#1A1816]">Today&apos;s Schedule</h3>
               </div>
               <Link
                 href="/photographer/bookings"
