@@ -75,12 +75,36 @@ export default function AdminBookingsPage() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'DISPUTED' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<AdminBooking | null>(null);
+  const [totalDisputedCount, setTotalDisputedCount] = useState<number>(0);
 
   // Modal for resolving photographer emergency cancellation
   const [arbitrateModalBooking, setArbitrateModalBooking] = useState<AdminBooking | null>(null);
   const [arbitrateDecision, setArbitrateDecision] = useState<'approve' | 'reject'>('approve');
   const [adminNotes, setAdminNotes] = useState('');
   const [isSubmittingArbitration, setIsSubmittingArbitration] = useState(false);
+
+  const syncDisputeCount = async () => {
+    try {
+      const res = await fetch('/api/admin/stats');
+      const data = await res.json();
+      if (data?.stats?.disputedBookings != null) {
+        setTotalDisputedCount(data.stats.disputedBookings);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    syncDisputeCount();
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = (sp.get('tab') || sp.get('status') || '').toUpperCase();
+      if (['DISPUTED', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'ALL'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
 
   const fetchBookings = async () => {
     try {
@@ -125,7 +149,7 @@ export default function AdminBookingsPage() {
       if (res.ok) {
         setArbitrateModalBooking(null);
         setAdminNotes('');
-        await fetchBookings();
+        await Promise.all([fetchBookings(), syncDisputeCount()]);
       }
     } catch (err) {
       console.error('Error arbitrating cancellation:', err);
@@ -134,7 +158,10 @@ export default function AdminBookingsPage() {
     }
   };
 
-  const disputedBookingsCount = bookings.filter((b) => b.booking_status === 'disputed').length;
+  const disputedBookingsCount = Math.max(
+    totalDisputedCount,
+    bookings.filter((b) => b.booking_status === 'disputed').length
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {

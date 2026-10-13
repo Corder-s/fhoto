@@ -46,6 +46,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [liveDisputeCount, setLiveDisputeCount] = useState<number>(0);
+
+  useEffect(() => {
+    fetch('/api/admin/stats')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.stats?.disputedBookings != null) {
+          setLiveDisputeCount(d.stats.disputedBookings);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isMounted && !isAuthenticated) {
@@ -97,7 +109,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-  const isAdminOrOwner = serverSession.status === 'authenticated' && serverSession.user.roles.includes('admin');
+  const isAdminOrOwner =
+    serverSession.status === 'authenticated' &&
+    (serverSession.user.roles.includes('admin') || serverSession.user.roles.includes('owner'));
   if (!isAdminOrOwner) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
@@ -297,68 +311,82 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex min-h-[calc(100vh-4rem)]">
         {/* SIDEBAR: EXACT REFERENCE IMAGE B */}
         <aside className="w-64 bg-white border-r border-[#E8E2D8] flex flex-col justify-between shrink-0 hidden md:flex">
-          <nav className="p-3 space-y-1 overflow-y-auto">
-            {/* Dashboard (Active) */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#FFF2E8] text-[#FF6E00] font-black text-xs transition-colors"
-            >
-              <LayoutDashboard className="w-4 h-4 text-[#FF6E00]" />
-              <span>Dashboard</span>
-            </Link>
-
-            {/* User Management (Collapsible) */}
-            <div>
-              <button
-                onClick={() => setUserMgmtOpen(!userMgmtOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-[#8C847A]" />
-                  <span>User Management</span>
-                </div>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#8C847A] transition-transform ${
-                    userMgmtOpen ? 'rotate-180' : ''
+          {(() => {
+            const isDashboard = pathname === '/admin/dashboard' || pathname === '/admin';
+            const isBookings = pathname.startsWith('/admin/bookings');
+            const isLogs = pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/system-logs');
+            const isDisputes = pathname.startsWith('/admin/disputes');
+            return (
+              <nav className="p-3 space-y-1 overflow-y-auto">
+                {/* Dashboard */}
+                <Link
+                  href="/admin/dashboard"
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
+                    isDashboard
+                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
                   }`}
-                />
-              </button>
+                >
+                  <LayoutDashboard className={`w-4 h-4 ${isDashboard ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                  <span>Dashboard</span>
+                </Link>
 
-              {userMgmtOpen && (
-                <div className="pl-9 pr-2 py-1 space-y-1">
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                {/* User Management (Collapsible) */}
+                <div>
+                  <button
+                    onClick={() => setUserMgmtOpen(!userMgmtOpen)}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
                   >
-                    Customers
-                  </Link>
-                  <Link
-                    href="/admin/dashboard#pending-photographers"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
-                  >
-                    Photographers
-                  </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
-                  >
-                    Admins &amp; Roles
-                  </Link>
+                    <div className="flex items-center gap-3">
+                      <Users className="w-4 h-4 text-[#8C847A]" />
+                      <span>User Management</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-[#8C847A] transition-transform ${
+                        userMgmtOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {userMgmtOpen && (
+                    <div className="pl-9 pr-2 py-1 space-y-1">
+                      <Link
+                        href="/admin/dashboard"
+                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                      >
+                        Customers
+                      </Link>
+                      <Link
+                        href="/admin/dashboard#pending-photographers"
+                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                      >
+                        Photographers
+                      </Link>
+                      <Link
+                        href="/admin/dashboard"
+                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                      >
+                        Admins &amp; Roles
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Bookings */}
-            <Link
-              href="/admin/bookings"
-              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-[#8C847A]" />
-                <span>Bookings</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-[#8C847A]" />
-            </Link>
+                {/* Bookings */}
+                <Link
+                  href="/admin/bookings"
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
+                    isBookings
+                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Calendar className={`w-4 h-4 ${isBookings ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                    <span>Bookings</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 ${isBookings ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                </Link>
 
             {/* Payments & Transactions */}
             <Link
@@ -484,29 +512,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
             </div>
 
-            {/* System Logs */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-            >
-              <FileText className="w-4 h-4 text-[#8C847A]" />
-              <span>System Logs</span>
-            </Link>
+                {/* System Logs */}
+                <Link
+                  href="/admin/logs"
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
+                    isLogs
+                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                  }`}
+                >
+                  <FileText className={`w-4 h-4 ${isLogs ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                  <span>System Logs</span>
+                </Link>
 
-            {/* Support & Disputes */}
-            <Link
-              href="/admin/disputes"
-              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-4 h-4 text-[#8C847A]" />
-                <span>Support &amp; Disputes</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#FF4D4D] text-white">
-                12
-              </span>
-            </Link>
-          </nav>
+                {/* Support & Disputes */}
+                <Link
+                  href="/admin/disputes"
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
+                    isDisputes
+                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className={`w-4 h-4 ${isDisputes ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                    <span>Support &amp; Disputes</span>
+                  </div>
+                  {liveDisputeCount > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#FF4D4D] text-white animate-pulse">
+                      {liveDisputeCount}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#FAF7F2] border border-[#E8E2D8] text-[#736B63]">
+                      0
+                    </span>
+                  )}
+                </Link>
+              </nav>
+            );
+          })()}
 
           {/* Bottom Platform Status Card */}
           <div className="p-3 m-3 rounded-2xl bg-[#F0FDF4] border border-[#DCFCE7] space-y-1">

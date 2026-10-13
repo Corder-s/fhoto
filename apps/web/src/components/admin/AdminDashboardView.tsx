@@ -188,7 +188,7 @@ export const AdminDashboardView: React.FC = () => {
   const quickActions = [
     { label: 'Verify Photographer', icon: ShieldCheck, href: '#pending-photographers', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
     { label: 'Manage Bookings', icon: Calendar, href: '/admin/bookings', color: 'text-orange-600 bg-orange-50 hover:bg-orange-100' },
-    { label: 'Resolve Dispute', icon: Scale, href: '/admin/bookings', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
+    { label: 'Resolve Dispute', icon: Scale, href: '/admin/disputes', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
     { label: 'Refresh Data', icon: RefreshCw, href: '#refresh', color: 'text-stone-600 bg-stone-100 hover:bg-stone-200' },
   ];
 

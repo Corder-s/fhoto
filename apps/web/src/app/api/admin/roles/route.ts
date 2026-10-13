@@ -144,11 +144,12 @@ export async function GET(req: NextRequest) {
   let query = admin
     .from('profiles')
     .select(
-      'id, full_name, email, account_status, created_at, user_roles ( role ), admin_permissions ( permission ), creator:creator_profiles!user_id ( verification_status )'
+      'id, full_name, email, account_status, created_at, user_roles ( role ), admin_permissions!user_id ( permission ), creator:creator_profiles!user_id ( verification_status )'
     )
     .order('created_at', { ascending: false })
     .limit(500);
 
+  let adminFilterIds: string[] | null = null;
   if (filter === 'administrators') {
     const { data: roleRows, error: roleErr } = await admin
       .from('user_roles')
@@ -168,10 +169,30 @@ export async function GET(req: NextRequest) {
         caller,
       });
     }
+    adminFilterIds = ids;
     query = query.in('id', ids);
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+  if (error) {
+    console.warn('Roles primary lookup failed, retrying fallback without admin_permissions relation:', error.message);
+    let fallbackQuery = admin
+      .from('profiles')
+      .select(
+        'id, full_name, email, account_status, created_at, user_roles ( role ), creator:creator_profiles!user_id ( verification_status )'
+      )
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (adminFilterIds) {
+      fallbackQuery = fallbackQuery.in('id', adminFilterIds);
+    }
+    const fallbackRes = await fallbackQuery;
+    if (!fallbackRes.error && fallbackRes.data) {
+      data = fallbackRes.data.map((r: any) => ({ ...r, admin_permissions: [] })) as any;
+      error = null;
+    }
+  }
+
   if (error) {
     console.error('Account list failed:', error.message);
     return jsonError(500, 'Could not load accounts.');

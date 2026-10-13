@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return jsonError(400, 'Unsupported filter.');
   }
 
-  const { data, error } = await admin
+  let { data, error } = await admin
     .from('profiles')
     .select(`
       id,
@@ -33,13 +33,39 @@ export async function GET(req: NextRequest) {
       account_status,
       created_at,
       user_roles ( role ),
-      admin_permissions ( permission ),
+      admin_permissions!user_id ( permission ),
       creator:creator_profiles!user_id ( id, verification_status )
     `)
     .order('created_at', { ascending: false })
     .limit(200);
 
-  if (error) return jsonError(500, 'Could not load users.');
+  if (error) {
+    console.warn('[admin/users] Primary query failed, retrying fallback without admin_permissions relation:', error.message);
+    const fallback = await admin
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        email,
+        phone_number,
+        account_status,
+        created_at,
+        user_roles ( role ),
+        creator:creator_profiles!user_id ( id, verification_status )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (!fallback.error && fallback.data) {
+      data = fallback.data.map((r: any) => ({ ...r, admin_permissions: [] })) as any;
+      error = null;
+    }
+  }
+
+  if (error) {
+    console.error('[admin/users] Could not load users:', error.message);
+    return jsonError(500, 'Could not load users.');
+  }
 
   let users = (data || []).map((p: any) => {
     const roles: import('@/lib/server/policy').AppRole[] = resolveRoleSet(p.user_roles || []);
