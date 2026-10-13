@@ -1,7 +1,7 @@
 # API documentation
 
 Base URL for the web API: `https://<web-host>/api/...` (Next.js route handlers, `apps/web/src/app/api`).
-NestJS API: `/api/v1/...` on the NestJS service, reached through the `/api/v1/*` rewrite in production.
+NestJS API: `/api/v1/...` on the NestJS service, reached through the `/api/v1/*` rewrite when `NEST_API_BASE_URL` is set (see DEPLOYMENT_GUIDE.md). Without it, only the paths the web app serves itself exist under `/api/v1/`.
 
 Conventions:
 

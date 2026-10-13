@@ -2,7 +2,13 @@
   "name": "snapshoot-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
+    "build:shared": "tsc -p ../../packages/shared/tsconfig.json",
+    "env:check": "node scripts/check-env.mjs",
+    "prebuild": "npm run build:shared && npm run env:check",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",

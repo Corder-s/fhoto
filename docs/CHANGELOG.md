@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-13 — Vercel deployment fix and deployment variables (branch `arena/67428ada-fhoto`)
+
+### Fixed
+
+- **Vercel build failure:** `Failed to compile. Module not found: Can't resolve '@snapshoot/shared'` in `apps/web`. The package resolves through `packages/shared/dist`, which is not committed and was never built on a fresh clone, so webpack could not resolve it. `apps/web` and `apps/api` typechecks failed the same way.
+- `apps/api` `start:prod` pointed at `dist/main`, but `nest build` emits `dist/src/main.js`.
+
+### Changed
+
+- `packages/shared`: added an `exports` map, a `prepare` hook that compiles the package on `npm install` / `npm ci`, and a `clean` script.
+- `apps/web` and `apps/api`: added a `prebuild` step (`build:shared`) that compiles `@snapshoot/shared` before `next build`, `nest build`, or the API test compile. The API test script also rebuilds it (`pretest`).
+- Root scripts: `build` now builds the shared package and the web app in order. Added `build:shared`, `build:web`, `build:api`, `build:all`, and `env:check`.
+- `apps/web/next.config.mjs`: the `/api/v1/*` rewrite is no longer hardcoded to `http://localhost:4000`. It reads `NEST_API_BASE_URL` (or `API_BASE_URL`) and registers no rewrite when unset, so a deployment without the NestJS service answers 404 instead of proxying to the build machine. The config file also fails fast with instructions when the shared package has not been built.
+- New `apps/web/scripts/check-env.mjs` (`npm run env:check`, wired into `prebuild`): reports configured and missing deployment variables per Vercel scope, warns when required values are absent (fails when `STRICT_ENV_CHECK=true`), and always fails on unsafe values — a `service_role` key in `NEXT_PUBLIC_SUPABASE_ANON_KEY`, an anon key in `SUPABASE_SERVICE_ROLE_KEY`, an `sk.*` token in `NEXT_PUBLIC_MAPBOX_TOKEN`, `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`, or a localhost API URL on Vercel.
+- Both `package.json` files pin Node.js 22 through `engines.node`.
+- `apps/web/.env.local.example`: documents required versus optional values, the Vercel scope for each, the variables that no code path reads yet, and that `NEXT_PUBLIC_*` changes need a redeploy.
+
+### Documentation
+
+- README: new "Deploying to Vercel" section — project settings, the full environment-variable table with scopes, Supabase URL configuration, optional NestJS deployment, and post-deploy checks — plus a "Building the shared package" explanation and the verification commands.
+- DEPLOYMENT_GUIDE.md: build-order section (why `@snapshoot/shared` must be compiled first), a Vercel path with the environment table, corrected API build and start commands.
+- ENVIRONMENT_SETUP.md, TROUBLESHOOTING.md, CODEBASE_STRUCTURE.md: shared-package build step, `NEST_API_BASE_URL`, `env:check`, and the new failure-mode entries.
+
 ## 2026-10-13 — Security, integration, and documentation pass (branch `arena/217a1005-fhoto`)
 
 ### Security
