@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Camera, ShieldCheck, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import { resolvePostAuthRedirect } from '../../../lib/safeRedirect';
 
-export default function AuthVerifyPage() {
+function AuthVerifyForm() {
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(45);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +54,8 @@ export default function AuthVerifyPage() {
       if (code === '123456') {
         setIsSuccess(true);
         setTimeout(() => {
-          window.location.href = '/customer/dashboard';
+          const dest = resolvePostAuthRedirect('customer', redirectParam);
+          window.location.href = dest;
         }, 1000);
       } else {
         setErrorMessage('Verification code is invalid or has expired. Test code is 123456.');
@@ -159,3 +164,12 @@ export default function AuthVerifyPage() {
     </div>
   );
 }
+
+export default function AuthVerifyPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-canvas-primary" />}>
+      <AuthVerifyForm />
+    </Suspense>
+  );
+}
+

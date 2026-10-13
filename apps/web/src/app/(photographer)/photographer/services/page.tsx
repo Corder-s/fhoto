@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Package,
   Plus,
@@ -13,46 +13,113 @@ import {
   DollarSign,
   ToggleLeft,
   ToggleRight,
-  Layers
+  Layers,
+  Loader2
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Modal } from '../../../../components/ui/Modal';
-import { DemoNoticeBanner } from '../../../../components/photographer/DemoNoticeBanner';
 import {
-  INITIAL_SERVICES,
-  PhotographerServicePackage
-} from '../../../../data/photographerDashboardData';
+  getStoredSubscription,
+  getPlanDetails
+} from '../../../../lib/subscriptionService';
+import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
+import Link from 'next/link';
+
+interface ServicePackageItem {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  durationHours: number;
+  priceInr: number;
+  deliverables: string[];
+  additionalHourRateInr?: number;
+  isActive: boolean;
+}
 
 export default function PhotographerServicesPage() {
-  const [services, setServices] = useState<PhotographerServicePackage[]>(INITIAL_SERVICES);
+  const { authUser, creatorProfile } = useCurrentUserProfile();
+  const [services, setServices] = useState<ServicePackageItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [subscription, setSubscription] = useState(getStoredSubscription);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingService, setEditingService] = useState<PhotographerServicePackage | null>(null);
-  const [previewService, setPreviewService] = useState<PhotographerServicePackage | null>(null);
+  const [editingService, setEditingService] = useState<ServicePackageItem | null>(null);
+  const [previewService, setPreviewService] = useState<ServicePackageItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const plan = getPlanDetails(subscription.tier);
+  const isAtQuota = services.length >= plan.maxServicePackages;
 
   // Form State for Add / Edit
   const [formData, setFormData] = useState({
     title: '',
-    category: 'Portrait' as PhotographerServicePackage['category'],
+    category: 'Portrait',
     description: '',
     durationHours: 2,
-    priceInr: 4000,
-    deliverablesText: '30 Edited High-Res Photos\nOnline Gallery Link\n24-Hour Turnaround',
+    priceInr: 4999,
+    deliverablesText: '30 Edited High-Res Photos\nOnline Gallery Link\n48-Hour Turnaround',
     additionalHourRateInr: 1500,
     isActive: true,
   });
   const [formError, setFormError] = useState('');
 
+  // Load real services from Supabase
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadServices() {
+      if (!authUser?.id) return;
+
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/photographers/services?userId=${authUser.id}`);
+        const data = await res.json();
+        if (isCancelled) return;
+
+        if (data.services && Array.isArray(data.services)) {
+          setServices(
+            data.services.map((s: any) => ({
+              id: s.id,
+              title: s.title,
+              category: s.service_categories?.name || 'Portrait',
+              description: s.description || '',
+              durationHours: Math.max(1, Math.round((s.duration_minutes || 120) / 60)),
+              priceInr: Number(s.base_price) || 4999,
+              deliverables: ['Digital High-Res Photos', 'Private Client Gallery'],
+              additionalHourRateInr: 1500,
+              isActive: s.is_active !== false,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Error fetching creator services:', err);
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    }
+
+    loadServices();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authUser?.id]);
+
   const handleOpenAdd = () => {
+    if (isAtQuota) {
+      alert(`Package limit reached (${plan.maxServicePackages} packages on ${plan.name} plan). Please upgrade your subscription to create more packages.`);
+      return;
+    }
     setFormData({
       title: '',
       category: 'Portrait',
       description: '',
       durationHours: 2,
-      priceInr: 4000,
-      deliverablesText: '30 Edited High-Res Photos\nOnline Gallery Link\n24-Hour Turnaround',
+      priceInr: 4999,
+      deliverablesText: '30 Edited High-Res Photos\nOnline Gallery Link\n48-Hour Turnaround',
       additionalHourRateInr: 1500,
       isActive: true,
     });
@@ -60,7 +127,7 @@ export default function PhotographerServicesPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleOpenEdit = (srv: PhotographerServicePackage) => {
+  const handleOpenEdit = (srv: ServicePackageItem) => {
     setEditingService(srv);
     setFormData({
       title: srv.title,
@@ -69,7 +136,7 @@ export default function PhotographerServicesPage() {
       durationHours: srv.durationHours,
       priceInr: srv.priceInr,
       deliverablesText: srv.deliverables.join('\n'),
-      additionalHourRateInr: srv.additionalHourRateInr,
+      additionalHourRateInr: srv.additionalHourRateInr || 1500,
       isActive: srv.isActive,
     });
     setFormError('');
@@ -91,75 +158,162 @@ export default function PhotographerServicesPage() {
     return true;
   };
 
-  const handleSaveAdd = (e: React.FormEvent) => {
+  const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const newPackage: PhotographerServicePackage = {
-      id: `srv-${Date.now()}`,
-      title: formData.title,
-      category: formData.category,
-      description: formData.description,
-      durationHours: formData.durationHours,
-      priceInr: formData.priceInr,
-      deliverables: formData.deliverablesText.split('\n').filter((d) => d.trim().length > 0),
-      additionalHourRateInr: formData.additionalHourRateInr,
-      isActive: formData.isActive,
-    };
+    try {
+      setIsSaving(true);
+      const res = await fetch('/api/photographers/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: authUser?.id,
+          creatorId: creatorProfile?.id,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          basePrice: formData.priceInr,
+          durationMinutes: formData.durationHours * 60,
+          deliveryTimeHours: 48,
+          isActive: formData.isActive,
+        }),
+      });
 
-    setServices([newPackage, ...services]);
-    setIsAddModalOpen(false);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save package to Supabase.');
+      }
+
+      const newPackage: ServicePackageItem = {
+        id: data.service.id,
+        title: data.service.title,
+        category: formData.category,
+        description: data.service.description,
+        durationHours: formData.durationHours,
+        priceInr: Number(data.service.base_price),
+        deliverables: formData.deliverablesText.split('\n').filter((d) => d.trim().length > 0),
+        additionalHourRateInr: formData.additionalHourRateInr,
+        isActive: data.service.is_active !== false,
+      };
+
+      setServices([newPackage, ...services]);
+      setIsAddModalOpen(false);
+    } catch (err: any) {
+      setFormError(err.message || 'Error saving to Supabase');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm() || !editingService) return;
 
-    setServices(
-      services.map((s) =>
-        s.id === editingService.id
-          ? {
-              ...s,
-              title: formData.title,
-              category: formData.category,
-              description: formData.description,
-              durationHours: formData.durationHours,
-              priceInr: formData.priceInr,
-              deliverables: formData.deliverablesText.split('\n').filter((d) => d.trim().length > 0),
-              additionalHourRateInr: formData.additionalHourRateInr,
-              isActive: formData.isActive,
-            }
-          : s
-      )
-    );
-    setEditingService(null);
+    try {
+      setIsSaving(true);
+      const res = await fetch('/api/photographers/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingService.id,
+          userId: authUser?.id,
+          creatorId: creatorProfile?.id,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          basePrice: formData.priceInr,
+          durationMinutes: formData.durationHours * 60,
+          deliveryTimeHours: 48,
+          isActive: formData.isActive,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update package in Supabase.');
+      }
+
+      setServices(
+        services.map((s) =>
+          s.id === editingService.id
+            ? {
+                ...s,
+                title: formData.title,
+                category: formData.category,
+                description: formData.description,
+                durationHours: formData.durationHours,
+                priceInr: formData.priceInr,
+                deliverables: formData.deliverablesText.split('\n').filter((d) => d.trim().length > 0),
+                additionalHourRateInr: formData.additionalHourRateInr,
+                isActive: formData.isActive,
+              }
+            : s
+        )
+      );
+      setEditingService(null);
+    } catch (err: any) {
+      setFormError(err.message || 'Error updating package');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleToggleActive = (id: string) => {
-    setServices(
-      services.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s))
-    );
+  const handleToggleActive = async (id: string) => {
+    const srv = services.find((s) => s.id === id);
+    if (!srv) return;
+
+    const newActiveState = !srv.isActive;
+    setServices(services.map((s) => (s.id === id ? { ...s, isActive: newActiveState } : s)));
+
+    try {
+      await fetch('/api/photographers/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          userId: authUser?.id,
+          creatorId: creatorProfile?.id,
+          isActive: newActiveState,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to toggle active status:', err);
+    }
   };
 
-  const confirmDelete = () => {
-    if (deletingId) {
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+
+    try {
+      await fetch(`/api/photographers/services?id=${encodeURIComponent(deletingId)}`, {
+        method: 'DELETE',
+      });
       setServices(services.filter((s) => s.id !== deletingId));
       setDeletingId(null);
+    } catch (err) {
+      console.error('Failed to delete package:', err);
     }
   };
 
   return (
     <div className="space-y-8">
-      <DemoNoticeBanner moduleName="Service Package & Pricing Manager" />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FF6E00]/10 text-[#FF6E00]">
+              Active Packages: {services.length} / {plan.maxServicePackages} ({plan.name})
+            </span>
+            {isAtQuota && (
+              <Link href="/photographer/subscription" className="text-xs text-[#FF6E00] font-bold hover:underline">
+                Upgrade Plan for More →
+              </Link>
+            )}
+          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
-            Service Packages & Rate Card
+            Service Packages &amp; Pricing
           </h1>
           <p className="text-sm text-ink-secondary mt-1">
-            Configure hourly rates, package tiers, and deliverables presented on client booking forms.
+            Configure photography packages, turnaround hours, and instant booking rates synced to Supabase.
           </p>
         </div>
 
@@ -168,310 +322,254 @@ export default function PhotographerServicesPage() {
           size="md"
           onClick={handleOpenAdd}
           leftIcon={<Plus className="w-4 h-4" />}
+          disabled={isAtQuota}
         >
-          Create New Package
+          Add New Package
         </Button>
       </div>
 
       {/* Services Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {services.map((srv) => (
-          <Card
-            key={srv.id}
-            className={`p-6 flex flex-col justify-between transition-all ${
-              srv.isActive ? 'bg-white' : 'bg-canvas-secondary/50 opacity-75 border-dashed'
-            }`}
-          >
-            <div className="space-y-4">
-              {/* Category, Status & Price Header */}
+      {isLoading ? (
+        <div className="py-20 text-center space-y-3">
+          <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
+          <p className="text-xs text-ink-muted">Loading packages from Supabase...</p>
+        </div>
+      ) : services.length === 0 ? (
+        <div className="py-16 text-center border-2 border-dashed border-[#E8E2D8] rounded-3xl bg-[#FAF7F2]/50 p-8 space-y-3">
+          <Package className="w-12 h-12 text-[#FF6E00] mx-auto opacity-70" />
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-ink-primary">No photography packages configured yet</h3>
+            <p className="text-xs text-ink-secondary max-w-md mx-auto">
+              Packages define your pricing, shoot duration, deliverables, and appear on search listings for clients to book.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenAdd}
+              leftIcon={<Plus className="w-3.5 h-3.5" />}
+            >
+              Add First Package
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {services.map((srv) => (
+            <Card
+              key={srv.id}
+              className={`p-6 space-y-4 border transition-all ${
+                srv.isActive
+                  ? 'border-contour-subtle bg-white shadow-sm'
+                  : 'border-contour-subtle bg-canvas-secondary/50 opacity-75'
+              }`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <Badge variant={srv.isActive ? 'brand' : 'neutral'} size="sm">
                     {srv.category}
                   </Badge>
-                  <h3 className="text-lg font-extrabold text-ink-primary mt-1">
-                    {srv.title}
-                  </h3>
+                  <h3 className="text-base font-bold text-ink-primary mt-2">{srv.title}</h3>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <p className="text-xl font-extrabold text-ink-primary">
-                    ₹{srv.priceInr.toLocaleString('en-IN')}
-                  </p>
-                  <p className="text-[10px] text-ink-muted">Net 80%: ₹{(srv.priceInr * 0.8).toLocaleString('en-IN')}</p>
-                </div>
+                <button
+                  onClick={() => handleToggleActive(srv.id)}
+                  className="text-ink-muted hover:text-ink-primary p-1"
+                  title={srv.isActive ? 'Deactivate Package' : 'Activate Package'}
+                >
+                  {srv.isActive ? (
+                    <ToggleRight className="w-6 h-6 text-[#FF6E00]" />
+                  ) : (
+                    <ToggleLeft className="w-6 h-6 text-zinc-400" />
+                  )}
+                </button>
               </div>
 
-              {/* Description */}
-              <p className="text-xs text-ink-secondary leading-relaxed">
+              <p className="text-xs text-ink-secondary line-clamp-2 leading-relaxed">
                 {srv.description}
               </p>
 
-              {/* Duration & Extra Hour */}
-              <div className="flex items-center gap-4 text-xs font-semibold text-ink-primary bg-canvas-primary p-3 rounded-card-sm border border-contour-subtle">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-brand" />
-                  <span>{srv.durationHours} Hours Session</span>
-                </span>
-                <span>•</span>
-                <span>
-                  +₹{srv.additionalHourRateInr.toLocaleString('en-IN')}/extra hour
-                </span>
+              <div className="pt-3 border-t border-contour-subtle flex items-baseline justify-between">
+                <div>
+                  <span className="text-2xl font-black text-ink-primary">₹{srv.priceInr.toLocaleString('en-IN')}</span>
+                  <span className="text-xs text-ink-muted"> / {srv.durationHours} hrs</span>
+                </div>
               </div>
 
-              {/* Deliverables List */}
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-muted">
-                  Package Deliverables:
-                </p>
-                <ul className="text-xs text-ink-secondary space-y-1">
-                  {srv.deliverables.map((deliv, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                      <span>{deliv}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-between pt-5 mt-4 border-t border-contour-subtle">
-              {/* Active Toggle */}
-              <button
-                onClick={() => handleToggleActive(srv.id)}
-                className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                  srv.isActive ? 'text-green-700' : 'text-ink-muted'
-                }`}
-              >
-                {srv.isActive ? (
-                  <ToggleRight className="w-5 h-5 text-green-600" />
-                ) : (
-                  <ToggleLeft className="w-5 h-5 text-ink-muted" />
-                )}
-                <span>{srv.isActive ? 'Active on Profile' : 'Paused / Hidden'}</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPreviewService(srv)}
-                  className="p-1.5 text-ink-muted hover:text-ink-primary rounded hover:bg-canvas-secondary"
-                  title="Preview Client Card"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-                <button
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-contour-subtle">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => handleOpenEdit(srv)}
-                  className="p-1.5 text-ink-muted hover:text-ink-primary rounded hover:bg-canvas-secondary"
-                  title="Edit Package"
+                  leftIcon={<Edit2 className="w-3.5 h-3.5" />}
                 >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setDeletingId(srv.id)}
-                  className="p-1.5 text-red-500 hover:text-red-700 rounded hover:bg-red-50"
-                  title="Delete Package"
+                  className="text-red-600 hover:bg-red-50"
+                  leftIcon={<Trash2 className="w-3.5 h-3.5" />}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  Delete
+                </Button>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* ADD / EDIT MODAL */}
-      {(isAddModalOpen || editingService) && (
-        <Modal
-          isOpen={isAddModalOpen || !!editingService}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setEditingService(null);
-          }}
-          title={editingService ? 'Edit Service Package' : 'Create New Service Package'}
-          description="Adjust pricing, shooting duration, and deliverables for this photography service."
-          maxWidth="lg"
-        >
-          <form
-            onSubmit={editingService ? handleSaveEdit : handleSaveAdd}
-            className="space-y-4"
-          >
-            {formError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-card-sm text-xs font-semibold text-red-700">
-                {formError}
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-ink-primary">Package Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g. 2-Hour Street Portrait Special"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-ink-primary">Photography Category *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      category: e.target.value as PhotographerServicePackage['category'],
-                    })
-                  }
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
-                >
-                  <option value="Portrait">Portrait</option>
-                  <option value="Reels & Creator">Reels & Creator</option>
-                  <option value="Couple">Couple</option>
-                  <option value="Events">Events</option>
-                  <option value="Product & Culinary">Product & Culinary</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-ink-primary">Package Price (INR ₹) *</label>
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-contour-subtle">
+            <h3 className="font-bold text-sm text-ink-primary border-b pb-3">Create New Package</h3>
+            {formError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg font-medium">{formError}</p>}
+            <form onSubmit={handleSaveAdd} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Package Title *</label>
                 <input
-                  type="number"
-                  required
-                  min={500}
-                  step={100}
-                  value={formData.priceInr}
-                  onChange={(e) => setFormData({ ...formData, priceInr: Number(e.target.value) })}
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g. Standard Portrait Session"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-ink-primary">Duration (Hours) *</label>
-                <input
-                  type="number"
-                  required
-                  min={0.5}
-                  step={0.5}
-                  value={formData.durationHours}
-                  onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Price (₹ INR) *</label>
+                  <input
+                    type="number"
+                    min={500}
+                    step={500}
+                    value={formData.priceInr}
+                    onChange={(e) => setFormData({ ...formData, priceInr: Number(e.target.value) })}
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Duration (Hours) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={formData.durationHours}
+                    onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Description *</label>
+                <textarea
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe what is covered during this photography session..."
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-ink-primary">Additional Hour Rate (₹)</label>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button variant="secondary" size="sm" type="button" onClick={() => setIsAddModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="sm" type="submit" disabled={isSaving}>
+                  {isSaving ? 'Saving to Supabase...' : 'Save Package'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingService && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-contour-subtle">
+            <h3 className="font-bold text-sm text-ink-primary border-b pb-3">Edit Package</h3>
+            {formError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg font-medium">{formError}</p>}
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Package Title *</label>
                 <input
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={formData.additionalHourRateInr}
-                  onChange={(e) => setFormData({ ...formData, additionalHourRateInr: Number(e.target.value) })}
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
                 />
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-ink-primary">Description</label>
-              <textarea
-                rows={2}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Explain what style, lighting, and mood are included in this shoot..."
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-brand outline-none"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Price (₹ INR) *</label>
+                  <input
+                    type="number"
+                    min={500}
+                    step={500}
+                    value={formData.priceInr}
+                    onChange={(e) => setFormData({ ...formData, priceInr: Number(e.target.value) })}
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Duration (Hours) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={formData.durationHours}
+                    onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-ink-primary">Deliverables (One per line)</label>
-              <textarea
-                rows={3}
-                value={formData.deliverablesText}
-                onChange={(e) => setFormData({ ...formData, deliverablesText: e.target.value })}
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium font-mono focus:ring-2 focus:ring-brand outline-none"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-ink-primary mb-1">Description *</label>
+                <textarea
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                />
+              </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-contour-subtle">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setEditingService(null);
-                }}
-              >
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button variant="secondary" size="sm" type="button" onClick={() => setEditingService(null)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="sm" type="submit" disabled={isSaving}>
+                  {isSaving ? 'Updating...' : 'Update Package'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-sm text-ink-primary">Delete Package</h3>
+            <p className="text-xs text-ink-secondary">
+              Are you sure you want to delete this photography package? Clients will no longer be able to select it for bookings.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="secondary" size="sm" onClick={() => setDeletingId(null)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm">
-                {editingService ? 'Save Package Updates' : 'Publish Package'}
+              <Button variant="primary" size="sm" className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>
+                Delete Package
               </Button>
             </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* PREVIEW MODAL */}
-      {previewService && (
-        <Modal
-          isOpen={!!previewService}
-          onClose={() => setPreviewService(null)}
-          title="Client Preview: How it looks to Bookers"
-          description="Rendered exactly as seen in the SnapShoot booking modal."
-          maxWidth="md"
-        >
-          <div className="p-5 bg-canvas-primary rounded-card-md border border-contour-subtle space-y-4">
-            <div className="flex items-center justify-between">
-              <Badge variant="brand" size="sm">{previewService.category}</Badge>
-              <span className="text-lg font-black text-ink-primary">₹{previewService.priceInr.toLocaleString('en-IN')}</span>
-            </div>
-            <div>
-              <h4 className="text-base font-bold text-ink-primary">{previewService.title}</h4>
-              <p className="text-xs text-ink-secondary mt-1">{previewService.description}</p>
-            </div>
-            <div className="space-y-1 text-xs text-ink-secondary">
-              <p className="font-bold text-ink-primary">Deliverables Included:</p>
-              {previewService.deliverables.map((d, i) => (
-                <p key={i} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                  <span>{d}</span>
-                </p>
-              ))}
-            </div>
-            <Button
-              variant="primary"
-              className="w-full"
-              size="sm"
-              onClick={() => setPreviewService(null)}
-            >
-              Close Client Preview
-            </Button>
           </div>
-        </Modal>
-      )}
-
-      {/* DELETE CONFIRMATION MODAL */}
-      {deletingId && (
-        <Modal
-          isOpen={!!deletingId}
-          onClose={() => setDeletingId(null)}
-          title="Delete Service Package?"
-          description="Are you sure you want to remove this service? Existing active bookings will not be affected."
-          maxWidth="sm"
-        >
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="secondary" size="sm" onClick={() => setDeletingId(null)}>
-              Keep Package
-            </Button>
-            <Button variant="danger" size="sm" onClick={confirmDelete}>
-              Yes, Delete
-            </Button>
-          </div>
-        </Modal>
+        </div>
       )}
     </div>
   );

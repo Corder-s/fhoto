@@ -96,20 +96,20 @@ export interface CustomerNotificationItem {
 }
 
 export const INITIAL_CUSTOMER_PROFILE: CustomerProfile = {
-  id: 'cust-aarav',
-  name: 'Aarav Sharma',
-  email: 'aarav.sharma@example.com',
-  phone: '+91 98710 44219',
-  city: 'New Delhi',
-  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
-  memberSince: 'August 2026',
+  id: '',
+  name: 'Customer',
+  email: '',
+  phone: '',
+  city: '',
+  avatar: '',
+  memberSince: 'Member',
 };
 
 export const INITIAL_CUSTOMER_BOOKINGS: CustomerBooking[] = [
   {
     id: 'SNP-2026-98124',
     photographerId: 'pro-aman',
-    photographerName: 'Aman Verma',
+    photographerName: 'Aman Sharma',
     photographerAvatar: '/reference-assets/avatar_aman.jpg',
     photographerRating: 4.9,
     photographerPhone: '+91 98101 23456',

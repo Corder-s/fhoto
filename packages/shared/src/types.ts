@@ -1,4 +1,15 @@
-import { RoleType, BookingStatus, BookingType, VerificationStatus, PaymentStatus } from './enums.js';
+import {
+  RoleType,
+  BookingStatus,
+  BookingType,
+  VerificationStatus,
+  PaymentStatus,
+  PlanTier,
+  SubscriptionStatus,
+  BillingInterval,
+  ClientStatus,
+  StudioRole
+} from './enums.js';
 
 export interface UserDto {
   id: string;
@@ -56,6 +67,59 @@ export interface BookingSummaryDto {
   customerName: string;
   photographerName?: string | null;
   shootStartOtp?: string; // Only exposed to authorized customer
+}
+
+export interface SubscriptionPlanDto {
+  id: string;
+  tier: PlanTier;
+  name: string;
+  tagline: string;
+  priceMonthlyInr: number;
+  priceAnnualInr: number;
+  maxPortfolioItems: number;
+  maxServicePackages: number;
+  hasClientCrm: boolean;
+  hasAdvancedAnalytics: boolean;
+  hasPriorityListing: boolean;
+  hasCustomGalleryBranding: boolean;
+  features: string[];
+  isPopular?: boolean;
+}
+
+export interface PhotographerSubscriptionDto {
+  id: string;
+  photographerId: string;
+  planId: string;
+  tier: PlanTier;
+  status: SubscriptionStatus;
+  billingInterval: BillingInterval;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  gatewaySubscriptionId?: string;
+}
+
+export interface PhotographerClientDto {
+  id: string;
+  photographerId: string;
+  name: string;
+  email?: string | null;
+  phone: string;
+  totalShoots: number;
+  totalSpentInr: number;
+  lastShootDate?: string | null;
+  notes?: string | null;
+  status: ClientStatus | 'ACTIVE' | 'COMPLETED' | 'VIP';
+  createdAt: string;
+}
+
+export interface StudioMemberDto {
+  id: string;
+  photographerId: string;
+  userId: string;
+  role: StudioRole;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface ApiResponse<T> {

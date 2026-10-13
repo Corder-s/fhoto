@@ -71,7 +71,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
         className="relative bg-white rounded-2xl md:rounded-full border border-[#E8E2D8] shadow-[0_4px_20px_-4px_rgba(26,24,22,0.06)] p-2 md:py-2 md:px-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-0 max-w-full xl:max-w-[700px] flex-1 z-50"
       >
         {/* Location Dropdown */}
-        <div className="relative flex-1">
+        <div className={`relative flex-1 ${openDropdown === 'location' ? 'z-30' : 'z-10'}`}>
           <button
             type="button"
             onClick={() => setOpenDropdown(openDropdown === 'location' ? 'none' : 'location')}
@@ -88,24 +88,43 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
                 </span>
               </div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1" />
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1 transition-transform duration-200 ${
+                openDropdown === 'location' ? 'rotate-180 text-[#FF6E00]' : ''
+              }`}
+            />
           </button>
 
           {openDropdown === 'location' && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-[#E8E2D8] rounded-xl shadow-elevated py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              {locationsList.map((loc) => (
-                <button
-                  key={loc}
-                  type="button"
-                  onClick={() => {
-                    setLocation(loc);
-                    setOpenDropdown('none');
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-                >
-                  {loc}
-                </button>
-              ))}
+            <div className="absolute top-full left-0 mt-2.5 w-52 bg-white border border-[#E8E2D8] rounded-2xl shadow-elevated py-1.5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#8C847A] tracking-wider border-b border-[#F2ECE3] mb-1">
+                Select City / Region
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {locationsList.map((loc) => {
+                  const isSelected = location.toLowerCase() === loc.toLowerCase();
+                  return (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        setLocation(loc);
+                        setOpenDropdown('none');
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#FF6E00] bg-[#FFF3E5]/70 font-bold'
+                          : 'text-[#1A1816] hover:bg-[#FAF7F2]'
+                      }`}
+                    >
+                      <span>{loc}</span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF6E00] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -114,7 +133,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
         <div className="hidden md:block h-7 w-[1px] bg-[#E8E2D8] mx-0.5 shrink-0" />
 
         {/* Shoot Type Dropdown */}
-        <div className="relative flex-1">
+        <div className={`relative flex-1 ${openDropdown === 'category' ? 'z-30' : 'z-10'}`}>
           <button
             type="button"
             onClick={() => setOpenDropdown(openDropdown === 'category' ? 'none' : 'category')}
@@ -131,24 +150,43 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
                 </span>
               </div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1" />
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1 transition-transform duration-200 ${
+                openDropdown === 'category' ? 'rotate-180 text-[#FF6E00]' : ''
+              }`}
+            />
           </button>
 
           {openDropdown === 'category' && (
-            <div className="absolute top-full left-0 mt-2 w-44 bg-white border border-[#E8E2D8] rounded-xl shadow-elevated py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              {categoriesList.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setCategory(cat);
-                    setOpenDropdown('none');
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="absolute top-full left-0 mt-2.5 w-48 bg-white border border-[#E8E2D8] rounded-2xl shadow-elevated py-1.5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#8C847A] tracking-wider border-b border-[#F2ECE3] mb-1">
+                Select Shoot Type
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {categoriesList.map((cat) => {
+                  const isSelected = category.toLowerCase() === cat.toLowerCase();
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setCategory(cat);
+                        setOpenDropdown('none');
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#FF6E00] bg-[#FFF3E5]/70 font-bold'
+                          : 'text-[#1A1816] hover:bg-[#FAF7F2]'
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF6E00] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -157,7 +195,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
         <div className="hidden md:block h-7 w-[1px] bg-[#E8E2D8] mx-0.5 shrink-0" />
 
         {/* Date Dropdown */}
-        <div className="relative flex-1">
+        <div className={`relative flex-1 ${openDropdown === 'date' ? 'z-30' : 'z-10'}`}>
           <button
             type="button"
             onClick={() => setOpenDropdown(openDropdown === 'date' ? 'none' : 'date')}
@@ -174,24 +212,43 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
                 </span>
               </div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1" />
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1 transition-transform duration-200 ${
+                openDropdown === 'date' ? 'rotate-180 text-[#FF6E00]' : ''
+              }`}
+            />
           </button>
 
           {openDropdown === 'date' && (
-            <div className="absolute top-full left-0 mt-2 w-44 bg-white border border-[#E8E2D8] rounded-xl shadow-elevated py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              {datesList.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => {
-                    setDate(d);
-                    setOpenDropdown('none');
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-                >
-                  {d}
-                </button>
-              ))}
+            <div className="absolute top-full left-0 mt-2.5 w-48 bg-white border border-[#E8E2D8] rounded-2xl shadow-elevated py-1.5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#8C847A] tracking-wider border-b border-[#F2ECE3] mb-1">
+                Select Date
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {datesList.map((d) => {
+                  const isSelected = date === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setDate(d);
+                        setOpenDropdown('none');
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#FF6E00] bg-[#FFF3E5]/70 font-bold'
+                          : 'text-[#1A1816] hover:bg-[#FAF7F2]'
+                      }`}
+                    >
+                      <span>{d}</span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF6E00] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -200,7 +257,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
         <div className="hidden md:block h-7 w-[1px] bg-[#E8E2D8] mx-0.5 shrink-0" />
 
         {/* Duration Dropdown */}
-        <div className="relative flex-1">
+        <div className={`relative flex-1 ${openDropdown === 'duration' ? 'z-30' : 'z-10'}`}>
           <button
             type="button"
             onClick={() => setOpenDropdown(openDropdown === 'duration' ? 'none' : 'duration')}
@@ -217,24 +274,43 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, selectedCatego
                 </span>
               </div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1" />
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#8C847A] shrink-0 ml-1 transition-transform duration-200 ${
+                openDropdown === 'duration' ? 'rotate-180 text-[#FF6E00]' : ''
+              }`}
+            />
           </button>
 
           {openDropdown === 'duration' && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-[#E8E2D8] rounded-xl shadow-elevated py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              {durationsList.map((dur) => (
-                <button
-                  key={dur}
-                  type="button"
-                  onClick={() => {
-                    setDuration(dur);
-                    setOpenDropdown('none');
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
-                >
-                  {dur}
-                </button>
-              ))}
+            <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2.5 w-52 bg-white border border-[#E8E2D8] rounded-2xl shadow-elevated py-1.5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#8C847A] tracking-wider border-b border-[#F2ECE3] mb-1">
+                Select Shoot Duration
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {durationsList.map((dur) => {
+                  const isSelected = duration === dur;
+                  return (
+                    <button
+                      key={dur}
+                      type="button"
+                      onClick={() => {
+                        setDuration(dur);
+                        setOpenDropdown('none');
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#FF6E00] bg-[#FFF3E5]/70 font-bold'
+                          : 'text-[#1A1816] hover:bg-[#FAF7F2]'
+                      }`}
+                    >
+                      <span>{dur}</span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF6E00] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

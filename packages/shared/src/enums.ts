@@ -48,3 +48,34 @@ export enum PayoutStatus {
   FAILED = 'FAILED',
   DISPUTED = 'DISPUTED',
 }
+
+export enum PlanTier {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  BUSINESS = 'BUSINESS',
+}
+
+export enum SubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  CANCELED = 'CANCELED',
+  TRIALING = 'TRIALING',
+}
+
+export enum BillingInterval {
+  MONTHLY = 'MONTHLY',
+  ANNUAL = 'ANNUAL',
+}
+
+export enum ClientStatus {
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  VIP = 'VIP',
+}
+
+export enum StudioRole {
+  OWNER = 'OWNER',
+  LEAD_PHOTOGRAPHER = 'LEAD_PHOTOGRAPHER',
+  ASSOCIATE_SHOOTER = 'ASSOCIATE_SHOOTER',
+  EDITOR = 'EDITOR',
+}

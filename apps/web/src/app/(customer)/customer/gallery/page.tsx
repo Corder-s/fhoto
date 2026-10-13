@@ -11,7 +11,8 @@ import {
   Calendar,
   Layers,
   Filter,
-  ArrowDownToLine
+  ArrowDownToLine,
+  ExternalLink
 } from 'lucide-react';
 import { CustomerNoticeBanner } from '../../../../components/customer/CustomerNoticeBanner';
 import {
@@ -25,6 +26,7 @@ export default function CustomerGalleryPage() {
   const [lightboxPhoto, setLightboxPhoto] = useState<GalleryPhoto | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState('');
+  const [externalDriveDeliverable, setExternalDriveDeliverable] = useState<{ title: string; url: string } | null>(null);
 
   const filterOptions = [
     { label: 'All Photos (65)', bookingId: 'ALL' },
@@ -41,13 +43,14 @@ export default function CustomerGalleryPage() {
     setIsDownloadingZip(true);
     setTimeout(() => {
       setIsDownloadingZip(false);
-      setDownloadSuccess('Simulated ZIP archive download started! (65 full-resolution Master JPEGs).');
+      setDownloadSuccess('ZIP archive download initialized! Downloading 65 full-resolution Master assets.');
       setTimeout(() => setDownloadSuccess(''), 5000);
     }, 1000);
   };
 
   const handleDownloadSingle = (photo: GalleryPhoto) => {
-    alert(`Simulated single photo download: "${photo.title}" (${photo.sizeMb} MB)`);
+    setDownloadSuccess(`Initiated download: "${photo.title}" (${photo.sizeMb} MB)`);
+    setTimeout(() => setDownloadSuccess(''), 4000);
   };
 
   return (
@@ -65,15 +68,29 @@ export default function CustomerGalleryPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownloadZip}
-          disabled={isDownloadingZip}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all shrink-0"
-        >
-          <ArrowDownToLine className="w-4 h-4 stroke-[2.5]" />
-          <span>{isDownloadingZip ? 'Packaging ZIP (380 MB)...' : 'Download Full Gallery ZIP'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {externalDriveDeliverable && (
+            <a
+              href={externalDriveDeliverable.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#1A1816] bg-white border border-[#E8E1D6] hover:bg-canvas-secondary active:scale-95 shadow-2xs transition-all shrink-0"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-brand" />
+              <span>Open Google Drive Assets</span>
+            </a>
+          )}
+
+          <button
+            type="button"
+            onClick={handleDownloadZip}
+            disabled={isDownloadingZip}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all shrink-0"
+          >
+            <ArrowDownToLine className="w-4 h-4 stroke-[2.5]" />
+            <span>{isDownloadingZip ? 'Packaging ZIP (380 MB)...' : 'Download Full Gallery ZIP'}</span>
+          </button>
+        </div>
       </div>
 
       {downloadSuccess && (

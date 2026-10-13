@@ -4,25 +4,30 @@
 
 :root {
   /* Centralized SnapShoot Design Tokens */
-  --color-primary: #FF8500;
-  --color-primary-hover: #E87500;
-  --color-background: #FBF8F2;
+  --color-primary: #FF6E00;
+  --color-primary-hover: #E86300;
+  --color-primary-active: #D65B00;
+  --color-background: #FAF7F2;
   --color-surface: #FFFFFF;
-  --color-text: #171717;
-  --color-text-secondary: #68635D;
-  --color-border: #E9E2D8;
-  --color-success: #237A45;
+  --color-text: #1A1816;
+  --color-text-secondary: #5A544D;
+  --color-text-muted: #8C847A;
+  --color-border: #E8E2D8;
+  --color-border-strong: #D5CEC4;
+  --color-success: #16A34A;
 
   /* Aliases for semantic mapping */
   --bg-primary: var(--color-background);
-  --bg-secondary: #F5EFE6;
+  --bg-secondary: #F2ECE3;
   --bg-card: var(--color-surface);
   --primary: var(--color-primary);
   --primary-hover: var(--color-primary-hover);
   --primary-subtle: #FFF3E5;
   --text-primary: var(--color-text);
   --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
   --border-subtle: var(--color-border);
+  --border-strong: var(--color-border-strong);
 }
 
 body {
@@ -44,10 +49,112 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4C9BC;
+  background: #D5CEC4;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8C857E;
+  background: #8C847A;
 }
+
+.font-script {
+  font-family: 'Caveat', cursive, sans-serif;
+}
+
+/* ============================================================================
+   DYNAMIC FLUID ANIMATIONS (SnapShoot Fluid Design System)
+   ============================================================================ */
+
+@keyframes fluid-blob {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(0deg) scale(1);
+  }
+  33% {
+    border-radius: 70% 30% 50% 50% / 30% 60% 40% 70%;
+    transform: rotate(120deg) scale(1.06);
+  }
+  66% {
+    border-radius: 40% 60% 70% 30% / 50% 40% 60% 50%;
+    transform: rotate(240deg) scale(0.96);
+  }
+}
+
+@keyframes fluid-blob-slow {
+  0%, 100% {
+    border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+    transform: rotate(360deg) scale(1);
+  }
+  50% {
+    border-radius: 70% 30% 60% 40% / 60% 40% 60% 40%;
+    transform: rotate(180deg) scale(1.1);
+  }
+}
+
+@keyframes fluid-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.8deg);
+  }
+}
+
+@keyframes fluid-float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(6px) rotate(-0.8deg);
+  }
+}
+
+@keyframes fluid-shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  40%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fluid-pulse-glow {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+.animate-fluid-blob {
+  animation: fluid-blob 14s ease-in-out infinite;
+}
+
+.animate-fluid-blob-slow {
+  animation: fluid-blob-slow 20s ease-in-out infinite reverse;
+}
+
+.animate-fluid-float {
+  animation: fluid-float 6s ease-in-out infinite;
+}
+
+.animate-fluid-float-reverse {
+  animation: fluid-float-reverse 7s ease-in-out infinite;
+}
+
+.animate-fluid-shimmer {
+  animation: fluid-shimmer 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-pulse-glow {
+  animation: fluid-pulse-glow 5s ease-in-out infinite;
+}
+
