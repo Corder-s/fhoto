@@ -113,16 +113,28 @@ export async function PATCH(req: NextRequest) {
     return jsonError(400, 'Invalid JSON payload.');
   }
 
-  const { creatorProfileId, action } = body;
-  if (!isUuid(creatorProfileId)) return jsonError(400, 'Invalid creatorProfileId.');
+  const { action } = body;
+  const targetId = body.creatorProfileId || body.creatorId || body.userId;
+  if (!targetId || !isUuid(targetId)) return jsonError(400, 'Invalid creator identifier.');
   const allowed = ['approve', 'reject', 'suspend', 'reinstate', 'suspend_profile', 'reinstate_profile'];
   if (!allowed.includes(action)) return jsonError(400, 'Unknown action.');
 
-  const { data: creator, error: fetchErr } = await admin
+  let { data: creator, error: fetchErr } = await admin
     .from('creator_profiles')
     .select('id, user_id, verification_status')
-    .eq('id', creatorProfileId)
+    .eq('id', targetId)
     .maybeSingle();
+
+  if (!creator) {
+    const byUser = await admin
+      .from('creator_profiles')
+      .select('id, user_id, verification_status')
+      .eq('user_id', targetId)
+      .maybeSingle();
+    creator = byUser.data;
+    fetchErr = byUser.error;
+  }
+
   if (fetchErr) return jsonError(500, 'Could not load creator.');
   if (!creator) return jsonError(404, 'Creator not found.');
   if (creator.user_id === user.id) {
@@ -146,7 +158,7 @@ export async function PATCH(req: NextRequest) {
     const { data, error } = await admin
       .from('creator_profiles')
       .update({ verification_status: nextStatus, updated_at: now })
-      .eq('id', creatorProfileId)
+      .eq('id', creator.id)
       .select('id, user_id, verification_status')
       .single();
     if (error || !data) {
@@ -160,7 +172,7 @@ export async function PATCH(req: NextRequest) {
       await admin
         .from('creator_verification_submissions')
         .update({ review_reason: reason, reviewed_by: user.id, updated_at: now })
-        .eq('creator_id', creatorProfileId)
+        .eq('creator_id', creator.id)
         .in('status', ['pending', 'needs_info']);
     }
     try {

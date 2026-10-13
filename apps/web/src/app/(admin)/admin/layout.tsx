@@ -47,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [liveDisputeCount, setLiveDisputeCount] = useState<number>(0);
+  const [livePendingPhotographers, setLivePendingPhotographers] = useState<number>(0);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -54,6 +55,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then((d) => {
         if (d?.stats?.disputedBookings != null) {
           setLiveDisputeCount(d.stats.disputedBookings);
+        }
+        if (d?.stats?.creatorsPending != null) {
+          setLivePendingPhotographers(d.stats.creatorsPending);
         }
       })
       .catch(() => {});
@@ -314,6 +318,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {(() => {
             const isDashboard = pathname === '/admin/dashboard' || pathname === '/admin';
             const isBookings = pathname.startsWith('/admin/bookings');
+            const isPhotographers = pathname.startsWith('/admin/photographers');
             const isLogs = pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/system-logs');
             const isDisputes = pathname.startsWith('/admin/disputes');
             return (
@@ -357,10 +362,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         Customers
                       </Link>
                       <Link
-                        href="/admin/dashboard#pending-photographers"
-                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                        href="/admin/photographers"
+                        className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                          isPhotographers
+                            ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
+                            : 'text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2]'
+                        }`}
                       >
-                        Photographers
+                        <span>Photographers</span>
+                        {livePendingPhotographers > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white animate-pulse">
+                            {livePendingPhotographers}
+                          </span>
+                        )}
                       </Link>
                       <Link
                         href="/admin/dashboard"

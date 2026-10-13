@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
       isOwner: roles.includes('owner'),
       hasExplicitPermissions: (p.admin_permissions || []).length > 0,
       isPhotographer: roles.includes('creator'),
+      creatorId: Array.isArray(p.creator) ? p.creator[0]?.id ?? null : p.creator?.id ?? null,
       creatorStatus: Array.isArray(p.creator) ? p.creator[0]?.verification_status ?? null : p.creator?.verification_status ?? null,
     };
   });

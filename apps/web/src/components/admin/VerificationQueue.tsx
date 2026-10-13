@@ -108,12 +108,55 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
       if (!silent) setLoading(true);
       setLoadError(null);
       try {
-        const res = await fetch(`/api/admin/verification?status=${encodeURIComponent(status)}`, {
-          cache: 'no-store',
-        });
-        const body = (await res.json().catch(() => ({}))) as { submissions?: VerificationSubmission[]; error?: string };
-        if (!res.ok) throw new Error(body.error || `Could not load the queue (${res.status})`);
-        setRows(body.submissions || []);
+        const [subRes, creatorsRes] = await Promise.all([
+          fetch(`/api/admin/verification?status=${encodeURIComponent(status)}`, { cache: 'no-store' }),
+          fetch(`/api/admin/creators?status=${encodeURIComponent(status === 'all' ? 'all' : status)}`, { cache: 'no-store' }),
+        ]);
+
+        const subBody = (await subRes.json().catch(() => ({}))) as { submissions?: VerificationSubmission[]; error?: string };
+        const creatorsBody = (await creatorsRes.json().catch(() => ({}))) as { creators?: any[]; error?: string };
+
+        const directSubs = subBody.submissions || [];
+        const existingCreatorIds = new Set(directSubs.map((s) => s.creatorProfileId));
+
+        const directProfiles: VerificationSubmission[] = (creatorsBody.creators || [])
+          .filter((c: any) => !existingCreatorIds.has(c.id))
+          .map((c: any) => ({
+            id: c.id,
+            referenceCode: 'PROFILE-DIRECT',
+            status: c.verification_status || 'pending',
+            submittedAt: c.created_at || c.updated_at || new Date().toISOString(),
+            reviewedAt: null,
+            reviewReason: null,
+            reviewNotes: null,
+            reviewer: null,
+            creatorProfileId: c.id,
+            applicantUserId: c.user_id,
+            legalName: c.user?.full_name || c.professional_name || 'Photographer',
+            businessName: c.professional_name || null,
+            contactPhone: c.user?.phone_number || null,
+            governmentIdType: null,
+            governmentIdMasked: null,
+            gstin: null,
+            equipmentSummary: null,
+            categories: [],
+            city: c.city || null,
+            state: c.state || null,
+            serviceRadiusKm: null,
+            portfolioUrl: null,
+            applicantNotes: 'Registered photographer profile awaiting admin verification & directory publication.',
+            documentCount: 0,
+            documents: [],
+            professionalName: c.professional_name,
+            profileVerificationStatus: c.verification_status,
+            applicant: {
+              fullName: c.user?.full_name || c.professional_name,
+              email: c.user?.email || null,
+              accountStatus: c.user?.account_status || 'active',
+            },
+          }));
+
+        setRows([...directSubs, ...directProfiles]);
       } catch (err: any) {
         setLoadError(err?.message || 'Could not load the queue.');
         setRows([]);
@@ -139,7 +182,12 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ submissionId: submission.id, action, reason: reason || undefined }),
+        body: JSON.stringify({
+          submissionId: submission.id,
+          creatorProfileId: submission.creatorProfileId,
+          action,
+          reason: reason || undefined,
+        }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string; creator?: { verificationStatus?: string } };
       if (!res.ok) throw new Error(body.error || 'Could not record the decision.');

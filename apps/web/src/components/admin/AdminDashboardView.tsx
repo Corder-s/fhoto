@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Activity,
   Check,
+  CheckCircle2,
   Clock,
   RefreshCw,
   Ban,
@@ -51,6 +52,8 @@ interface UserRow {
   accountStatus: string;
   roles: string[];
   isPhotographer: boolean;
+  creatorId?: string | null;
+  creatorStatus?: string | null;
   createdAt: string;
 }
 
@@ -86,9 +89,10 @@ export const AdminDashboardView: React.FC = () => {
 
   const sessionCapabilities = session.status === 'authenticated' ? session.user : null;
   const isOwner = Boolean(sessionCapabilities?.roles?.includes('owner'));
+  const isAdmin = Boolean(sessionCapabilities?.roles?.includes('admin'));
   const granted = sessionCapabilities?.permissions || [];
-  const canReview = isOwner || granted.includes('manage_photographer_verification');
-  const canManageUsers = isOwner || granted.includes('manage_users');
+  const canReview = isOwner || isAdmin || granted.includes('manage_photographer_verification');
+  const canManageUsers = isOwner || isAdmin || granted.includes('manage_users');
 
   const notify = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setActionToast({ text, tone });
@@ -148,6 +152,29 @@ export const AdminDashboardView: React.FC = () => {
     }
   };
 
+  const approvePhotographer = async (user: UserRow) => {
+    setBusyId(user.id);
+    try {
+      const res = await fetch('/api/admin/creators', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creatorProfileId: user.creatorId || user.id,
+          userId: user.id,
+          action: 'approve',
+        }),
+      });
+      const body = await readJson<{ error?: string; message?: string }>(res);
+      if (!res.ok) throw new Error(body.error || 'Could not approve photographer.');
+      notify(`Photographer ${user.fullName || user.email} approved and published!`, 'ok');
+      await load();
+    } catch (err: any) {
+      notify(err?.message || 'Approval failed', 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const kpiCards = stats
     ? [
         {
@@ -186,7 +213,7 @@ export const AdminDashboardView: React.FC = () => {
     : [];
 
   const quickActions = [
-    { label: 'Verify Photographer', icon: ShieldCheck, href: '#pending-photographers', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
+    { label: 'Verify Photographer', icon: ShieldCheck, href: '/admin/photographers', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
     { label: 'Manage Bookings', icon: Calendar, href: '/admin/bookings', color: 'text-orange-600 bg-orange-50 hover:bg-orange-100' },
     { label: 'Resolve Dispute', icon: Scale, href: '/admin/disputes', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
     { label: 'Refresh Data', icon: RefreshCw, href: '#refresh', color: 'text-stone-600 bg-stone-100 hover:bg-stone-200' },
@@ -345,6 +372,31 @@ export const AdminDashboardView: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {u.isPhotographer && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                            u.creatorStatus === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : u.creatorStatus === 'pending'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-stone-100 text-stone-700 border border-stone-200'
+                          }`}
+                        >
+                          {u.creatorStatus === 'approved' ? 'Verified' : u.creatorStatus === 'pending' ? 'Pending' : u.creatorStatus || 'Unverified'}
+                        </span>
+                      )}
+                      {u.isPhotographer && u.creatorStatus !== 'approved' && canReview && (
+                        <button
+                          type="button"
+                          title="Approve photographer and publish to directory"
+                          disabled={busyId === u.id}
+                          onClick={() => approvePhotographer(u)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                      )}
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                           u.accountStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'

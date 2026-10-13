@@ -6,6 +6,7 @@ import {
   MIGRATION_REQUIRED_MESSAGE,
   reviewVerificationSubmission,
   SUBMISSION_STATUSES,
+  revalidatePublicDirectory,
 } from '@/lib/server/verification';
 import { isUuid } from '@/lib/server/policy';
 
@@ -108,7 +109,7 @@ export async function PATCH(req: NextRequest) {
     return jsonError(400, 'Invalid JSON payload.');
   }
 
-  const submissionId = body.submissionId ?? body.creatorProfileId ?? '';
+  const submissionId = body.submissionId ?? body.creatorProfileId ?? body.creatorId ?? body.userId ?? '';
   if (!isUuid(submissionId)) return jsonError(400, 'Invalid submissionId.');
 
   // A reviewer may also address the queue row by creator profile, which is what
@@ -128,7 +129,52 @@ export async function PATCH(req: NextRequest) {
       .order('submitted_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!byCreator.data) return jsonError(404, 'No open verification submission for that profile.');
+    if (!byCreator.data) {
+      // Fallback: direct creator_profiles update for creators without open submissions
+      const { data: creatorProfile } = await admin
+        .from('creator_profiles')
+        .select('id, user_id, verification_status')
+        .or(`id.eq.${submissionId},user_id.eq.${submissionId}`)
+        .maybeSingle();
+
+      if (creatorProfile) {
+        if (creatorProfile.user_id === user.id) {
+          return jsonError(403, 'You cannot change the verification state of your own profile.');
+        }
+        const nextStatus = body.action === 'approve' ? 'approved' : body.action === 'reject' ? 'rejected' : 'pending';
+        const now = new Date().toISOString();
+        await admin
+          .from('creator_profiles')
+          .update({ verification_status: nextStatus, updated_at: now })
+          .eq('id', creatorProfile.id);
+
+        try {
+          await admin.from('notifications').insert({
+            user_id: creatorProfile.user_id,
+            notification_type: 'creator_verification',
+            title: nextStatus === 'approved' ? 'Your photographer profile is live' : 'Photographer verification update',
+            body: nextStatus === 'approved'
+              ? 'An administrator verified and published your photographer profile.'
+              : `Your photographer profile status was updated to ${nextStatus}.${body.reason ? ` Note: ${body.reason}` : ''}`,
+          });
+        } catch {}
+
+        revalidatePublicDirectory();
+
+        return NextResponse.json(
+          {
+            success: true,
+            submission: { id: creatorProfile.id, status: nextStatus },
+            creator: { id: creatorProfile.id, verificationStatus: nextStatus, published: nextStatus === 'approved' },
+            userId: creatorProfile.user_id,
+            message: nextStatus === 'approved' ? 'Photographer verified and published to the directory.' : 'Status updated.',
+          },
+          { headers: { 'Cache-Control': 'no-store' } }
+        );
+      }
+
+      return jsonError(404, 'No open verification submission or photographer profile found.');
+    }
     targetId = byCreator.data.id as string;
   }
 
