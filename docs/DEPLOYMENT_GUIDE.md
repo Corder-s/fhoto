@@ -22,13 +22,27 @@ Valid commands: `npm run build` (shared + web), `npm run build:web`, `npm run bu
 ## 1. Supabase
 
 1. Create a project. Note the URL, the anon key, and the service-role key. The service-role key is a server secret.
-2. Apply migrations in order: `20261012000001_master_instantshoot_schema.sql`, `20261012000002_storage_and_rls_policies.sql`, `20261013000001_security_hardening.sql`. Use `supabase db push` after `supabase link`.
+2. Apply migrations in order: `20261012000001_master_instantshoot_schema.sql`, `20261012000002_storage_and_rls_policies.sql`, `20261013000001_security_hardening.sql`, `20261013000002_owner_roles_admin_permissions_and_verification.sql`. Use `supabase db push` after `supabase link`. Each file is additive and idempotent, and `npm run test:db` replays all four in PGlite.
 3. Confirm the buckets exist: `profile-avatars` (public), `creator-portfolios` (public), `booking-deliverables` (private), and the verification bucket.
 4. Authentication settings:
    - Site URL: the public web origin.
    - Redirect URLs: include `<origin>/reset-password` for the recovery flow.
    - Decide on email confirmation (KNOWN_ISSUES #1). The app's sign-up route currently confirms email automatically.
-5. Create the first admin by inserting a `user_roles` row with `role = 'admin'` for an existing auth user. Do this through the SQL editor with the service role. The app has no self-service admin path.
+5. Create the first owner by inserting a `user_roles` row with `role = 'owner'` for an existing auth user, through the SQL editor with the service role:
+
+   ```sql
+   INSERT INTO public.user_roles (user_id, role)
+   SELECT p.id, 'owner'
+     FROM public.profiles p
+    WHERE lower(p.email) = 'you@example.com'
+   ON CONFLICT (user_id, role) DO NOTHING;
+   ```
+
+   That one row is the entire bootstrap: the account can now open `/owner/dashboard`,
+   where further admins and owners are promoted from the UI. There is no self-service
+   path to ownership, and `/api/auth/register` cannot request it. Admins created before
+   this migration keep full access (they have no `admin_permissions` rows, which means
+   "unrestricted"); narrow them from the owner dashboard when you want to limit them.
 6. Do not run the seed scripts against production. They are for development projects only.
 
 ## 2. Web app (`apps/web`)
@@ -68,6 +82,9 @@ Verify after the first deployment:
 curl -s https://<web>/api/auth/session        # expect {"authenticated":false,"configured":true,...}
 curl -s -o /dev/null -w "%{http_code}\n" https://<web>/api/bookings/create -X POST   # expect 401
 curl -s -o /dev/null -w "%{http_code}\n" https://<web>/api/v1/health                # expect 200 only when Nest is reachable
+curl -s -o /dev/null -w "%{http_code}\n" https://<web>/api/admin/stats              # expect 401
+curl -s -o /dev/null -w "%{http_code}\n" https://<web>/api/owner/stats              # expect 401
+curl -s -o /dev/null -w "%{http_code}\n" https://<web>/owner/dashboard              # expect 307 to /login?next=/owner/dashboard
 ```
 
 ### 2.2 Any host (container, VM, another platform)
@@ -121,7 +138,7 @@ Smoke test with a session: `SMOKE_BASE_URL=https://<web> SMOKE_COOKIE='<cookie h
 
 ## 5. Rollback
 
-- Web: redeploy the previous build. Database migrations are not reversed automatically. The hardening migration is idempotent, so re-applying it is safe.
+- Web: redeploy the previous build. Database migrations are not reversed automatically. The hardening and access migrations are idempotent, so re-applying them is safe. Rolling back past `20261013000002` leaves the extra `creator_verification_submissions` table and `admin_permissions` table in place; the older app code ignores them.
 - Database: restore from a backup before the migration if a rollback past `20261013000001` is needed. Plan for this before migrating production.
 
 ## 6. Pre-launch blockers

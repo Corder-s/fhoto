@@ -48,6 +48,9 @@ Status legend: **Live** = reads and writes real data through the backend and is 
 | Admin | User list and suspend/reactivate | Live | `/admin/dashboard`, `/api/admin/users` | |
 | Admin | Booking management | Live | `/admin/bookings` | Silent failure on non-OK responses (KNOWN_ISSUES #13) |
 | AI | Assistant chat | Partial | `/api/v1/ai/chat` | Needs `GEMINI_API_KEY`; not connected to bookings |
-| Owner | Owner dashboard | Not built | `/owner/*` closed | No owner role |
+| Owner | Owner dashboard | Live | `/owner/dashboard`, `/api/owner/stats` | Live counts from profiles, creator_profiles, bookings, payments; no fixture numbers |
+| Owner | Administrator and permission management | Live | `/api/admin/roles`, `components/admin/AdministratorPanel.tsx` | Promote an existing account, set permissions, revoke; guards against removing the last owner |
+| Photographer | Verification application | Live | `/photographer/verification`, `/api/photographers/verification` | Files into `creator_verification_submissions` as pending; documents upload to the private bucket |
+| Admin | Verification review | Live | `/admin/dashboard#verification-queue`, `/api/admin/verification` | approve / reject / needs_info, permission-gated; triggers publish or unpublish the profile |
 | Platform | Platform fee settings | Live (read) | `platform_fee_settings` | Seeded at 10% |
 | Platform | NestJS API | Partial | `apps/api` | Auth mock-only; data paths need Prisma client |

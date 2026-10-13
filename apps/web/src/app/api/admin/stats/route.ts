@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * Platform totals computed from the database (no cached or estimated figures).
  */
 export async function GET() {
-  const auth = await authorize({ roles: ['admin'] });
+  const auth = await authorize({ roles: ['admin', 'owner'] });
   if (!auth.ok) return auth.response;
   const { admin } = auth;
 
@@ -32,6 +32,7 @@ export async function GET() {
       totalBookings,
       bookingsThisMonth,
       disputedBookings,
+      openSubmissions,
     ] = await Promise.all([
       count((t) => t.from('profiles').select('id', { count: 'exact', head: true })),
       count((t) => t.from('user_roles').select('id', { count: 'exact', head: true }).eq('role', 'customer')),
@@ -40,6 +41,14 @@ export async function GET() {
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true })),
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).gte('created_at', monthIso)),
       count((t) => t.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'disputed')),
+      // Applications awaiting a reviewer, including ones sent back for more
+      // information. This is the number the queue header shows.
+      count((t) =>
+        t
+          .from('creator_verification_submissions')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['pending', 'needs_info'])
+      ),
     ]);
 
     // Revenue = successfully paid payments (gross customer amount, INR).
@@ -68,6 +77,7 @@ export async function GET() {
         totalBookings,
         bookingsThisMonth,
         disputedBookings,
+        openVerificationSubmissions: openSubmissions,
         totalRevenue,
         revenueThisMonth,
         currency: 'INR',

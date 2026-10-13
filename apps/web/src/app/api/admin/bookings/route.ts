@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * with the 'admin' role; the acting admin is taken from the session, never from the body.
  */
 export async function GET(req: NextRequest) {
-  const auth = await authorize({ roles: ['admin'] });
+  const auth = await authorize({ roles: ['admin', 'owner'], permission: 'manage_bookings' });
   if (!auth.ok) return auth.response;
   const { admin } = auth;
 
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
  * Body: { bookingId, action: 'resolve_cancellation' | 'force_cancel' | 'force_confirm', decision?, adminNotes? }
  */
 export async function PATCH(req: NextRequest) {
-  const auth = await authorize({ roles: ['admin'] });
+  const auth = await authorize({ roles: ['admin', 'owner'], permission: 'manage_bookings' });
   if (!auth.ok) return auth.response;
   const { user, admin } = auth;
 

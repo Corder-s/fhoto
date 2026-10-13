@@ -1,4 +1,54 @@
 # Test results
+## Run on branch `arena/d4413e1c-fhoto`, 2026-10-13 (owner dashboard, permissions, verification)
+
+Sandbox: Node 22, no Docker, no Postgres, no browser, no outbound access to `*.vercel.app`,
+`*.supabase.co`, or the Prisma binary hosts. `vercel` and `supabase` CLIs are not installed and
+have no credentials here, so no deployment was triggered from this environment.
+
+| Check | Command | Result | Notes |
+| --- | --- | --- | --- |
+| Web type check | `npx tsc --noEmit` (apps/web) | **exit 0** | After every edit, including the new routes and components |
+| Web lint | `npx next lint` (apps/web) | **exit 0**, 0 errors, **87 warnings** | Same count as the previous run: the new files add no warnings (`no-img-element` untouched; no rule disabled) |
+| Web production build | `npm run build` (repo root) | **exit 0** | Compiles `@snapshoot/shared`, then `next build`. `ƒ Middleware 87.2 kB` appears in the route table, which is the new `middleware.ts` being bundled. `/owner/dashboard`, `/admin/dashboard`, `/photographer/verification` all built |
+| Policy unit tests | `npm run test:unit` | **34 / 34 pass** | 19 before this change; +15 for owner role, permission resolution, self-lockout guards, verification rules |
+| RLS and trigger tests | `npm run test:db` | **42 / 42 pass** | 30 before this change; +12 against all four migrations on PGlite, including a replay for idempotency |
+| Environment check | `node scripts/check-env.mjs` | **passed** | Warns about the absent Supabase values (expected here); no new variables were introduced by this change |
+| NestJS build / tests | not run | — | `apps/api` is untouched by this change and Prisma cannot be generated in the sandbox (KNOWN_ISSUES #15) |
+
+### Local HTTP verification (production build, `next start` with a placeholder Supabase project)
+
+The server was started from the built output with a placeholder Supabase URL and anon key, so the
+routing, middleware, and authorization layers could be exercised even though no data backend
+exists. `SUPABASE_SERVICE_ROLE_KEY` was deliberately left unset.
+
+| Request | Result | Meaning |
+| --- | --- | --- |
+| `GET /owner/dashboard` (anonymous) | **307 → `/login?next=%2Fowner%2Fdashboard`** | Protected-area redirect works for direct navigation |
+| `GET /admin/dashboard` (anonymous) | **307 → `/login?next=%2Fadmin%2Fdashboard`** | same |
+| `GET /photographer/verification` (anonymous) | **307 → `/login?next=…`** | same |
+| `GET /customer/dashboard` (anonymous) | **307 → `/login?next=…`** | same |
+| `GET /explore`, `/for-photographers`, `/reference-assets/*.jpg` | **200** | Public pages and public assets are not intercepted |
+| `GET /photographers` | **307 → `/explore`** | existing redirect preserved |
+| `GET /login?next=/owner/dashboard` | **200** | the redirect target renders and reads `next` |
+| `GET /api/auth/session` (anonymous) | **200** `{"authenticated":false,"configured":true}` | session contract unchanged |
+| `GET /api/admin/stats`, `/api/admin/users`, `/api/admin/verification`, `/api/admin/roles`, `/api/owner/stats`, `/api/photographers/verification`, `/api/admin/verification/document` | **401** `{"success":false,"error":"Authentication required. Please sign in."}` | every new route refuses an anonymous caller before touching the database |
+| `POST` to `GET`-only admin routes (`/api/admin/stats`, `/api/owner/stats`, `/api/admin/verification`) | **405** | method handling intact |
+
+### Not verified, and why
+
+| Item | Status | Reason |
+| --- | --- | --- |
+| Migration applied to the production Supabase project | **not applied** | No `supabase` CLI credentials and no network to the project. `npm run test:db` replays the SQL on PGlite with stub `auth`/`storage` schemas, which covers policy and trigger logic but not hosted behaviour (real `storage.foldername`, signed URLs, `auth.uid()` from a JWT) |
+| Owner promotion through `/owner/dashboard` against production data | **not attempted** | Would create or alter real privileges on live accounts. Requires explicit authorization from the project owner; the documented SQL bootstrap is the intended first step |
+| Approving a real photographer's application | **not attempted** | Writes real publication state and notifies a real person |
+| Private-bucket upload and signed-URL download | **not exercised** | Needs a live Supabase project (storage API + signed URLs). Logic reviewed; the storage policies that gate it are tested in PGlite |
+| Vercel redeploy, environment variables, cookie session persistence on `fhoto-sigma.vercel.app` | **not run** | No Vercel token/CLI in this sandbox and no route to the deployment. The previous production deployment for `main` (`849657c`) is reported successful by the repository's deployment status |
+| `/explore` visibility change after an approval | **not exercised end to end** | The listing filter (`verification_status = 'approved'`) and the publication trigger are covered by the database tests; the round trip needs a live project |
+
+**Read this table as the release checklist.** Deploy order: apply the migration, confirm the
+environment variables below, redeploy, then create the first owner and walk the workflow with test
+accounts before touching real photographer records.
+
 
 Verification run on branch `arena/217a1005-fhoto`, 2026-10-13, after the final code edits. Sandbox: Node 22, no Docker, no Postgres, no browser, no outbound access to Supabase or Prisma binary hosts.
 

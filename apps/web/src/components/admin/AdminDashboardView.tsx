@@ -15,12 +15,20 @@ import {
   RefreshCw,
   Ban,
   RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
+import { VerificationQueue } from './VerificationQueue';
+import { AdministratorPanel } from './AdministratorPanel';
+import { useServerSession } from '../../lib/useServerSession';
 
 /*
  * Admin overview. Every figure and row is loaded from the admin API routes
- * (/api/admin/stats, /creators, /users, /bookings); nothing is hardcoded.
- * Access is enforced by those routes, so this view is only a presentation layer.
+ * (/api/admin/stats, /verification, /users, /bookings); nothing is hardcoded.
+ *
+ * Capability awareness is display only: `canReview` decides whether the approve /
+ * reject controls are enabled, and the same permission is re-checked by
+ * /api/admin/verification on every request. Hiding a button is never the
+ * security boundary - the 403 from the API is.
  */
 
 interface Stats {
@@ -34,16 +42,6 @@ interface Stats {
   disputedBookings: number;
   totalRevenue: number;
   revenueThisMonth: number;
-}
-
-interface CreatorRow {
-  id: string;
-  user_id: string;
-  professional_name: string;
-  city: string | null;
-  state: string | null;
-  verification_status: string;
-  user: { full_name: string; email: string; account_status: string } | null;
 }
 
 interface UserRow {
@@ -76,15 +74,21 @@ async function readJson<T>(res: Response): Promise<T> {
 }
 
 export const AdminDashboardView: React.FC = () => {
-  const [userFilter, setUserFilter] = useState<'all' | 'customers' | 'photographers'>('all');
+  const [userFilter, setUserFilter] = useState<'all' | 'customers' | 'photographers' | 'administrators'>('all');
   const [stats, setStats] = useState<Stats | null>(null);
-  const [creators, setCreators] = useState<CreatorRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const session = useServerSession();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionToast, setActionToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const sessionCapabilities = session.status === 'authenticated' ? session.user : null;
+  const isOwner = Boolean(sessionCapabilities?.roles?.includes('owner'));
+  const granted = sessionCapabilities?.permissions || [];
+  const canReview = isOwner || granted.includes('manage_photographer_verification');
+  const canManageUsers = isOwner || granted.includes('manage_users');
 
   const notify = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setActionToast({ text, tone });
@@ -95,26 +99,23 @@ export const AdminDashboardView: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [statsRes, creatorsRes, usersRes, bookingsRes] = await Promise.all([
+      const [statsRes, usersRes, bookingsRes] = await Promise.all([
         fetch('/api/admin/stats', { cache: 'no-store' }),
-        fetch('/api/admin/creators?status=pending', { cache: 'no-store' }),
         fetch(`/api/admin/users?filter=${userFilter}`, { cache: 'no-store' }),
         fetch('/api/admin/bookings', { cache: 'no-store' }),
       ]);
 
-      const failed = [statsRes, creatorsRes, usersRes, bookingsRes].find((r) => !r.ok);
+      const failed = [statsRes, usersRes, bookingsRes].find((r) => !r.ok);
       if (failed) {
         const body = await readJson<{ error?: string }>(failed);
         throw new Error(body.error || `Request failed (${failed.status})`);
       }
 
       const statsBody = await readJson<{ stats: Stats }>(statsRes);
-      const creatorsBody = await readJson<{ creators: CreatorRow[] }>(creatorsRes);
       const usersBody = await readJson<{ users: UserRow[] }>(usersRes);
       const bookingsBody = await readJson<{ bookings: BookingRow[] }>(bookingsRes);
 
       setStats(statsBody.stats);
-      setCreators(creatorsBody.creators || []);
       setUsers(usersBody.users || []);
       setBookings((bookingsBody.bookings || []).slice(0, 6));
     } catch (err: any) {
@@ -127,25 +128,6 @@ export const AdminDashboardView: React.FC = () => {
   useEffect(() => {
     load();
   }, [load]);
-
-  const reviewCreator = async (creatorProfileId: string, action: 'approve' | 'reject') => {
-    setBusyId(creatorProfileId);
-    try {
-      const res = await fetch('/api/admin/creators', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creatorProfileId, action }),
-      });
-      const body = await readJson<{ error?: string }>(res);
-      if (!res.ok) throw new Error(body.error || 'Could not update the application.');
-      notify(action === 'approve' ? 'Photographer approved' : 'Application rejected');
-      await load();
-    } catch (err: any) {
-      notify(err?.message || 'Could not update the application.', 'error');
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   const setAccountStatus = async (userId: string, accountStatus: 'active' | 'suspended') => {
     setBusyId(userId);
@@ -312,60 +294,17 @@ export const AdminDashboardView: React.FC = () => {
         })}
       </div>
 
-      {/* ROW 3: PENDING PHOTOGRAPHERS, USERS, BOOKINGS */}
+      {/* ROW 3: PHOTOGRAPHER VERIFICATION QUEUE, USERS, BOOKINGS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* PENDING PHOTOGRAPHERS */}
         <div
           id="pending-photographers"
-          className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between scroll-mt-24"
+          className="lg:col-span-12 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs scroll-mt-24"
         >
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <ShieldCheck className="w-4 h-4 text-[#FF6E00]" />
-              <h3 className="text-sm font-black text-[#1A1816]">Photographer Applications</h3>
-            </div>
-            {creators.length === 0 ? (
-              <p className="text-xs text-[#8C847A] py-6 text-center">No applications are waiting for review.</p>
-            ) : (
-              <div className="divide-y divide-[#F2ECE3]">
-                {creators.map((c) => (
-                  <div key={c.id} className="py-2.5 space-y-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#1A1816] truncate">{c.professional_name}</p>
-                      <p className="text-[10px] text-[#8C847A] truncate">
-                        {c.user?.full_name || 'Unknown'} • {c.user?.email || '—'}
-                      </p>
-                      <p className="text-[10px] text-[#A69F96] truncate">
-                        {[c.city, c.state].filter(Boolean).join(', ') || 'Location not set'}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={busyId === c.id}
-                        onClick={() => reviewCreator(c.id, 'approve')}
-                        className="px-3 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 text-white disabled:opacity-50"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === c.id}
-                        onClick={() => reviewCreator(c.id, 'reject')}
-                        className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-red-200 text-red-600 disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <VerificationQueue canReview={canReview} />
         </div>
 
         {/* RECENT USERS */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -373,7 +312,7 @@ export const AdminDashboardView: React.FC = () => {
                 <h3 className="text-sm font-black text-[#1A1816]">Users</h3>
               </div>
               <div className="flex items-center gap-1">
-                {(['all', 'customers', 'photographers'] as const).map((t) => (
+                {(['all', 'customers', 'photographers', 'administrators'] as const).map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -382,7 +321,13 @@ export const AdminDashboardView: React.FC = () => {
                       userFilter === t ? 'bg-[#FF6E00] text-white shadow-2xs' : 'text-[#736B63] hover:text-[#1A1816]'
                     }`}
                   >
-                    {t === 'all' ? 'All' : t === 'customers' ? 'Customers' : 'Photographers'}
+                    {t === 'all'
+                      ? 'All'
+                      : t === 'customers'
+                        ? 'Customers'
+                        : t === 'photographers'
+                          ? 'Photographers'
+                          : 'Admins'}
                   </button>
                 ))}
               </div>
@@ -407,7 +352,7 @@ export const AdminDashboardView: React.FC = () => {
                       >
                         {u.accountStatus}
                       </span>
-                      {u.accountStatus === 'active' ? (
+                      {!canManageUsers ? null : u.accountStatus === 'active' ? (
                         <button
                           type="button"
                           title="Suspend account"
@@ -437,7 +382,7 @@ export const AdminDashboardView: React.FC = () => {
         </div>
 
         {/* RECENT BOOKINGS */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -474,6 +419,24 @@ export const AdminDashboardView: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ROW 4: WHO ELSE CAN DO WHAT */}
+      <div className="bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs space-y-2">
+        <div className="flex items-start gap-2 text-[11px] font-semibold text-[#736B63]">
+          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6E00]" />
+          <p>
+            {`Signed in as ${sessionCapabilities?.roles?.join(' / ') || 'administrator'}. Your capabilities: ${
+              isOwner
+                ? 'all administrator permissions (owner)'
+                : granted.length
+                  ? granted.join(', ')
+                  : 'all administrator permissions (no explicit restrictions)'
+            }.`}{' '}
+            Ownership and permission grants are managed by a platform owner; changes apply to the next request you make.
+          </p>
+        </div>
+        <AdministratorPanel canManage={isOwner || granted.includes('manage_administrators')} />
       </div>
     </div>
   );

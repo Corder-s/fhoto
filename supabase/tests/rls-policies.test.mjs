@@ -27,6 +27,7 @@ const MIGRATIONS = [
   '20261012000001_master_instantshoot_schema.sql',
   '20261012000002_storage_and_rls_policies.sql',
   '20261013000001_security_hardening.sql',
+  '20261013000002_owner_roles_admin_permissions_and_verification.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -439,9 +440,266 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
     });
   });
 
+  describe('owner role, permissions and verification submissions (20261013000002)', () => {
+    const IDS2 = {
+      owner: '00000000-0000-4000-8000-00000000000d',
+      reviewAdmin: '00000000-0000-4000-8000-0000000000e1',
+      applicant: '00000000-0000-4000-8000-0000000000e2',
+      bystander: '00000000-0000-4000-8000-0000000000e3',
+    };
+    let applicantCreatorId;
+
+    before(async () => {
+      await signUp(IDS2.owner, 'owner@example.test', 'customer');
+      await signUp(IDS2.reviewAdmin, 'reviewer@example.test', 'customer');
+      await signUp(IDS2.applicant, 'applicant@example.test', 'creator');
+      await signUp(IDS2.bystander, 'bystander@example.test', 'customer');
+
+      await db.query("INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'owner')", [IDS2.owner]);
+      await db.query("INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'admin')", [IDS2.reviewAdmin]);
+      // A reviewer narrowed down to one capability.
+      await db.query(
+        "INSERT INTO public.admin_permissions (user_id, permission) VALUES ($1, 'manage_photographer_verification')",
+        [IDS2.reviewAdmin]
+      );
+      const creator = await db.query('SELECT id FROM public.creator_profiles WHERE user_id = $1', [IDS2.applicant]);
+      applicantCreatorId = creator.rows[0].id;
+    });
+
+    test('the owner role exists and counts as a platform administrator', async () => {
+      const roles = await db.query('SELECT role FROM public.user_roles WHERE user_id = $1 ORDER BY role', [IDS2.owner]);
+      // Signup grants 'customer'; the platform then adds 'owner' on top of it,
+      // so an owner keeps whatever ordinary access the account already had.
+      assert.ok(roles.rows.map((row) => row.role).includes('owner'), 'user_roles must accept the owner role');
+
+      const check = await asRole('authenticated', IDS2.owner, 'SELECT public.is_admin() AS admin, public.is_owner() AS owner');
+      assert.equal(check.rows[0].admin, true, 'is_admin() must accept owners so RLS policies cover them');
+      assert.equal(check.rows[0].owner, true);
+
+      // A customer is neither.
+      const customerCheck = await asRole('authenticated', IDS2.bystander, 'SELECT public.is_admin() AS admin, public.is_owner() AS owner');
+      assert.equal(customerCheck.rows[0].admin, false);
+      assert.equal(customerCheck.rows[0].owner, false);
+    });
+
+    test('an owner reads contact details across accounts, an applicant does not', async () => {
+      const asOwner = await asRole(
+        'authenticated',
+        IDS2.owner,
+        'SELECT email FROM public.profiles WHERE id = $1',
+        [IDS2.bystander]
+      );
+      assert.equal(asOwner.rows.length, 1);
+      const asBystander = await asRole(
+        'authenticated',
+        IDS2.bystander,
+        'SELECT email FROM public.profiles WHERE id = $1',
+        [IDS2.applicant]
+      );
+      assert.equal(asBystander.rows.length, 0);
+    });
+
+    test('roles and permissions cannot be self-granted from a client session', async () => {
+      await expectDenied(
+        'authenticated',
+        IDS2.bystander,
+        "INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'owner')",
+        [IDS2.bystander]
+      );
+      await expectDenied(
+        'authenticated',
+        IDS2.bystander,
+        "UPDATE public.user_roles SET role = 'owner' WHERE user_id = $1",
+        [IDS2.bystander]
+      );
+      await expectDenied(
+        'authenticated',
+        IDS2.bystander,
+        "INSERT INTO public.admin_permissions (user_id, permission) VALUES ($1, 'manage_users')",
+        [IDS2.bystander]
+      );
+      await expectDenied(
+        'authenticated',
+        IDS2.bystander,
+        'DELETE FROM public.admin_permissions WHERE user_id = $1',
+        [IDS2.reviewAdmin]
+      );
+    });
+
+    test('has_admin_permission() resolves owner, legacy admin and narrowed admin', async () => {
+      const owner = await db.query("SELECT public.has_admin_permission($1, 'manage_administrators') AS ok", [IDS2.owner]);
+      assert.equal(owner.rows[0].ok, true, 'an owner holds every capability');
+
+      const legacy = await db.query("SELECT public.has_admin_permission($1, 'manage_users') AS ok", [IDS.admin]);
+      assert.equal(legacy.rows[0].ok, true, 'an admin with no grant rows keeps the inherited set');
+
+      const narrowedOk = await db.query("SELECT public.has_admin_permission($1, 'manage_photographer_verification') AS ok", [IDS2.reviewAdmin]);
+      assert.equal(narrowedOk.rows[0].ok, true);
+      const narrowedNo = await db.query("SELECT public.has_admin_permission($1, 'manage_users') AS ok", [IDS2.reviewAdmin]);
+      assert.equal(narrowedNo.rows[0].ok, false, 'a narrowed admin must not reach other duties');
+
+      const creator = await db.query("SELECT public.has_admin_permission($1, 'manage_users') AS ok", [IDS.creatorA]);
+      assert.equal(creator.rows[0].ok, false, 'a creator is not an administrator');
+    });
+
+    test('a creator can file a pending application but cannot approve themselves', async () => {
+      await asRole(
+        'authenticated',
+        IDS2.applicant,
+        `INSERT INTO public.creator_verification_submissions
+           (creator_id, user_id, reference_code, status, legal_name, government_id_type, documents)
+         VALUES ($1, $2, 'VER-TEST-1', 'approved', 'Applicant One', 'aadhaar', '[]'::jsonb)`,
+        [applicantCreatorId, IDS2.applicant]
+      );
+      const stored = await db.query(
+        "SELECT status, reviewed_at, user_id FROM public.creator_verification_submissions WHERE reference_code = 'VER-TEST-1'"
+      );
+      assert.equal(stored.rows[0].status, 'pending', 'a client insert is forced back to pending');
+      assert.equal(stored.rows[0].reviewed_at, null);
+
+      // ...and filing demotes the profile to pending, which the directory honours.
+      const profile = await db.query('SELECT verification_status FROM public.creator_profiles WHERE id = $1', [applicantCreatorId]);
+      assert.equal(profile.rows[0].verification_status, 'pending');
+    });
+
+    test('an application cannot target somebody else, and cannot be reviewed by the applicant', async () => {
+      await expectDenied(
+        'authenticated',
+        IDS2.applicant,
+        `INSERT INTO public.creator_verification_submissions (creator_id, user_id, reference_code, legal_name)
+         VALUES ($1, $2, 'VER-TEST-OTHER', 'Framed')`,
+        [applicantCreatorId, IDS2.bystander]
+      );
+      await expectDenied(
+        'authenticated',
+        IDS2.applicant,
+        "UPDATE public.creator_verification_submissions SET status = 'approved' WHERE reference_code = 'VER-TEST-1'",
+        []
+      );
+    });
+
+    test('only one application per creator waits for review at a time', async () => {
+      await expectDenied(
+        'authenticated',
+        IDS2.applicant,
+        `INSERT INTO public.creator_verification_submissions (creator_id, user_id, reference_code, legal_name)
+         VALUES ($1, $2, 'VER-TEST-2', 'Duplicate')`,
+        [applicantCreatorId, IDS2.applicant]
+      );
+    });
+
+    test('strangers and anonymous clients cannot read applications', async () => {
+      const anon = await asRole('anon', null, 'SELECT id FROM public.creator_verification_submissions');
+      assert.equal(anon.rows.length, 0);
+      const bystander = await asRole('authenticated', IDS2.bystander, 'SELECT id FROM public.creator_verification_submissions');
+      assert.equal(bystander.rows.length, 0);
+      const own = await asRole('authenticated', IDS2.applicant, 'SELECT id FROM public.creator_verification_submissions');
+      assert.equal(own.rows.length, 1, 'the applicant always sees their own');
+      const reviewer = await asRole('authenticated', IDS2.reviewAdmin, 'SELECT id FROM public.creator_verification_submissions');
+      assert.equal(reviewer.rows.length, 1, 'administrators read the queue');
+    });
+
+    test('a review decision publishes the profile and notifies the photographer', async () => {
+      const before = await db.query('SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1', [IDS2.applicant]);
+      await db.query(
+        "UPDATE public.creator_verification_submissions SET status = 'approved', reviewed_at = NOW(), reviewed_by = $1 WHERE reference_code = 'VER-TEST-1'",
+        [IDS2.reviewAdmin]
+      );
+      const profile = await db.query('SELECT verification_status FROM public.creator_profiles WHERE id = $1', [applicantCreatorId]);
+      assert.equal(profile.rows[0].verification_status, 'approved', 'the trigger must publish the profile');
+
+      const after = await db.query("SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1 AND notification_type = 'creator_verification'", [IDS2.applicant]);
+      assert.equal(after.rows[0].n, before.rows[0].n + 1, 'the photographer gets a notification of the decision');
+
+      // An approved profile is now readable without a session.
+      const listed = await asRole('anon', null, 'SELECT id FROM public.creator_profiles WHERE id = $1', [applicantCreatorId]);
+      assert.equal(listed.rows.length, 1);
+    });
+
+    test('a review written on the profile closes the open application instead of drifting', async () => {
+      const again = await db.query(
+        `INSERT INTO public.creator_verification_submissions (creator_id, user_id, reference_code, legal_name, status)
+         VALUES ($1, $2, 'VER-TEST-3', 'Applicant One', 'pending') RETURNING id`,
+        [applicantCreatorId, IDS2.applicant]
+      );
+      await db.query("UPDATE public.creator_profiles SET verification_status = 'suspended' WHERE id = $1", [applicantCreatorId]);
+      const submission = await db.query(
+        "SELECT status, review_reason FROM public.creator_verification_submissions WHERE id = $1",
+        [again.rows[0].id]
+      );
+      assert.equal(submission.rows[0].status, 'rejected', 'a suspension closes the pending application');
+      assert.match(submission.rows[0].review_reason, /suspended/i);
+
+      const listed = await asRole('anon', null, 'SELECT id FROM public.creator_profiles WHERE id = $1', [applicantCreatorId]);
+      assert.equal(listed.rows.length, 0, 'a suspended profile is out of the public directory');
+    });
+
+    test('an applicant withdraws an unreviewed application and can file again', async () => {
+      const inserted = await db.query(
+        `INSERT INTO public.creator_verification_submissions (creator_id, user_id, reference_code, legal_name)
+         VALUES ($1, $2, 'VER-TEST-4', 'Applicant One') RETURNING id`,
+        [applicantCreatorId, IDS2.applicant]
+      );
+      await asRole(
+        'authenticated',
+        IDS2.applicant,
+        "DELETE FROM public.creator_verification_submissions WHERE id = $1 AND status = 'pending'",
+        [inserted.rows[0].id]
+      );
+      const remaining = await db.query('SELECT id FROM public.creator_verification_submissions WHERE id = $1', [inserted.rows[0].id]);
+      assert.equal(remaining.rows.length, 0);
+
+      // A reviewed application cannot be removed: the delete policy only matches
+      // rows still pending, so the statement runs but finds nothing to delete.
+      await asRole(
+        'authenticated',
+        IDS2.applicant,
+        "DELETE FROM public.creator_verification_submissions WHERE reference_code = 'VER-TEST-1'",
+        []
+      );
+      const decision = await db.query(
+        "SELECT status FROM public.creator_verification_submissions WHERE reference_code = 'VER-TEST-1'"
+      );
+      assert.equal(decision.rows.length, 1, 'a recorded decision is immutable for the applicant');
+      assert.equal(decision.rows[0].status, 'approved');
+    });
+
+    test('the verification bucket stays private to the applicant and reviewers', async () => {
+      await db.query("INSERT INTO storage.objects (bucket_id, name, owner) VALUES ('creator-verification', $1, $2)", [
+        `${IDS2.applicant}/aadhaar.jpg`,
+        IDS2.applicant,
+      ]);
+      const own = await asRole('authenticated', IDS2.applicant, "SELECT name FROM storage.objects WHERE bucket_id = 'creator-verification'");
+      assert.equal(own.rows.length, 1);
+      const stranger = await asRole('authenticated', IDS2.bystander, "SELECT name FROM storage.objects WHERE bucket_id = 'creator-verification'");
+      assert.equal(stranger.rows.length, 0);
+      await expectDenied(
+        'authenticated',
+        IDS2.bystander,
+        "INSERT INTO storage.objects (bucket_id, name) VALUES ('creator-verification', $1)",
+        [`${IDS2.applicant}/forged.pdf`]
+      );
+    });
+  });
+
   describe('migration idempotency', () => {
-    test('re-applying the hardening migration leaves the policies intact', async () => {
+    test('re-applying the hardening and access migrations leaves the policies intact', async () => {
       await db.exec(readFileSync(join(migrationsDir, '20261013000001_security_hardening.sql'), 'utf8'));
+      // The access migration must be safe to replay (a redeploy or a repair run
+      // re-applies it), including its CHECK constraints and triggers.
+      await db.exec(
+        readFileSync(join(migrationsDir, '20261013000002_owner_roles_admin_permissions_and_verification.sql'), 'utf8')
+      );
+      const verificationPolicies = await db.query(
+        "SELECT count(*)::int AS n FROM pg_policies WHERE schemaname = 'public' AND tablename = 'creator_verification_submissions'"
+      );
+      assert.equal(verificationPolicies.rows[0].n, 3, 'select, insert and delete policies, not doubled');
+      const adminStillWorks = await asRole('authenticated', IDS.admin, 'SELECT public.is_admin() AS admin');
+      assert.equal(adminStillWorks.rows[0].admin, true, 'is_admin() must survive a re-apply');
+      const pendingGuard = await db.query(
+        "SELECT count(*)::int AS n FROM pg_indexes WHERE tablename = 'creator_verification_submissions' AND indexname = 'uq_verification_one_pending_per_creator'"
+      );
+      assert.equal(pendingGuard.rows[0].n, 1);
       const r = await db.query("SELECT count(*)::int AS n FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND cmd = 'SELECT'");
       assert.equal(r.rows[0].n, 1, 'exactly one SELECT policy on profiles after re-apply');
       const bk = await db.query("SELECT count(*)::int AS n FROM pg_policies WHERE schemaname = 'public' AND tablename = 'bookings' AND cmd = 'INSERT'");
