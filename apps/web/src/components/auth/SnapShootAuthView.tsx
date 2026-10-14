@@ -76,7 +76,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
   useEffect(() => {
     setTab(initialTab);
     if (rolePreference) setRegRole(rolePreference);
-  }, [initialTab, rolePreference]);
+    if (message) setSuccessMessage(message);
+  }, [initialTab, rolePreference, message]);
 
   // Resend Countdown Timer
   useEffect(() => {
@@ -123,20 +124,21 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     setIsLoading(true);
 
     if (loginMethod === 'email_otp') {
+      const trimmedEmail = loginEmail.trim();
       try {
         const res = await fetch('/api/auth/otp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginEmail.trim(), purpose: 'login' }),
+          body: JSON.stringify({ email: trimmedEmail, purpose: 'login' }),
         });
         const data = await res.json();
         setIsLoading(false);
-        if (!res.ok) {
+        if (!res.ok || !data.success) {
           setErrorMessage(data.error || 'Failed to resend verification code.');
           return;
         }
-        setResendCountdown(60);
-        setSuccessMessage('A fresh verification code has been dispatched to your email.');
+        setResendCountdown(data.cooldownSeconds || 60);
+        setSuccessMessage('A fresh verification code has been dispatched. Please check your inbox and spam folder.');
       } catch (err: any) {
         setIsLoading(false);
         setErrorMessage(err?.message || 'Could not dispatch email verification code.');
@@ -167,8 +169,10 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
     // 1. EMAIL OTP LOGIN (Real Transactional Email OTP)
     if (loginMethod === 'email_otp') {
-      if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
-        setErrorMessage('Please enter a valid email address.');
+      const trimmedEmail = loginEmail.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+        setErrorMessage('Please enter a valid email address (e.g., name@example.com).');
         return;
       }
 
@@ -178,23 +182,23 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           const res = await fetch('/api/auth/otp/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: loginEmail.trim(), purpose: 'login' }),
+            body: JSON.stringify({ email: trimmedEmail, purpose: 'login' }),
           });
           const data = await res.json();
           setIsLoading(false);
-          if (!res.ok) {
+          if (!res.ok || !data.success) {
             setErrorMessage(data.error || 'Failed to dispatch verification code.');
             return;
           }
           setIsOtpSent(true);
-          setResendCountdown(60);
-          setSuccessMessage('A 6-digit verification code has been sent to your email.');
+          setResendCountdown(data.cooldownSeconds || 60);
+          setSuccessMessage(data.message || 'A 6-digit verification code has been dispatched. Please check your inbox and spam folder.');
         } catch (err: any) {
           setIsLoading(false);
           setErrorMessage(err?.message || 'Network error while requesting verification code.');
         }
       } else {
-        const code = loginOtp.join('');
+        const code = loginOtp.join('').trim();
         if (code.length < 6) {
           setErrorMessage('Please enter the complete 6-digit verification code.');
           return;
@@ -204,11 +208,11 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           const res = await fetch('/api/auth/otp/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: loginEmail.trim(), otp: code, purpose: 'login' }),
+            body: JSON.stringify({ email: trimmedEmail, otp: code, purpose: 'login' }),
           });
           const data = await res.json();
           setIsLoading(false);
-          if (!res.ok) {
+          if (!res.ok || !data.success) {
             setErrorMessage(data.error || 'Invalid or expired verification code.');
             return;
           }
@@ -508,9 +512,9 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
       setIsLoading(true);
       try {
-        const callbackUrl = `${window.location.origin}/auth/callback?role=${encodeURIComponent(
-          tab === 'register' ? regRole : 'customer'
-        )}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
+        const callbackUrl = `${window.location.origin}/auth/callback${
+          returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''
+        }`;
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -1096,18 +1100,34 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               {loginMethod === 'email_otp' && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1816] mb-1">
-                      Email Address
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-[#1A1816]">
+                        Email Address
+                      </label>
+                      {isOtpSent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsOtpSent(false);
+                            setLoginOtp(['', '', '', '', '', '']);
+                            setErrorMessage('');
+                            setSuccessMessage('');
+                          }}
+                          className="text-[11px] font-bold text-[#FF6E00] hover:underline cursor-pointer"
+                        >
+                          Change Email
+                        </button>
+                      )}
+                    </div>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
                       <input
                         type="email"
-                        disabled={isOtpSent}
+                        disabled={isOtpSent || isLoading}
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         placeholder="name@example.com"
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium disabled:bg-gray-50"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium disabled:bg-gray-100 disabled:text-gray-600"
                       />
                     </div>
                   </div>
@@ -1134,14 +1154,16 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                             id={`auth-otp-${idx}`}
                             type="text"
                             maxLength={1}
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
                             value={digit}
                             onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
                             className="w-10 h-11 text-center font-black text-lg rounded-xl border border-[#E8E2D8] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none"
                           />
                         ))}
                       </div>
-                      <p className="text-[11px] text-[#736B63]">
-                        Enter the verification code sent to your registered email address.
+                      <p className="text-[11px] text-[#736B63] leading-relaxed">
+                        Enter the 6-digit verification code sent to your email. Check your <strong>Inbox</strong> and <strong>Spam / Junk</strong> folder.
                       </p>
                     </div>
                   )}
@@ -1151,12 +1173,22 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                     disabled={isLoading}
                     className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading
-                      ? 'Processing...'
-                      : !isOtpSent
-                      ? 'Send Verification Code'
-                      : 'Verify Code & Sign In'}
-                    <ArrowRight className="w-4 h-4" />
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Processing...</span>
+                      </>
+                    ) : !isOtpSent ? (
+                      <>
+                        <span>Send Verification Code</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Verify Code & Sign In</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </>
               )}

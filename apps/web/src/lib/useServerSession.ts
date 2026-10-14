@@ -12,6 +12,9 @@ export interface ServerSessionUser {
   permissions: string[];
   isOwner: boolean;
   accountStatus: string;
+  roleSelected: boolean;
+  hasCreatorProfile?: boolean;
+  creatorStatus?: string | null;
 }
 
 export type ServerSessionState =

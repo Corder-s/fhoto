@@ -18,13 +18,83 @@ function AuthCallbackContent() {
   useEffect(() => {
     let isCancelled = false;
 
-    const processSession = (session: any) => {
+    const processSession = async (session: any) => {
       if (!session?.user) return;
       const user = session.user;
       const meta = user.user_metadata || {};
-      const requestedRole = searchParams.get('role');
-      const role = (meta.role as AuthUser['role']) || (requestedRole as AuthUser['role']) || 'customer';
+      const returnUrl = searchParams.get('returnUrl');
 
+      try {
+        // Query the server with the cryptographic access token to determine exact account status
+        const res = await fetch('/api/auth/session', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        const data = await res.json();
+
+        if (data.authenticated && data.user) {
+          const serverUser = data.user;
+
+          // 1. If this is a new user who has NOT yet selected an account type,
+          // route them directly to the Account Selection Screen (/auth/select-role).
+          if (serverUser.roleSelected === false) {
+            const authUser: AuthUser = {
+              id: serverUser.id,
+              name: serverUser.name || meta.full_name || meta.name || user.email?.split('@')[0] || 'User',
+              email: serverUser.email || user.email || '',
+              phone: meta.phone || user.phone,
+              avatarUrl: meta.avatar_url || meta.picture,
+              role: 'customer', // temporary until selection is made
+              roleSelected: false,
+            };
+
+            saveAuthSession(authUser, session.access_token);
+            setStatus('success');
+
+            const selectRoleUrl = `/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
+            setTimeout(() => {
+              window.location.href = selectRoleUrl;
+            }, 600);
+            return;
+          }
+
+          // 2. Existing user with established role choice:
+          // Identify their verified role and redirect directly to their dashboard.
+          const effectiveRole = serverUser.roles?.includes('owner')
+            ? 'owner'
+            : serverUser.roles?.includes('admin')
+            ? 'admin'
+            : serverUser.roles?.includes('creator') || serverUser.hasCreatorProfile
+            ? 'creator'
+            : 'customer';
+
+          const authUser: AuthUser = {
+            id: serverUser.id,
+            name: serverUser.name || meta.full_name || meta.name || user.email?.split('@')[0] || 'User',
+            email: serverUser.email || user.email || '',
+            phone: meta.phone || user.phone,
+            avatarUrl: meta.avatar_url || meta.picture,
+            role: effectiveRole,
+            roleSelected: true,
+          };
+
+          saveAuthSession(authUser, session.access_token);
+          setStatus('success');
+
+          const targetUrl = resolvePostAuthRedirect(authUser.role, returnUrl || undefined);
+          setTimeout(() => {
+            window.location.href = targetUrl;
+          }, 800);
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not verify server session in callback, using safe fallback:', err);
+      }
+
+      // 3. Resilient offline/network fallback
+      const hasExplicitRole = Boolean(meta.role);
+      const role = (meta.role as AuthUser['role']) || 'customer';
       const authUser: AuthUser = {
         id: user.id,
         name: meta.full_name || meta.name || user.email?.split('@')[0] || 'User',
@@ -32,16 +102,20 @@ function AuthCallbackContent() {
         phone: meta.phone || user.phone,
         avatarUrl: meta.avatar_url || meta.picture,
         role: role === 'photographer' ? 'creator' : role,
+        roleSelected: hasExplicitRole ? true : false,
       };
 
       saveAuthSession(authUser, session.access_token);
       setStatus('success');
 
-      const returnUrl = searchParams.get('returnUrl');
-      const targetUrl = resolvePostAuthRedirect(authUser.role, returnUrl || undefined);
+      // If user came with no prior role metadata, send to select-role
+      const targetUrl = hasExplicitRole
+        ? resolvePostAuthRedirect(authUser.role, returnUrl || undefined)
+        : `/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
+
       setTimeout(() => {
         window.location.href = targetUrl;
-      }, 1000);
+      }, 800);
     };
 
     const runCallback = async () => {
@@ -51,13 +125,26 @@ function AuthCallbackContent() {
         const timer = setTimeout(() => {
           setStatus('success');
           setTimeout(() => {
-            window.location.href = '/customer/dashboard';
+            window.location.href = '/auth/select-role';
           }, 1000);
         }, 1500);
         return () => clearTimeout(timer);
       }
 
       try {
+        const code = searchParams.get('code');
+        if (code) {
+          try {
+            const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeData?.session && !isCancelled) {
+              processSession(exchangeData.session);
+              return;
+            }
+          } catch {
+            // May have already been exchanged by client internal handler
+          }
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           if (!isCancelled) {

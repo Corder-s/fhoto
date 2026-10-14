@@ -45,12 +45,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. Fetch latest active unconsumed OTP for this email
+  // 1. Fetch latest active unverified OTP for this email
   const { data: records, error: fetchErr } = await admin
     .from('auth_email_otps')
     .select('*')
     .eq('email', normalizedEmail)
-    .is('consumed_at', null)
+    .is('verified_at', null)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -102,10 +102,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. Hash matched! Mark consumed
+  // 5. Hash matched! Mark verified
   await admin
     .from('auth_email_otps')
-    .update({ consumed_at: new Date().toISOString() })
+    .update({ verified_at: new Date().toISOString() })
     .eq('id', otpRecord.id);
 
   // 6. Find or provision user
@@ -116,18 +116,35 @@ export async function POST(request: Request) {
   // Check if profile already exists in DB
   const { data: existingProfile } = await admin
     .from('profiles')
-    .select('id, full_name, email, role, account_status')
+    .select('id, full_name, email, account_status, role_selected')
     .eq('email', normalizedEmail)
     .maybeSingle();
 
   if (existingProfile) {
     userId = existingProfile.id;
-    if (existingProfile.role) {
-      userRole = existingProfile.role as any;
-    }
     if (existingProfile.full_name) {
       userName = existingProfile.full_name;
     }
+
+    // Query authoritative role from user_roles table
+    const { data: roleRecord } = await admin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (roleRecord?.role) {
+      userRole = roleRecord.role as any;
+    }
+
+    // Update email verification timestamp
+    await admin
+      .from('profiles')
+      .update({
+        email_verified_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
   } else {
     // Check Supabase Auth users
     const { data: userList } = await admin.auth.admin.listUsers();
@@ -138,8 +155,19 @@ export async function POST(request: Request) {
     if (existingAuthUser) {
       userId = existingAuthUser.id;
       const meta = existingAuthUser.user_metadata || {};
-      if (meta.role) userRole = meta.role;
       if (meta.full_name) userName = meta.full_name;
+
+      const { data: roleRecord } = await admin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleRecord?.role) {
+        userRole = roleRecord.role as any;
+      } else if (meta.role) {
+        userRole = meta.role;
+      }
     } else {
       // Create a new Supabase Auth user
       const randomPass = crypto.randomBytes(24).toString('hex');
@@ -155,24 +183,62 @@ export async function POST(request: Request) {
 
       if (createErr || !createdUser.user) {
         console.error('Error creating user via OTP verify:', createErr);
-        // Fallback to random UUID if auth creation fails
         userId = crypto.randomUUID();
       } else {
         userId = createdUser.user.id;
       }
+    }
 
-      // Upsert profile
-      await admin.from('profiles').upsert(
-        {
-          id: userId,
-          full_name: userName,
-          email: normalizedEmail,
-          role: rolePreference,
-          account_status: 'active',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      );
+    // Upsert profile according to DB schema
+    await admin.from('profiles').upsert(
+      {
+        id: userId,
+        full_name: userName,
+        email: normalizedEmail,
+        account_status: 'active',
+        role_selected: true,
+        email_verified_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
+
+    // Ensure role in user_roles
+    const { data: existingRole } = await admin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existingRole?.role) {
+      userRole = existingRole.role as any;
+    } else {
+      await admin.from('user_roles').insert({
+        user_id: userId,
+        role: userRole,
+      });
+    }
+
+    // If role is creator, initialize creator profile record
+    if (userRole === 'creator') {
+      const { data: existingCreator } = await admin
+        .from('creator_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!existingCreator) {
+        await admin.from('creator_profiles').insert({
+          user_id: userId,
+          status: 'draft',
+          city: 'Greater Noida',
+          pricing_starting_rate: 2500,
+          base_travel_included_km: 15,
+          travel_rate_per_km: 25,
+          max_travel_distance_km: 60,
+          profile_approval_status: 'pending',
+        });
+      }
     }
   }
 

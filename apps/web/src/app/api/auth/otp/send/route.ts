@@ -103,8 +103,9 @@ export async function POST(request: Request) {
 
   // 5. Send Email via Transactional Email Service
   const template = EmailTemplates.authOtp(name || normalizedEmail.split('@')[0], otpCode, 10);
+  let deliveryResult;
   try {
-    await sendPlatformEmail({
+    deliveryResult = await sendPlatformEmail({
       to: { email: normalizedEmail, name: name || undefined },
       subject: template.subject,
       templateName: 'auth_otp',
@@ -112,14 +113,50 @@ export async function POST(request: Request) {
       html: template.html,
       text: `Your SnapShoot verification code is: ${otpCode}. It expires in 10 minutes.`,
     });
-  } catch (emailErr) {
-    console.error('Error dispatching OTP email:', emailErr);
-    // Don't crash auth if email fails temporarily; sandbox logger handled it
+  } catch (emailErr: any) {
+    console.error('Fatal exception during OTP email dispatch:', emailErr);
+    deliveryResult = { success: false, error: emailErr?.message || 'Unexpected mailer error' };
+  }
+
+  // 6. Handle Delivery Failures & Unconfigured SMTP
+  if (!deliveryResult || !deliveryResult.success) {
+    // Clean up the unsent OTP record so the user is not locked by the 60s cooldown
+    await admin.from('auth_email_otps').delete().eq('email', normalizedEmail).eq('otp_code_hash', otpHash);
+
+    if (deliveryResult?.unconfigured) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[DEV AUTH OTP] Email service is unconfigured. Code for ${normalizedEmail}: ${otpCode}`);
+        return NextResponse.json(
+          {
+            error: 'Email service is not configured. Please add GMAIL_USER and GMAIL_APP_PASSWORD to apps/web/.env.local to deliver live verification emails.',
+            code: 'EMAIL_UNCONFIGURED',
+            devHint: 'In local dev, check your server console for the generated verification code.',
+          },
+          { status: 503 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: 'Email delivery service is currently unavailable. Please contact platform support.',
+          code: 'EMAIL_UNCONFIGURED',
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Unable to deliver verification code to your email. Please verify your address and try again shortly.',
+        code: 'EMAIL_DELIVERY_FAILED',
+      },
+      { status: 502 }
+    );
   }
 
   return NextResponse.json({
     success: true,
-    message: 'A 6-digit verification code has been sent to your email address.',
+    message: 'A 6-digit verification code has been dispatched. Please check your inbox and spam folder.',
     cooldownSeconds: 60,
   });
 }

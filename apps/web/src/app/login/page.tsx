@@ -26,6 +26,16 @@ function LoginView() {
 
   useEffect(() => {
     if (isMounted && isAuthenticated && user) {
+      if (serverSession.status === 'authenticated') {
+        if (serverSession.user.roleSelected === false) {
+          router.replace(`/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
+          return;
+        }
+      } else if (user.roleSelected === false) {
+        router.replace(`/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
+        return;
+      }
+
       const primaryRole =
         serverSession.status === 'authenticated'
           ? serverSession.user.roles.includes('owner')
@@ -53,11 +63,18 @@ function LoginView() {
     );
   }
 
+  const isDeleted = searchParams?.get('deleted') === 'true';
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
       <Navbar />
       <main className="flex-1 flex items-center justify-center p-3 sm:p-6 md:p-8">
-        <SnapShootAuthView isModal={false} initialTab="login" returnUrl={returnUrl} />
+        <SnapShootAuthView
+          isModal={false}
+          initialTab="login"
+          returnUrl={returnUrl}
+          message={isDeleted ? 'Your account and all associated data have been permanently deleted.' : undefined}
+        />
       </main>
       <Footer />
     </div>

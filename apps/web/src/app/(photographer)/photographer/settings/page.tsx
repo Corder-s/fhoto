@@ -162,6 +162,9 @@ export default function PhotographerSettingsPage() {
   // Danger Zone Modal
   const [isCloseStudioModalOpen, setIsCloseStudioModalOpen] = useState(false);
   const [confirmStudioText, setConfirmStudioText] = useState('');
+  const [isClosingStudio, setIsClosingStudio] = useState(false);
+  const [closeStudioError, setCloseStudioError] = useState('');
+
 
   // Subscription SaaS State
   const [currentSubscription, setCurrentSubscription] = useState(getStoredSubscription);
@@ -1376,23 +1379,54 @@ export default function PhotographerSettingsPage() {
             />
           </div>
 
+          {closeStudioError && (
+            <div className="p-3 bg-red-100 border border-red-300 rounded-card-sm text-xs text-red-800">
+              {closeStudioError}
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-2 border-t border-contour-subtle">
-            <Button type="button" variant="outline" size="sm" onClick={() => setIsCloseStudioModalOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isClosingStudio}
+              onClick={() => {
+                setIsCloseStudioModalOpen(false);
+                setConfirmStudioText('');
+                setCloseStudioError('');
+              }}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               variant="primary"
               size="sm"
-              disabled={confirmStudioText !== 'CLOSE'}
+              disabled={confirmStudioText !== 'CLOSE' || isClosingStudio}
               onClick={async () => {
-                setIsCloseStudioModalOpen(false);
-                await logout();
-                window.location.href = '/login';
+                if (confirmStudioText !== 'CLOSE') return;
+                setIsClosingStudio(true);
+                setCloseStudioError('');
+                try {
+                  const res = await fetch('/api/profile/delete', { method: 'DELETE' });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    setCloseStudioError(data.error || 'Failed to delete account. Please try again.');
+                    setIsClosingStudio(false);
+                    return;
+                  }
+                  await logout();
+                  setIsCloseStudioModalOpen(false);
+                  window.location.href = '/login?deleted=true';
+                } catch (err: any) {
+                  setCloseStudioError(err.message || 'An unexpected error occurred during account deletion.');
+                  setIsClosingStudio(false);
+                }
               }}
               className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >
-              Confirm Studio Closure
+              {isClosingStudio ? 'Permanently Closing...' : 'Confirm Studio Closure'}
             </Button>
           </div>
         </div>

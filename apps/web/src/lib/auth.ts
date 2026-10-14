@@ -10,6 +10,7 @@ export interface AuthUser {
   role: 'customer' | 'creator' | 'photographer' | 'admin' | 'owner';
   phone?: string;
   avatarUrl?: string;
+  roleSelected?: boolean;
 }
 
 const STORAGE_KEY = 'snapshoot_session';
@@ -63,35 +64,67 @@ function initGlobalAuthSubscription(): void {
   // Initialize Supabase Auth listener ONCE globally
   const supabase = getSupabaseBrowserClient();
   if (supabase) {
+    const syncSessionUser = async (session: any) => {
+      if (!session?.user) return;
+      const meta = session.user.user_metadata || {};
+      const existing = getStoredSession();
+
+      const hasExplicitRole = Boolean(meta.role);
+      const role = (meta.role as AuthUser['role']) || existing?.role || 'customer';
+      const roleSelected = hasExplicitRole
+        ? true
+        : existing?.roleSelected !== undefined
+        ? existing.roleSelected
+        : false;
+
+      const authUser: AuthUser = {
+        id: session.user.id,
+        name: meta.full_name || session.user.email?.split('@')[0] || existing?.name || 'User',
+        email: session.user.email || existing?.email || '',
+        phone: meta.phone || session.user.phone || existing?.phone,
+        avatarUrl: meta.avatar_url || existing?.avatarUrl,
+        role: role === 'photographer' ? 'creator' : role,
+        roleSelected,
+      };
+
+      saveAuthSession(authUser, session.access_token);
+
+      // If user came with no explicit role in metadata, verify authoritative state with server
+      if (!hasExplicitRole) {
+        try {
+          const res = await fetch('/api/auth/session', {
+            headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.authenticated && data?.user) {
+              const verifiedRole = data.user.role || 'customer';
+              const verifiedRoleSelected = Boolean(data.user.roleSelected);
+              saveAuthSession(
+                {
+                  ...authUser,
+                  role: verifiedRole,
+                  roleSelected: verifiedRoleSelected,
+                },
+                session.access_token
+              );
+            }
+          }
+        } catch {
+          // Keep safe defaults if offline
+        }
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const meta = session.user.user_metadata || {};
-        const role = (meta.role as AuthUser['role']) || 'customer';
-        const authUser: AuthUser = {
-          id: session.user.id,
-          name: meta.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          phone: meta.phone || session.user.phone,
-          avatarUrl: meta.avatar_url,
-          role: role === 'photographer' ? 'creator' : role,
-        };
-        saveAuthSession(authUser, session.access_token);
+        syncSessionUser(session);
       }
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        const meta = session.user.user_metadata || {};
-        const role = (meta.role as AuthUser['role']) || 'customer';
-        const authUser: AuthUser = {
-          id: session.user.id,
-          name: meta.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          phone: meta.phone || session.user.phone,
-          avatarUrl: meta.avatar_url,
-          role: role === 'photographer' ? 'creator' : role,
-        };
-        saveAuthSession(authUser, session.access_token);
+        syncSessionUser(session);
       } else if (event === 'SIGNED_OUT') {
         clearAuthSession();
       }

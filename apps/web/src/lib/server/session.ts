@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -17,10 +17,9 @@ import {
 /**
  * Server-side identity for the current request.
  *
- * The identity comes from the Supabase session cookie, validated with
- * `auth.getUser()` (which asks Supabase Auth whether the session is still valid).
- * Roles, administrator permissions and account status are read from the
- * database. Nothing the browser sends about its own role or ID is trusted.
+ * The identity comes from the Supabase session cookie or Authorization header,
+ * validated with Supabase Auth. Roles, administrator permissions, account status,
+ * and role-selection status are read directly from the database.
  */
 export interface SessionUser {
   id: string;
@@ -32,6 +31,9 @@ export interface SessionUser {
   permissions: AdminPermission[];
   isOwner: boolean;
   accountStatus: string;
+  roleSelected: boolean;
+  hasCreatorProfile: boolean;
+  creatorStatus?: string | null;
 }
 
 export function jsonError(status: number, message: string, extra?: Record<string, unknown>) {
@@ -84,40 +86,82 @@ export type SessionResult =
 
 /**
  * Resolves the authenticated user for this request.
+ * Supports both standard Supabase cookies and Authorization: Bearer tokens.
  * Returns `anonymous` when there is no valid session, and `unconfigured` when
  * Supabase credentials are missing (so callers can respond with 503).
  */
 export async function resolveSession(): Promise<SessionResult> {
-  const supabase = getRequestSupabaseClient();
-  if (!supabase) return { status: 'unconfigured' };
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) return { status: 'anonymous' };
-
   const admin = getSupabaseAdminClient();
+  let user: any = null;
+
+  // 1. Try reading authorization bearer header first (useful for API & OAuth callback)
+  try {
+    const authHeader = headers().get('authorization');
+    if (authHeader && authHeader.toLowerCase().startsWith('bearer ') && admin) {
+      const token = authHeader.slice(7).trim();
+      if (token) {
+        const { data, error } = await admin.auth.getUser(token);
+        if (!error && data?.user) {
+          user = data.user;
+        }
+      }
+    }
+  } catch {
+    // headers() might throw outside Next.js request context
+  }
+
+  // 2. Fallback to Supabase cookie client
+  if (!user) {
+    const supabase = getRequestSupabaseClient();
+    if (!supabase) return { status: 'unconfigured' };
+
+    const {
+      data: { user: cookieUser },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !cookieUser) return { status: 'anonymous' };
+    user = cookieUser;
+  }
+
   if (!admin) return { status: 'unconfigured' };
 
   const rolesQuery = admin.from('user_roles').select('role').eq('user_id', user.id);
-  const profileQuery = admin.from('profiles').select('full_name, email, account_status').eq('id', user.id).maybeSingle();
-  // Only platform administrators can have grants, so the extra read is skipped
-  // for everyone else.
+  const profileQuery = admin
+    .from('profiles')
+    .select('full_name, email, account_status, role_selected')
+    .eq('id', user.id)
+    .maybeSingle();
+  const creatorQuery = admin
+    .from('creator_profiles')
+    .select('id, verification_status')
+    .eq('user_id', user.id)
+    .maybeSingle();
   const permissionsQuery = admin.from('admin_permissions').select('permission').eq('user_id', user.id);
 
-  const [{ data: roleRows, error: roleErr }, { data: profile, error: profileErr }, permissionResult] =
-    await Promise.all([rolesQuery, profileQuery, permissionsQuery]);
+  const [
+    { data: roleRows, error: roleErr },
+    { data: profile, error: profileErr },
+    { data: creatorProfile },
+    permissionResult,
+  ] = await Promise.all([rolesQuery, profileQuery, creatorQuery, permissionsQuery]);
 
   if (roleErr || profileErr) {
     return { status: 'error', message: (roleErr || profileErr)?.message || 'Could not load account' };
   }
 
   const roles = resolveRoleSet(roleRows || []);
+  if (creatorProfile?.id && !roles.includes('creator')) {
+    roles.push('creator');
+  }
+
+  // A user has finalized their role choice if role_selected is explicitly true,
+  // or if they already have assigned roles or a creator profile.
+  const hasExistingRole = (roleRows && roleRows.length > 0) || Boolean(creatorProfile?.id);
+  const roleSelected = Boolean(profile?.role_selected || hasExistingRole);
+
   if (roles.length === 0) {
-    // Signup always assigns 'customer'. An account with no role row (e.g. created outside the app)
-    // is treated as a customer, which grants no administrative or creator privileges.
+    // Base safe role with no elevated permissions
     roles.push('customer');
   }
 
@@ -140,6 +184,9 @@ export async function resolveSession(): Promise<SessionResult> {
       permissions,
       isOwner: roles.includes('owner'),
       accountStatus: profile?.account_status || 'active',
+      roleSelected,
+      hasCreatorProfile: Boolean(creatorProfile?.id),
+      creatorStatus: creatorProfile?.verification_status || null,
     },
   };
 }

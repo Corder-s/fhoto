@@ -24,16 +24,27 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Role Redirection Gate
   useEffect(() => {
-    if (isMounted && isAuthenticated && serverSession.status === 'authenticated') {
-      if (isOwner) {
-        router.replace('/owner/dashboard');
-      } else if (isAdmin) {
-        router.replace('/admin/dashboard');
-      } else if (isCreator) {
-        router.replace('/photographer/dashboard');
+    if (isMounted && isAuthenticated) {
+      if (serverSession.status === 'authenticated' && serverSession.user.roleSelected === false) {
+        router.replace('/auth/select-role');
+        return;
+      }
+      if (user && user.roleSelected === false) {
+        router.replace('/auth/select-role');
+        return;
+      }
+
+      if (serverSession.status === 'authenticated') {
+        if (isOwner) {
+          router.replace('/owner/dashboard');
+        } else if (isAdmin) {
+          router.replace('/admin/dashboard');
+        } else if (isCreator) {
+          router.replace('/photographer/dashboard');
+        }
       }
     }
-  }, [isMounted, isAuthenticated, serverSession.status, isOwner, isAdmin, isCreator, router]);
+  }, [isMounted, isAuthenticated, user, serverSession, isOwner, isAdmin, isCreator, router]);
 
   // Automatically prompt authentication modal if visiting a protected customer route while logged out
   useEffect(() => {

@@ -165,8 +165,16 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       setUserRole(resolvedRole);
 
-      if (authUser && authUser.role !== resolvedRole) {
-        saveAuthSession({ ...authUser, role: resolvedRole });
+      if (
+        authUser &&
+        (authUser.role !== resolvedRole ||
+          (data.roleSelected !== undefined && authUser.roleSelected !== data.roleSelected))
+      ) {
+        saveAuthSession({
+          ...authUser,
+          role: resolvedRole,
+          roleSelected: data.roleSelected !== undefined ? data.roleSelected : authUser.roleSelected,
+        });
       }
       if (data.stats) {
         setStats(data.stats);

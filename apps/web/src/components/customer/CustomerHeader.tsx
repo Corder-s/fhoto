@@ -261,12 +261,12 @@ export const CustomerHeader: React.FC = () => {
                     </Link>
                   ) : (
                     <Link
-                      href="/for-photographers"
+                      href="/photographer/onboarding"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4E6] rounded-lg"
                     >
-                      <Camera className="w-3.5 h-3.5 text-[#8C847A]" />
-                      <span>Join as Photographer</span>
+                      <Camera className="w-3.5 h-3.5 text-[#FF6E00]" />
+                      <span>Become a Photographer</span>
                     </Link>
                   )}
                 </div>
@@ -326,13 +326,23 @@ export const CustomerHeader: React.FC = () => {
             >
               + Book New Shoot
             </Link>
-            <Link
-              href="/photographer/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2 rounded-full font-bold text-xs text-[#5A544D] bg-[#F2ECE3] border border-[#E0D8CD]"
-            >
-              Switch to Creator Studio
-            </Link>
+            {user?.role === 'creator' ? (
+              <Link
+                href="/photographer/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#FF6E00] bg-[#FFF2E8] border border-[#FFD9BE]"
+              >
+                Switch to Creator Studio
+              </Link>
+            ) : (
+              <Link
+                href="/photographer/onboarding"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#FF6E00] bg-[#FFF2E8] border border-[#FFD9BE]"
+              >
+                Become a Photographer
+              </Link>
+            )}
             <Link
               href="/login"
               onClick={handleSignOut}

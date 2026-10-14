@@ -91,6 +91,13 @@ export const SellerDashboardView: React.FC = () => {
   const [dbServices, setDbServices] = useState<any[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
+  // Guard against unselected account type: force account selection
+  useEffect(() => {
+    if (authUser && authUser.roleSelected === false) {
+      window.location.href = '/auth/select-role';
+    }
+  }, [authUser]);
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -159,6 +166,15 @@ export const SellerDashboardView: React.FC = () => {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todaySchedule = dbBookings.filter((b) => b.event_date === todayStr);
+
+  if (authUser && authUser.roleSelected === false) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-bold text-[#8C847A]">Redirecting to account setup...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">

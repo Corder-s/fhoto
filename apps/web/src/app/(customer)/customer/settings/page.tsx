@@ -151,6 +151,32 @@ export default function CustomerSettingsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim() !== 'DELETE MY ACCOUNT') {
+      setDeleteError('Please type the exact phrase to confirm.');
+      return;
+    }
+    setIsDeletingAccount(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/profile/delete', { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteError(data.error || 'Failed to delete account. Please try again.');
+        setIsDeletingAccount(false);
+        return;
+      }
+      await logout();
+      setIsDeleteModalOpen(false);
+      window.location.href = '/login?deleted=true';
+    } catch (err: any) {
+      setDeleteError(err.message || 'An unexpected error occurred during account deletion.');
+      setIsDeletingAccount(false);
+    }
+  };
+
 
   // Data Export State
   const [isExporting, setIsExporting] = useState(false);
@@ -1923,17 +1949,11 @@ export default function CustomerSettingsPage() {
             </Button>
             <button
               type="button"
-              onClick={() => {
-                if (deleteConfirmText.trim() !== 'DELETE MY ACCOUNT') {
-                  setDeleteError('Please type the exact phrase to confirm.');
-                  return;
-                }
-                logout();
-                setIsDeleteModalOpen(false);
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all"
+              disabled={isDeletingAccount}
+              onClick={handleDeleteAccount}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all disabled:opacity-50"
             >
-              Permanently Delete
+              {isDeletingAccount ? 'Permanently Deleting...' : 'Permanently Delete'}
             </button>
           </div>
         </div>

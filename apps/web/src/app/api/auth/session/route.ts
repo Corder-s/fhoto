@@ -46,6 +46,9 @@ export async function GET() {
         name: user.name,
         role: user.role,
         roles: user.roles,
+        roleSelected: user.roleSelected,
+        hasCreatorProfile: user.hasCreatorProfile,
+        creatorStatus: user.creatorStatus,
         // Effective administrator capabilities. The UI uses these to show or hide
         // controls; every route re-checks them, so hiding is presentation only.
         permissions: user.permissions,

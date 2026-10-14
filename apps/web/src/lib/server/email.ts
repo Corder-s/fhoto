@@ -5,6 +5,7 @@
  * or resilient development sandbox logging with structured delivery auditing.
  */
 
+import nodemailer, { type Transporter } from 'nodemailer';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export interface EmailRecipient {
@@ -27,8 +28,84 @@ export interface SendEmailOptions {
 export interface EmailDeliveryResult {
   success: boolean;
   logId?: string;
+  messageId?: string;
   skippedDuplicate?: boolean;
+  unconfigured?: boolean;
   error?: string;
+}
+
+/**
+ * Check whether live SMTP email credentials are configured in the environment.
+ */
+export function isEmailConfigured(): boolean {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  return Boolean((gmailUser && gmailPass) || (smtpHost && smtpUser && smtpPass));
+}
+
+/**
+ * Create or reuse a verified nodemailer transport instance.
+ */
+function getSmtpTransporter(): Transporter | null {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  // 1. Gmail SMTP (Preferred)
+  if (gmailUser && gmailPass) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser.trim(),
+        // Google app passwords may contain spaces in UI copy; strip them clean
+        pass: gmailPass.replace(/\s+/g, ''),
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
+
+  // 2. Generic SMTP (Custom provider / Amazon SES / SendGrid SMTP relay)
+  if (smtpHost && smtpUser && smtpPass) {
+    const port = Number(process.env.SMTP_PORT) || 587;
+    const isSecure = process.env.SMTP_SECURE === 'true' || port === 465;
+
+    return nodemailer.createTransport({
+      host: smtpHost.trim(),
+      port,
+      secure: isSecure,
+      auth: {
+        user: smtpUser.trim(),
+        pass: smtpPass.trim(),
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
+
+  return null;
+}
+
+/**
+ * Resolve sender address with proper brand header
+ */
+function getSenderAddress(): string {
+  if (process.env.EMAIL_FROM_ADDRESS) {
+    return process.env.EMAIL_FROM_ADDRESS.trim();
+  }
+  const senderUser = process.env.GMAIL_USER || process.env.SMTP_USER;
+  if (senderUser) {
+    return `"SnapShoot Visual Marketplace" <${senderUser.trim()}>`;
+  }
+  return '"SnapShoot Visual Marketplace" <noreply@snapshoot.in>';
 }
 
 /**
@@ -309,25 +386,70 @@ export async function sendPlatformEmail(options: SendEmailOptions): Promise<Emai
   // 3. Dispatch Email via Configured Provider
   let isSent = false;
   let deliveryError: string | null = null;
+  let messageId: string | undefined;
 
-  const gmailUser = process.env.GMAIL_USER || process.env.SMTP_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
+  const configured = isEmailConfigured();
 
-  if (gmailUser && gmailPass) {
-    try {
-      // In Node environments with credentials, send via SMTP / Gmail
-      // Using standard fetch or nodemailer if available
-      console.log(`[EMAIL SEND] Dispatching live email to ${to.email}: "${subject}" via ${gmailUser}`);
-      // Mark successfully dispatched
-      isSent = true;
-    } catch (err: any) {
-      deliveryError = err?.message || 'SMTP delivery failed.';
-      console.error('[EMAIL SEND ERROR]', deliveryError);
+  if (!configured) {
+    deliveryError = 'Email service is not configured. SMTP credentials (GMAIL_USER & GMAIL_APP_PASSWORD) are missing on the server.';
+    console.warn(`[EMAIL UNCONFIGURED] Attempted to send "${subject}" to ${to.email}, but no SMTP transport credentials exist in environment.`);
+    
+    // In development mode, display a helpful hint in server terminal
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[DEV EMAIL HINT] Set GMAIL_USER and GMAIL_APP_PASSWORD in apps/web/.env.local to enable live delivery to inboxes.`);
     }
-  } else {
-    // Development / Sandbox Mode: Log cleanly to console and record verified delivery
-    console.log(`[EMAIL DISPATCH SANDBOX] To: ${to.email} | Event: ${eventType} | Subject: "${subject}"`);
-    isSent = true; // In sandbox mode, delivery is fulfilled and recorded
+
+    if (admin && logId) {
+      try {
+        await admin
+          .from('email_delivery_logs')
+          .update({
+            status: 'failed',
+            error_message: deliveryError,
+          })
+          .eq('id', logId);
+      } catch (logErr) {
+        console.warn('Could not update email log status:', logErr);
+      }
+    }
+
+    return {
+      success: false,
+      logId,
+      unconfigured: true,
+      error: deliveryError,
+    };
+  }
+
+  const transporter = getSmtpTransporter();
+  if (!transporter) {
+    deliveryError = 'Could not initialize SMTP transport from provided configuration.';
+    return {
+      success: false,
+      logId,
+      error: deliveryError,
+    };
+  }
+
+  try {
+    const fromAddress = getSenderAddress();
+    const mailOptions = {
+      from: fromAddress,
+      to: to.name ? `"${to.name}" <${to.email}>` : to.email,
+      subject,
+      html,
+      text: options.text || subject,
+    };
+
+    console.log(`[EMAIL DISPATCH] Transmitting live email to ${to.email} ("${subject}") via SMTP...`);
+    const sendResult = await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL ACCEPTED] Delivery accepted by provider. MessageId: ${sendResult.messageId}`);
+    
+    isSent = true;
+    messageId = sendResult.messageId;
+  } catch (err: any) {
+    deliveryError = err?.message || 'SMTP delivery failed.';
+    console.error('[EMAIL SEND ERROR]', deliveryError);
   }
 
   // 4. Update delivery log with final status
@@ -349,6 +471,7 @@ export async function sendPlatformEmail(options: SendEmailOptions): Promise<Emai
   return {
     success: isSent,
     logId,
+    messageId,
     error: deliveryError || undefined,
   };
 }

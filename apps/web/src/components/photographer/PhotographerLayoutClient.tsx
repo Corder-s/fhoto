@@ -35,16 +35,32 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
 
   // Automatic redirect based on user permissions
   useEffect(() => {
-    if (isMounted && isAuthenticated && serverSession.status === 'authenticated' && !isAuthorizedRole) {
-      if (isOwner) {
-        router.replace('/owner/dashboard');
-      } else if (isAdmin) {
-        router.replace('/admin/dashboard');
-      } else {
-        router.replace('/customer/dashboard');
+    if (isMounted && isAuthenticated) {
+      if (serverSession.status === 'authenticated' && serverSession.user.roleSelected === false) {
+        router.replace('/auth/select-role');
+        return;
+      }
+      if (user && user.roleSelected === false) {
+        router.replace('/auth/select-role');
+        return;
+      }
+
+      // Allow creator onboarding studio even while creator profile is being established
+      if (pathname.startsWith('/photographer/onboarding')) {
+        return;
+      }
+
+      if (serverSession.status === 'authenticated' && !isAuthorizedRole) {
+        if (isOwner) {
+          router.replace('/owner/dashboard');
+        } else if (isAdmin) {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/customer/dashboard');
+        }
       }
     }
-  }, [isMounted, isAuthenticated, serverSession.status, isAuthorizedRole, isOwner, isAdmin, router]);
+  }, [isMounted, isAuthenticated, user, serverSession, isAuthorizedRole, isOwner, isAdmin, router, pathname]);
 
   // Loading skeleton while reading storage/cookies
   if (!isMounted) {

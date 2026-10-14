@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
       success: true,
       role: user.role,
       roles: user.roles,
+      roleSelected: user.roleSelected,
       profile: profile || null,
       creatorProfile: creatorProfile || null,
       stats,

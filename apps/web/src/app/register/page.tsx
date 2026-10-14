@@ -16,6 +16,16 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isMounted && isAuthenticated && user) {
+      if (serverSession.status === 'authenticated') {
+        if (serverSession.user.roleSelected === false) {
+          router.replace('/auth/select-role');
+          return;
+        }
+      } else if (user.roleSelected === false) {
+        router.replace('/auth/select-role');
+        return;
+      }
+
       const primaryRole =
         serverSession.status === 'authenticated'
           ? serverSession.user.roles.includes('owner')

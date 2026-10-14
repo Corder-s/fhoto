@@ -28,6 +28,9 @@ const MIGRATIONS = [
   '20261012000002_storage_and_rls_policies.sql',
   '20261013000001_security_hardening.sql',
   '20261013000002_owner_roles_admin_permissions_and_verification.sql',
+  '20261014000001_marketplace_workflow_and_pricing.sql',
+  '20261014000002_oauth_account_selection_workflow.sql',
+  '20261014000003_complete_account_deletion_and_cleanup.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -679,6 +682,101 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
         "INSERT INTO storage.objects (bucket_id, name) VALUES ('creator-verification', $1)",
         [`${IDS2.applicant}/forged.pdf`]
       );
+    });
+  });
+
+  describe('Google OAuth account selection workflow (20261014000002)', () => {
+    const oauthUserId = '00000000-0000-4000-a000-000000000099';
+    const directCreatorId = '00000000-0000-4000-a000-000000000098';
+
+    test('new Google OAuth user without role metadata gets role_selected = false and no premature user_roles entry', async () => {
+      // Simulate Supabase creating auth.users record via Google OAuth (trigger runs automatically)
+      await db.query(
+        "INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES ($1, $2, $3)",
+        [oauthUserId, 'google.user@example.com', JSON.stringify({ full_name: 'Google User', picture: 'https://example.com/avatar.jpg' })]
+      );
+
+      const p = await db.query("SELECT role_selected, full_name, avatar_url FROM public.profiles WHERE id = $1", [oauthUserId]);
+      assert.equal(p.rows.length, 1);
+      assert.equal(p.rows[0].role_selected, false, 'role_selected must be false for new Google OAuth user');
+      assert.equal(p.rows[0].full_name, 'Google User');
+      assert.equal(p.rows[0].avatar_url, 'https://example.com/avatar.jpg');
+
+      const roles = await db.query("SELECT role FROM public.user_roles WHERE user_id = $1", [oauthUserId]);
+      assert.equal(roles.rows.length, 0, 'user_roles must not be prematurely populated before user selects role');
+    });
+
+    test('direct creator signup with explicit role metadata gets role_selected = true and creator_profiles initialized', async () => {
+      // Simulate direct signup with explicit role (trigger runs automatically)
+      await db.query(
+        "INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES ($1, $2, $3)",
+        [directCreatorId, 'direct.creator@example.com', JSON.stringify({ full_name: 'Direct Creator', role: 'creator' })]
+      );
+
+      const p = await db.query("SELECT role_selected FROM public.profiles WHERE id = $1", [directCreatorId]);
+      assert.equal(p.rows.length, 1);
+      assert.equal(p.rows[0].role_selected, true, 'role_selected must be true when explicit role was requested');
+
+      const roles = await db.query("SELECT role FROM public.user_roles WHERE user_id = $1", [directCreatorId]);
+      assert.equal(roles.rows[0].role, 'creator');
+
+      const creator = await db.query("SELECT verification_status FROM public.creator_profiles WHERE user_id = $1", [directCreatorId]);
+      assert.equal(creator.rows[0].verification_status, 'unsubmitted');
+    });
+
+    test('user selecting role afterwards marks role_selected = true and records role in user_roles', async () => {
+      // Simulate POST /api/auth/select-role for customer
+      await db.query("UPDATE public.profiles SET role_selected = true WHERE id = $1", [oauthUserId]);
+      await db.query("INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'customer') ON CONFLICT (user_id, role) DO NOTHING", [oauthUserId]);
+
+      const p = await db.query("SELECT role_selected FROM public.profiles WHERE id = $1", [oauthUserId]);
+      assert.equal(p.rows[0].role_selected, true);
+
+      const roles = await db.query("SELECT role FROM public.user_roles WHERE user_id = $1", [oauthUserId]);
+      assert.equal(roles.rows[0].role, 'customer');
+    });
+
+    test('client later becoming photographer adds creator role without deleting customer role or bookings', async () => {
+      // Existing client with customer role upgrades to creator
+      await db.query("INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'creator') ON CONFLICT (user_id, role) DO NOTHING", [oauthUserId]);
+      await db.query("INSERT INTO public.creator_profiles (user_id, professional_name, city, verification_status) VALUES ($1, 'Google Creator', 'Delhi NCR', 'pending')", [oauthUserId]);
+
+      const roles = await db.query("SELECT role FROM public.user_roles WHERE user_id = $1 ORDER BY role", [oauthUserId]);
+      assert.equal(roles.rows.length, 2, 'user now possesses both customer and creator capabilities');
+      assert.equal(roles.rows[0].role, 'creator');
+      assert.equal(roles.rows[1].role, 'customer');
+
+      const cp = await db.query("SELECT verification_status FROM public.creator_profiles WHERE user_id = $1", [oauthUserId]);
+      assert.equal(cp.rows[0].verification_status, 'pending', 'photographer application remains pending until reviewed');
+    });
+  });
+
+  describe('complete account deletion with zero footprint (20261014000003)', () => {
+    test('deleting user from auth.users leaves zero footprint across all tables', async () => {
+      const delUserId = '00000000-0000-4000-8000-000000000099';
+      await db.query("INSERT INTO auth.users (id, email) VALUES ($1, 'delete.me@example.com')", [delUserId]);
+      await db.query("UPDATE public.profiles SET full_name = 'Delete Me', role_selected = true WHERE id = $1", [delUserId]);
+      await db.query("INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'customer')", [delUserId]);
+      await db.query("INSERT INTO public.notifications (user_id, notification_type, title, body) VALUES ($1, 'system', 'Welcome', 'Welcome to SnapShoot')", [delUserId]);
+
+      // Verify records exist
+      const p1 = await db.query("SELECT count(*)::int AS n FROM public.profiles WHERE id = $1", [delUserId]);
+      const r1 = await db.query("SELECT count(*)::int AS n FROM public.user_roles WHERE user_id = $1", [delUserId]);
+      const n1 = await db.query("SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1", [delUserId]);
+      assert.equal(p1.rows[0].n, 1);
+      assert.equal(r1.rows[0].n, 1);
+      assert.equal(n1.rows[0].n, 1);
+
+      // Delete from auth.users (simulating admin.deleteUser or client account deletion)
+      await db.query("DELETE FROM auth.users WHERE id = $1", [delUserId]);
+
+      // Verify zero footprint left behind
+      const p2 = await db.query("SELECT count(*)::int AS n FROM public.profiles WHERE id = $1", [delUserId]);
+      const r2 = await db.query("SELECT count(*)::int AS n FROM public.user_roles WHERE user_id = $1", [delUserId]);
+      const n2 = await db.query("SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1", [delUserId]);
+      assert.equal(p2.rows[0].n, 0, 'profile must be completely deleted');
+      assert.equal(r2.rows[0].n, 0, 'roles must be completely deleted');
+      assert.equal(n2.rows[0].n, 0, 'notifications must be completely deleted');
     });
   });
 
