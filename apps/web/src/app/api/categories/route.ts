@@ -10,12 +10,12 @@ export async function GET() {
     const client = admin || getSupabaseBrowserClient();
 
     if (!client) {
-      return NextResponse.json({ error: 'Supabase unavailable' }, { status: 503 });
+      return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
     }
 
     const { data, error } = await client
       .from('service_categories')
-      .select('*')
+      .select('id, name, slug, description')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
@@ -43,10 +43,17 @@ export async function GET() {
       href: `/explore?category=${encodeURIComponent(cat.name)}`,
     }));
 
-    return NextResponse.json({
-      success: true,
-      categories,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        categories,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || 'Failed to fetch categories' },

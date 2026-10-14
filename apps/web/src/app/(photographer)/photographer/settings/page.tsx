@@ -198,7 +198,7 @@ export default function PhotographerSettingsPage() {
 
     setIsDirty(false);
     setSaveSuccess(true);
-    setStatusMessage('Studio preferences saved to Supabase successfully.');
+    setStatusMessage('Studio preferences saved successfully.');
     setTimeout(() => {
       setSaveSuccess(false);
       setStatusMessage('');

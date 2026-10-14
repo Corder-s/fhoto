@@ -52,8 +52,11 @@ const apiOrigin = normalizeApiOrigin(process.env.NEST_API_BASE_URL || process.en
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
   transpilePackages: ['@snapshoot/shared'],
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -67,6 +70,19 @@ const nextConfig = {
       {
         source: '/api/v1/:path*',
         destination: `${apiOrigin}/api/v1/:path*`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/reference-assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
       },
     ];
   },

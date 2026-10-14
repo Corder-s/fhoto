@@ -373,14 +373,15 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                               {doc.sizeBytes ? ` (${Math.round(doc.sizeBytes / 1024)} KB)` : ''}
                             </span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => openDocument(row.id, index)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-[#E8E2D8] font-bold text-[#FF6E00] cursor-pointer shrink-0"
+                          <a
+                            href={`/api/admin/verification/document?submissionId=${encodeURIComponent(row.id)}&index=${index}&view=1`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#FF6E00]/30 font-bold text-[#FF6E00] cursor-pointer shrink-0 transition-all text-[11px]"
                           >
-                            {doc.hasStorageObject ? <Clock className="w-3 h-3" /> : <ExternalLink className="w-3 h-3" />}
-                            <span>Open</span>
-                          </button>
+                            <ExternalLink className="w-3 h-3" />
+                            <span>View Document</span>
+                          </a>
                         </li>
                       ))}
                     </ul>

@@ -110,7 +110,7 @@ export const OwnerDashboardView: React.FC = () => {
           <p className="text-[11px] text-ink-muted">
             Ownership is a database role (<code className="font-mono">user_roles.role = &#39;owner&#39;</code>) and is
             never self-service. Ask an existing owner to grant it from this page, or run the documented SQL in the
-            Supabase editor to create the first owner.
+            database console to create the first owner.
           </p>
           <Link href="/" className="inline-block text-xs font-bold text-brand hover:underline">
             Back to the marketplace

@@ -22,22 +22,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { data: profile, error: profileErr } = await admin
+    const profilePromise = admin
       .from('profiles')
       .select('id, full_name, email, phone_number, avatar_url, account_status, created_at, updated_at')
       .eq('id', user.id)
       .maybeSingle();
 
+    const creatorPromise = admin
+      .from('creator_profiles')
+      .select('id, user_id, professional_name, biography, experience_years, city, state, service_radius, portfolio_url, verification_status, average_rating, total_reviews, is_available, created_at, updated_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const [{ data: profile, error: profileErr }, { data: creatorProfile, error: creatorErr }] =
+      await Promise.all([profilePromise, creatorPromise]);
+
     if (profileErr) {
       console.error('Error fetching profile:', profileErr.message);
       return jsonError(500, 'Could not load profile.');
     }
-
-    const { data: creatorProfile, error: creatorErr } = await admin
-      .from('creator_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
 
     if (creatorErr) {
       console.error('Error fetching creator profile:', creatorErr.message);

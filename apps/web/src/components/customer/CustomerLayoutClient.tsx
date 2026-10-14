@@ -16,15 +16,24 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
   const { openAuthModal } = useAuthModal();
   const serverSession = useServerSession();
 
-  // Creators also hold the customer role; the server-verified 'creator' role decides the redirect.
-  const isCreatorRole = serverSession.status === 'authenticated' && serverSession.user.roles.includes('creator');
+  // Strict role boundaries: admin, owner, and creator accounts are redirected to their designated workspaces.
+  const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
+  const isOwner = serverRoles.includes('owner');
+  const isAdmin = !isOwner && serverRoles.includes('admin');
+  const isCreator = !isOwner && !isAdmin && serverRoles.includes('creator');
 
-  // If a photographer visits a customer dashboard route, redirect them to photographer studio
+  // Role Redirection Gate
   useEffect(() => {
-    if (isMounted && isAuthenticated && isCreatorRole) {
-      router.replace('/photographer/dashboard');
+    if (isMounted && isAuthenticated && serverSession.status === 'authenticated') {
+      if (isOwner) {
+        router.replace('/owner/dashboard');
+      } else if (isAdmin) {
+        router.replace('/admin/dashboard');
+      } else if (isCreator) {
+        router.replace('/photographer/dashboard');
+      }
     }
-  }, [isMounted, isAuthenticated, isCreatorRole, router]);
+  }, [isMounted, isAuthenticated, serverSession.status, isOwner, isAdmin, isCreator, router]);
 
   // Automatically prompt authentication modal if visiting a protected customer route while logged out
   useEffect(() => {
@@ -45,13 +54,19 @@ export const CustomerLayoutClient: React.FC<{ children: React.ReactNode }> = ({ 
     );
   }
 
-  // Redirecting creator to photographer studio
-  if (isAuthenticated && isCreatorRole) {
+  // Redirecting other roles to their specific workspaces
+  if (isAuthenticated && (isOwner || isAdmin || isCreator)) {
     return (
       <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-[#5A544D]">Redirecting to Creator Studio Dashboard...</p>
+          <p className="text-xs font-semibold text-[#5A544D]">
+            {isOwner
+              ? 'Redirecting to Owner Executive Dashboard...'
+              : isAdmin
+              ? 'Redirecting to Admin Operations Desk...'
+              : 'Redirecting to Creator Studio Dashboard...'}
+          </p>
         </div>
       </div>
     );

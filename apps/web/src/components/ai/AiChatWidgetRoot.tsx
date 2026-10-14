@@ -1,9 +1,14 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
-import { SnapShootAiChatWidget } from './SnapShootAiChatWidget';
+
+const SnapShootAiChatWidget = dynamic(
+  () => import('./SnapShootAiChatWidget').then((m) => m.SnapShootAiChatWidget),
+  { ssr: false }
+);
 
 export const AiChatWidgetRoot: React.FC = () => {
   const pathname = usePathname() || '/';

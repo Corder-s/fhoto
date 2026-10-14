@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Camera,
@@ -70,7 +70,6 @@ interface PhotographerItem {
 
 export const CustomerDashboardView: React.FC = () => {
   const { authUser, accountName, displayAvatar } = useCurrentUserProfile();
-  const { user } = useAuth();
 
   const [bookings, setBookings] = useState<CustomerBookingItem[]>([]);
   const [photographers, setPhotographers] = useState<PhotographerItem[]>([]);
@@ -78,8 +77,8 @@ export const CustomerDashboardView: React.FC = () => {
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [isLoadingPhotographers, setIsLoadingPhotographers] = useState(true);
 
-  const activeUserId = authUser?.id || user?.id;
-  const clientName = accountName || user?.name || 'Customer';
+  const activeUserId = authUser?.id;
+  const clientName = accountName || 'Customer';
 
   // Fetch real customer bookings from Supabase
   useEffect(() => {
@@ -176,22 +175,27 @@ export const CustomerDashboardView: React.FC = () => {
     };
   }, []);
 
-  // Filtered Photographers by category
-  const filteredPhotographers = photographers.filter((p) => {
-    if (selectedCategory === 'all') return true;
-    const cat = selectedCategory.toLowerCase();
-    return (
-      p.specialties.some((s) => s.toLowerCase().includes(cat)) ||
-      (p as any).services?.some((s: any) => s.name?.toLowerCase().includes(cat))
-    );
-  });
+  // Filtered Photographers by category (memoized)
+  const filteredPhotographers = useMemo(() => {
+    return photographers.filter((p) => {
+      if (selectedCategory === 'all') return true;
+      const cat = selectedCategory.toLowerCase();
+      return (
+        p.specialties.some((s) => s.toLowerCase().includes(cat)) ||
+        (p as any).services?.some((s: any) => s.name?.toLowerCase().includes(cat))
+      );
+    });
+  }, [photographers, selectedCategory]);
 
-  // Calculate live customer statistics
-  const activeShoots = bookings.filter((b) =>
-    ['CONFIRMED', 'PENDING', 'ON_THE_WAY', 'ARRIVED_AT_VENUE', 'IN_PROGRESS'].includes(b.status)
-  );
-  const completedShoots = bookings.filter((b) => b.status === 'COMPLETED');
-  const totalEscrowInr = activeShoots.reduce((acc, curr) => acc + curr.amountInr, 0);
+  // Calculate live customer statistics (memoized)
+  const { activeShoots, completedShoots, totalEscrowInr } = useMemo(() => {
+    const active = bookings.filter((b) =>
+      ['CONFIRMED', 'PENDING', 'ON_THE_WAY', 'ARRIVED_AT_VENUE', 'IN_PROGRESS'].includes(b.status)
+    );
+    const completed = bookings.filter((b) => b.status === 'COMPLETED');
+    const escrow = active.reduce((acc, curr) => acc + curr.amountInr, 0);
+    return { activeShoots: active, completedShoots: completed, totalEscrowInr: escrow };
+  }, [bookings]);
 
   // Active shoot for urgent action
   const currentUpcomingShoot = activeShoots[0];
@@ -407,7 +411,7 @@ export const CustomerDashboardView: React.FC = () => {
         {isLoadingBookings ? (
           <div className="bg-white rounded-2xl border border-[#E8E1D6] p-10 flex flex-col items-center justify-center text-center">
             <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-xs text-[#8C847A]">Loading your live appointments from Supabase...</p>
+            <p className="text-xs text-[#8C847A]">Loading your scheduled appointments...</p>
           </div>
         ) : activeShoots.length > 0 ? (
           <div className="space-y-4">

@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     return jsonError(403, 'You can only submit your own application.');
   }
 
-  const { personal, professional, portfolioItems = [], services = [] } = body;
+  const { personal, professional, portfolioItems = [], services = [], verification } = body;
   if (!Array.isArray(portfolioItems) || !Array.isArray(services)) {
     return jsonError(400, 'portfolioItems and services must be lists.');
   }
@@ -204,11 +204,78 @@ export async function POST(req: NextRequest) {
       if (error) return jsonError(500, 'Could not save packages.');
     }
 
+    // Record verification documents into creator_verification_submissions so
+    // administrators can view and audit uploaded proof in the VerificationQueue.
+    const verificationDocuments = Array.isArray(verification?.documents)
+      ? verification.documents.filter((d: any) => d && (d.storage_path || d.external_url))
+      : [];
+
+    const normGovIdType = (typeStr?: string) => {
+      const lower = String(typeStr || '').toLowerCase();
+      if (lower.includes('pan')) return 'pan';
+      if (lower.includes('passport')) return 'passport';
+      if (lower.includes('voter')) return 'voter_id';
+      if (lower.includes('driving')) return 'driving_licence';
+      return 'aadhaar';
+    };
+
+    const govIdType = normGovIdType(verification?.idDocType);
+    const now = new Date().toISOString();
+    const submissionRefCode = `VRF-${user.id.slice(0, 8).toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+
+    const { data: existingSub } = await admin
+      .from('creator_verification_submissions')
+      .select('id, documents')
+      .eq('creator_id', creatorId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existingSub) {
+      const mergedDocs =
+        verificationDocuments.length > 0
+          ? verificationDocuments
+          : Array.isArray(existingSub.documents)
+          ? existingSub.documents
+          : [];
+      await admin
+        .from('creator_verification_submissions')
+        .update({
+          government_id_type: govIdType,
+          documents: mergedDocs,
+          legal_name: cleanText(personal?.name, 120) || 'Photographer',
+          contact_phone: personal?.phone || null,
+          city: cleanText(personal?.city, 80) || 'Delhi NCR',
+          updated_at: now,
+        })
+        .eq('id', existingSub.id);
+    } else if (verificationDocuments.length > 0 || nextStatus === 'pending') {
+      await admin.from('creator_verification_submissions').insert({
+        creator_id: creatorId,
+        user_id: user.id,
+        reference_code: submissionRefCode,
+        status: 'pending',
+        legal_name: cleanText(personal?.name, 120) || 'Photographer',
+        contact_phone: personal?.phone || null,
+        government_id_type: govIdType,
+        equipment_summary:
+          [professional?.cameras, professional?.lenses].filter(Boolean).join(', ') || 'Professional camera kit',
+        categories: professional?.specialties || ['Portraits'],
+        city: cleanText(personal?.city, 80) || 'Delhi NCR',
+        state: 'Delhi',
+        service_radius_km: 25,
+        documents: verificationDocuments,
+        applicant_notes: 'Submitted via photographer onboarding application.',
+        submitted_at: now,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       creatorId,
       verificationStatus: nextStatus,
-      referenceCode: `ONB-${user.id.slice(0, 8).toUpperCase()}`,
+      referenceCode: submissionRefCode,
       message:
         nextStatus === 'approved'
           ? 'Your photographer profile has been updated.'

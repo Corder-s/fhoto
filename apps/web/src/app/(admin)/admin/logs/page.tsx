@@ -200,7 +200,7 @@ export default function AdminSystemLogsPage() {
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase text-[#8C847A]">Database Connection</p>
-            <p className="text-sm font-black text-[#1A1816] truncate">Supabase PostgreSQL</p>
+            <p className="text-sm font-black text-[#1A1816] truncate">Cloud PostgreSQL</p>
           </div>
         </div>
 

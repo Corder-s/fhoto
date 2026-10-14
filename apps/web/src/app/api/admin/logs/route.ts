@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
       systemMetrics: {
         status: 'OPERATIONAL',
         environment: process.env.NODE_ENV || 'production',
-        database: 'CONNECTED (Supabase PostgreSQL)',
+        database: 'CONNECTED (PostgreSQL)',
         realtimeHeartbeat: new Date().toISOString(),
       },
     });

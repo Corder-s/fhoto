@@ -42,6 +42,24 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     }
   }, [isMounted, isAuthenticated, pathname, openAuthModal]);
 
+  const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
+  const isOwner = serverRoles.includes('owner');
+  const isAdmin = !isOwner && serverRoles.includes('admin');
+  const isCreator = !isOwner && !isAdmin && serverRoles.includes('creator');
+
+  // Automatically redirect non-owner authenticated users to their assigned dashboards
+  useEffect(() => {
+    if (isMounted && isAuthenticated && serverSession.status === 'authenticated' && !isOwner) {
+      if (isAdmin) {
+        router.replace('/admin/dashboard');
+      } else if (isCreator) {
+        router.replace('/photographer/dashboard');
+      } else {
+        router.replace('/customer/dashboard');
+      }
+    }
+  }, [isMounted, isAuthenticated, serverSession.status, isOwner, isAdmin, isCreator, router]);
+
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
@@ -79,6 +97,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   // docs/AUTHORIZATION_AND_ROLE_ACCESS.md). The session comes from the server, so
   // this is display gating only - /api/owner/stats and /api/admin/roles repeat the
   // check and answer 403 without it.
+  // Ownership is a database role: user_roles.role = 'owner'.
   if (serverSession.status === 'loading') {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
@@ -87,33 +106,18 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const isOwner = serverSession.status === 'authenticated' && serverSession.user.roles.includes('owner');
-
   if (!isOwner) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
-          <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-7 h-7" />
-          </div>
-          <h1 className="text-2xl font-black text-ink-primary">Access Restricted</h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
-            Your current account (<strong>{user.email}</strong>, role: <em>{user.role}</em>) does not possess executive ownership permissions.
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-[#5A544D]">
+            {isAdmin
+              ? 'Redirecting to Admin Operations Desk...'
+              : isCreator
+              ? 'Redirecting to Creator Studio Dashboard...'
+              : 'Redirecting to Customer Dashboard...'}
           </p>
-          <div className="space-y-2 pt-2">
-            <Link
-              href={user.role === 'creator' ? '/photographer/dashboard' : '/customer/dashboard'}
-              className="block w-full py-3 px-6 rounded-2xl bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-bold shadow-sm transition-all text-center"
-            >
-              Return to Your Workspace
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors cursor-pointer"
-            >
-              Sign Out
-            </button>
-          </div>
         </div>
       </div>
     );

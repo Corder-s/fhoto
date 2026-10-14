@@ -1,8 +1,21 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { AuthModalOptions } from './AuthModalContext';
-import { SnapShootAuthView } from './SnapShootAuthView';
+
+const SnapShootAuthView = dynamic(
+  () => import('./SnapShootAuthView').then((m) => m.SnapShootAuthView),
+  {
+    loading: () => (
+      <div className="w-full max-w-4xl min-h-[460px] bg-white rounded-3xl p-8 flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-[#8C847A]">Loading authentication studio...</p>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 interface AuthModalProps {
   isOpen: boolean;

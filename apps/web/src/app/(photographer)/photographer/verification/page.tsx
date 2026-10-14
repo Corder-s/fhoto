@@ -230,16 +230,10 @@ export default function PhotographerVerificationPage() {
   const openSubmission = useMemo(() => submissions.find((row) => row.status === 'pending' || row.status === 'needs_info'), [submissions]);
 
   const uploadFiles = async (files: FileList) => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      flash('Storage is not configured on this deployment, so files cannot be uploaded. Paste a shareable link instead.', 'error');
-      return;
-    }
     if (!user?.id) {
       flash('Sign in again before uploading documents.', 'error');
       return;
     }
-    const owner = user.id;
     for (const file of Array.from(files)) {
       if (file.size > 25 * 1024 * 1024) {
         setDocuments((prev) => [
@@ -248,28 +242,52 @@ export default function PhotographerVerificationPage() {
         ]);
         continue;
       }
-      const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '-').slice(-80) || 'document';
-      const path = `${owner}/${Date.now()}-${safeName}`;
       setDocuments((prev) => [
         ...prev,
         { type: documentType, fileName: file.name, sizeBytes: file.size, mimeType: file.type || null, storagePath: null, externalUrl: null, uploading: true },
       ]);
-      const { error } = await supabase.storage.from('creator-verification').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
-      setDocuments((prev) => {
-        const copy = [...prev];
-        let index = -1;
-        for (let position = copy.length - 1; position >= 0; position -= 1) {
-          if (copy[position].fileName === file.name && copy[position].uploading) {
-            index = position;
-            break;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', documentType);
+
+        const res = await fetch('/api/photographers/verification/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+
+        setDocuments((prev) => {
+          const copy = [...prev];
+          let index = -1;
+          for (let position = copy.length - 1; position >= 0; position -= 1) {
+            if (copy[position].fileName === file.name && copy[position].uploading) {
+              index = position;
+              break;
+            }
           }
-        }
-        if (index === -1) return copy;
-        copy[index] = error
-          ? { ...copy[index], uploading: false, error: error.message || 'Upload rejected by storage policy' }
-          : { ...copy[index], uploading: false, storagePath: path };
-        return copy;
-      });
+          if (index === -1) return copy;
+          copy[index] = !res.ok || !data.success
+            ? { ...copy[index], uploading: false, error: data.error || 'Upload failed' }
+            : { ...copy[index], uploading: false, storagePath: data.document.storage_path };
+          return copy;
+        });
+      } catch (err: any) {
+        setDocuments((prev) => {
+          const copy = [...prev];
+          let index = -1;
+          for (let position = copy.length - 1; position >= 0; position -= 1) {
+            if (copy[position].fileName === file.name && copy[position].uploading) {
+              index = position;
+              break;
+            }
+          }
+          if (index === -1) return copy;
+          copy[index] = { ...copy[index], uploading: false, error: err?.message || 'Upload error' };
+          return copy;
+        });
+      }
     }
     if (fileInput.current) fileInput.current.value = '';
   };

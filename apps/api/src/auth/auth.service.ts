@@ -94,7 +94,7 @@ export class AuthService {
 
   async requestPasswordReset(_identifier: string, _method: 'email' | 'phone' = 'email'): Promise<never> {
     throw new NotImplementedException(
-      'Password reset is handled by Supabase Auth in the web application (/forgot-password).',
+      'Password reset is handled in the web application (/forgot-password).',
     );
   }
 }

@@ -152,7 +152,7 @@ export async function GET() {
           generatedAt: new Date().toISOString(),
           // Surfaced so a reviewer of the dashboard can see the money numbers are
           // live and how fresh they are, not an estimate.
-          source: 'supabase: profiles, user_roles, creator_profiles, creator_verification_submissions, bookings, payments',
+          source: 'database: profiles, user_roles, creator_profiles, creator_verification_submissions, bookings, payments',
           // Recorded honestly instead of estimated: recurring SaaS billing is not
           // part of this database, so there is no MRR to display.
           subscriptionRevenue: null,

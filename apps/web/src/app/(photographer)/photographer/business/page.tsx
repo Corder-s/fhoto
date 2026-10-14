@@ -38,6 +38,7 @@ export default function PhotographerBusinessPage() {
     initials,
     updateProfile,
     uploadAvatar,
+    removeAvatar,
     loading: isContextLoading,
   } = useCurrentUserProfile();
 
@@ -199,7 +200,7 @@ export default function PhotographerBusinessPage() {
       });
 
       if (!res.success) {
-        throw new Error(res.error || 'Failed to update studio profile in Supabase.');
+        throw new Error(res.error || 'Failed to update studio profile.');
       }
 
       setSaveSuccess(true);
@@ -207,7 +208,7 @@ export default function PhotographerBusinessPage() {
       setTimeout(() => setSaveSuccess(false), 4500);
     } catch (err: any) {
       console.error('Error saving studio profile:', err);
-      setErrorMessage(err.message || 'Error occurred while saving to Supabase.');
+      setErrorMessage(err.message || 'Error occurred while saving profile.');
     } finally {
       setIsSaving(false);
     }
@@ -259,7 +260,7 @@ export default function PhotographerBusinessPage() {
       {saveSuccess && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-card-sm text-xs font-bold text-emerald-800 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Business studio profile updated successfully in Supabase! Changes are live across your dashboard and public listings.</span>
+          <span>Business studio profile updated successfully! Changes are live across your dashboard and public listings.</span>
         </div>
       )}
 
@@ -346,6 +347,27 @@ export default function PhotographerBusinessPage() {
                   <Camera className="w-3 h-3" />
                   <span>{isUploadingAvatar ? 'Uploading...' : 'Upload Profile Photo'}</span>
                 </button>
+                {displayAvatar && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsUploadingAvatar(true);
+                      try {
+                        const res = await removeAvatar();
+                        if (res.success) {
+                          setAvatarToast({ type: 'success', text: 'Profile picture removed.' });
+                          setTimeout(() => setAvatarToast(null), 3500);
+                        }
+                      } finally {
+                        setIsUploadingAvatar(false);
+                      }
+                    }}
+                    disabled={isUploadingAvatar}
+                    className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
                 {avatarToast && (
                   <span className={`text-[11px] font-semibold ${avatarToast.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
                     • {avatarToast.text}
@@ -526,7 +548,7 @@ export default function PhotographerBusinessPage() {
               disabled={isSaving}
               leftIcon={isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             >
-              {isSaving ? 'Saving to Supabase...' : 'Save Profile Changes'}
+              {isSaving ? 'Saving Changes...' : 'Save Profile Changes'}
             </Button>
           </div>
         </form>

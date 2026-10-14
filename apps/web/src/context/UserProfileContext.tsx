@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth, AuthUser, saveAuthSession } from '../lib/auth';
 
 export interface UserDbProfile {
@@ -107,16 +107,27 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Request ID tracker to prevent stale async responses
+  // Request ID and AbortController tracker to cancel obsolete async requests
   const activeFetchIdRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastSelfMutationRef = useRef<number>(0);
 
   const fetchProfileData = useCallback(async (userId: string) => {
+    // Abort previous in-flight request if still running
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const currentFetchId = ++activeFetchIdRef.current;
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/profile/me?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch(`/api/profile/me?userId=${encodeURIComponent(userId)}`, {
+        signal: controller.signal,
+      });
       const data = await res.json();
 
       // Check if another request was launched in the meantime
@@ -143,6 +154,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setStats(data.stats);
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       if (currentFetchId !== activeFetchIdRef.current) return;
       console.error('Error in UserProfileProvider fetchProfileData:', err);
       setError(err.message || 'Error syncing profile.');
@@ -160,6 +172,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!authUser?.id) {
       // User is logged out: reset all account-specific state
       activeFetchIdRef.current++;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       setProfile(null);
       setCreatorProfile(null);
       setStats(defaultStats);
@@ -171,9 +186,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchProfileData(authUser.id);
   }, [authUser?.id, isMounted, fetchProfileData]);
 
-  // Listen to profile update broadcast events across windows/tabs
+  // Listen to profile update broadcast events across windows/tabs (skipping self mutations)
   useEffect(() => {
-    const handleProfileChange = () => {
+    const handleProfileChange = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (custom.detail?.self) return;
+      if (Date.now() - lastSelfMutationRef.current < 2000) return;
       if (authUser?.id) {
         fetchProfileData(authUser.id);
       }
@@ -236,8 +254,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
           saveAuthSession(updatedAuthUser);
         }
 
-        // Broadcast change event
-        window.dispatchEvent(new Event('snapshoot:profile-change'));
+        // Broadcast change event (tagging origin to prevent redundant local refetch)
+        lastSelfMutationRef.current = Date.now();
+        window.dispatchEvent(new CustomEvent('snapshoot:profile-change', { detail: { self: true } }));
 
         return { success: true };
       } catch (err: any) {
@@ -294,7 +313,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         saveAuthSession(updatedAuthUser);
 
         // Broadcast change event
-        window.dispatchEvent(new Event('snapshoot:profile-change'));
+        lastSelfMutationRef.current = Date.now();
+        window.dispatchEvent(new CustomEvent('snapshoot:profile-change', { detail: { self: true } }));
 
         return { success: true, url: data.url };
       } catch (err: any) {
@@ -331,7 +351,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         };
         saveAuthSession(updatedAuthUser);
 
-        window.dispatchEvent(new Event('snapshoot:profile-change'));
+        lastSelfMutationRef.current = Date.now();
+        window.dispatchEvent(new CustomEvent('snapshoot:profile-change', { detail: { self: true } }));
 
         return { success: true };
       } catch (err: any) {
@@ -357,28 +378,49 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isCreator = userRole === 'creator';
   const isCustomer = userRole === 'customer';
 
+  const contextValue = useMemo<UserProfileContextValue>(
+    () => ({
+      authUser,
+      profile,
+      creatorProfile,
+      role: userRole,
+      isCreator,
+      isCustomer,
+      stats,
+      loading,
+      error,
+      accountName,
+      professionalName,
+      displayAvatar,
+      initials,
+      refreshProfile,
+      updateProfile,
+      uploadAvatar,
+      removeAvatar,
+    }),
+    [
+      authUser,
+      profile,
+      creatorProfile,
+      userRole,
+      isCreator,
+      isCustomer,
+      stats,
+      loading,
+      error,
+      accountName,
+      professionalName,
+      displayAvatar,
+      initials,
+      refreshProfile,
+      updateProfile,
+      uploadAvatar,
+      removeAvatar,
+    ]
+  );
+
   return (
-    <UserProfileContext.Provider
-      value={{
-        authUser,
-        profile,
-        creatorProfile,
-        role: userRole,
-        isCreator,
-        isCustomer,
-        stats,
-        loading,
-        error,
-        accountName,
-        professionalName,
-        displayAvatar,
-        initials,
-        refreshProfile,
-        updateProfile,
-        uploadAvatar,
-        removeAvatar,
-      }}
-    >
+    <UserProfileContext.Provider value={contextValue}>
       {children}
     </UserProfileContext.Provider>
   );

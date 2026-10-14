@@ -181,7 +181,7 @@ export default function PhotographerServicesPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to save package to Supabase.');
+        throw new Error(data.error || 'Failed to save package.');
       }
 
       const newPackage: ServicePackageItem = {
@@ -199,7 +199,7 @@ export default function PhotographerServicesPage() {
       setServices([newPackage, ...services]);
       setIsAddModalOpen(false);
     } catch (err: any) {
-      setFormError(err.message || 'Error saving to Supabase');
+      setFormError(err.message || 'Error saving package');
     } finally {
       setIsSaving(false);
     }
@@ -229,7 +229,7 @@ export default function PhotographerServicesPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to update package in Supabase.');
+        throw new Error(data.error || 'Failed to update package.');
       }
 
       setServices(
@@ -313,7 +313,7 @@ export default function PhotographerServicesPage() {
             Service Packages &amp; Pricing
           </h1>
           <p className="text-sm text-ink-secondary mt-1">
-            Configure photography packages, turnaround hours, and instant booking rates synced to Supabase.
+            Configure photography packages, turnaround hours, and instant booking rates.
           </p>
         </div>
 
@@ -332,7 +332,7 @@ export default function PhotographerServicesPage() {
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
           <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
-          <p className="text-xs text-ink-muted">Loading packages from Supabase...</p>
+          <p className="text-xs text-ink-muted">Loading packages...</p>
         </div>
       ) : services.length === 0 ? (
         <div className="py-16 text-center border-2 border-dashed border-[#E8E2D8] rounded-3xl bg-[#FAF7F2]/50 p-8 space-y-3">
@@ -479,7 +479,7 @@ export default function PhotographerServicesPage() {
                   Cancel
                 </Button>
                 <Button variant="primary" size="sm" type="submit" disabled={isSaving}>
-                  {isSaving ? 'Saving to Supabase...' : 'Save Package'}
+                  {isSaving ? 'Saving Package...' : 'Save Package'}
                 </Button>
               </div>
             </form>

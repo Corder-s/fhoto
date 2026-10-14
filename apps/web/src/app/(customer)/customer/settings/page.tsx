@@ -51,7 +51,9 @@ import {
   SavedLocation,
 } from '../../../../lib/settingsService';
 import { useAuth } from '../../../../lib/auth';
+import { useCurrentUserProfile } from '../../../../context/UserProfileContext';
 import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 type SettingsTab =
   | 'profile'
@@ -68,11 +70,13 @@ type SettingsTab =
 
 export default function CustomerSettingsPage() {
   const { user, logout, isAuthenticated, isMounted } = useAuth();
+  const { uploadAvatar, removeAvatar, displayAvatar } = useCurrentUserProfile();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [prefs, setPrefs] = useState<CustomerPreferences>(() => getCustomerPreferences(user));
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -179,14 +183,14 @@ export default function CustomerSettingsPage() {
 
       setIsDirty(false);
       setSaveSuccess(true);
-      setStatusMessage('Settings synced and saved to Supabase successfully.');
+      setStatusMessage('Settings saved successfully.');
       setTimeout(() => {
         setSaveSuccess(false);
         setStatusMessage('');
       }, 4000);
     } catch (err: any) {
       setIsSaving(false);
-      setErrorMessage(err?.message || 'Failed to save settings to Supabase.');
+      setErrorMessage(err?.message || 'Failed to save settings.');
     }
   };
 
@@ -204,13 +208,13 @@ export default function CustomerSettingsPage() {
     setTimeout(() => setStatusMessage(''), 2500);
   };
 
-  // Avatar Upload Handler with Supabase Storage integration
+  // Avatar Upload Handler with reliable server-side service-role upload
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.match(/^image\/(jpeg|png|webp|jpg)$/i)) {
-      setErrorMessage('Please select a valid JPG or PNG image file.');
+    if (!file.type.match(/^image\/(jpeg|png|webp|gif|jpg)$/i)) {
+      setErrorMessage('Please select a valid image file (JPG, PNG, WebP).');
       return;
     }
 
@@ -220,71 +224,68 @@ export default function CustomerSettingsPage() {
     }
 
     setErrorMessage('');
+    setIsUploadingPhoto(true);
 
-    // Attempt direct upload to Supabase Storage bucket 'profile-avatars'
-    const supabase = getSupabaseBrowserClient();
-    if (supabase && user?.id) {
-      try {
-        const ext = file.name.split('.').pop() || 'jpg';
-        const filePath = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('profile-avatars')
-          .upload(filePath, file, { contentType: file.type || undefined });
-
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('profile-avatars')
-            .getPublicUrl(filePath);
-
-          if (publicUrl) {
-            const updated = {
-              ...prefs,
-              profile: {
-                ...prefs.profile,
-                avatar: publicUrl,
-              },
-            };
-            setPrefs(updated);
-            setIsDirty(true);
-            await saveCustomerPreferencesToSupabase(user.id, updated);
-            setStatusMessage('Avatar uploaded and saved to Supabase.');
-            setTimeout(() => setStatusMessage(''), 4000);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Storage bucket upload fallback:', err);
+    try {
+      const res = await uploadAvatar(file);
+      if (!res.success || !res.url) {
+        throw new Error(res.error || 'Failed to upload profile picture.');
       }
+
+      const updated = {
+        ...prefs,
+        profile: {
+          ...prefs.profile,
+          avatar: res.url,
+        },
+      };
+      setPrefs(updated);
+      setIsDirty(true);
+      if (user?.id) {
+        await saveCustomerPreferencesToSupabase(user.id, updated);
+      }
+      setStatusMessage('Profile photo updated successfully.');
+      setTimeout(() => setStatusMessage(''), 4000);
+    } catch (err: any) {
+      console.error('Avatar upload failed:', err);
+      setErrorMessage(err.message || 'Failed to upload profile photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-
-    // Fallback: Read as base64 data URL
-    const reader = new FileReader();
-    reader.onload = async (uploadEvent) => {
-      const base64 = uploadEvent.target?.result as string;
-      if (base64) {
-        const updated = {
-          ...prefs,
-          profile: {
-            ...prevProfile(prefs.profile, base64),
-            avatar: base64,
-          },
-        };
-        setPrefs(updated);
-        setIsDirty(true);
-        if (user?.id) {
-          await saveCustomerPreferencesToSupabase(user.id, updated);
-        }
-        setStatusMessage('Profile photo updated. Click "Save Changes" to save permanently.');
-        setTimeout(() => setStatusMessage(''), 4000);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  const prevProfile = (p: any, avatar: string) => ({
-    ...p,
-    avatar,
-  });
+  const handleRemoveAvatar = async () => {
+    setErrorMessage('');
+    setIsUploadingPhoto(true);
+
+    try {
+      const res = await removeAvatar();
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to remove profile picture.');
+      }
+
+      const updated = {
+        ...prefs,
+        profile: {
+          ...prefs.profile,
+          avatar: '',
+        },
+      };
+      setPrefs(updated);
+      setIsDirty(true);
+      if (user?.id) {
+        await saveCustomerPreferencesToSupabase(user.id, updated);
+      }
+      setStatusMessage('Profile photo removed.');
+      setTimeout(() => setStatusMessage(''), 3000);
+    } catch (err: any) {
+      console.error('Avatar removal failed:', err);
+      setErrorMessage(err.message || 'Failed to remove profile photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   // Password Update Handler synced directly to Supabase Auth
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -328,7 +329,7 @@ export default function CustomerSettingsPage() {
       setNewPassword('');
       setConfirmPassword('');
       setPasswordSuccess(false);
-      setStatusMessage('Password updated successfully in Supabase.');
+      setStatusMessage('Password updated successfully.');
       setTimeout(() => setStatusMessage(''), 4000);
     }, 1200);
   };
@@ -593,23 +594,41 @@ export default function CustomerSettingsPage() {
               {/* 1. Profile Summary Card */}
               <div className="bg-white rounded-2xl border border-[#E8E1D6] p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+                  {/* Hidden File Input for Avatar Upload */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+
                   {/* Avatar with Camera Overlay */}
                   <div className="relative group shrink-0">
-                    {prefs.profile.avatar ? (
-                      <img
-                        src={prefs.profile.avatar}
-                        alt={prefs.profile.displayName || prefs.profile.name || 'User Avatar'}
-                        className="w-20 h-20 rounded-full object-cover border border-[#E8E1D6] shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand text-2xl font-black shadow-sm">
-                        {(prefs.profile.displayName || user?.name || user?.email || 'U')[0].toUpperCase()}
-                      </div>
-                    )}
+                    <div className="w-20 h-20 rounded-full overflow-hidden border border-[#E8E1D6] shadow-sm relative flex items-center justify-center bg-[#FAF7F2]">
+                      {prefs.profile.avatar || displayAvatar ? (
+                        <img
+                          src={(prefs.profile.avatar || displayAvatar) || undefined}
+                          alt={prefs.profile.displayName || prefs.profile.name || 'User Avatar'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#FF6E00]/10 border border-[#FF6E00]/20 flex items-center justify-center text-[#FF6E00] text-2xl font-black shadow-sm">
+                          {(prefs.profile.displayName || user?.name || user?.email || 'U')[0].toUpperCase()}
+                        </div>
+                      )}
+
+                      {isUploadingPhoto && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
+                          <Loader2 className="w-5 h-5 animate-spin text-[#FF6E00]" />
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border border-[#E0D8CD] shadow flex items-center justify-center text-[#5A544D] hover:text-[#FF6E00] hover:scale-105 transition-all"
+                      disabled={isUploadingPhoto}
+                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border border-[#E0D8CD] shadow flex items-center justify-center text-[#5A544D] hover:text-[#FF6E00] hover:scale-105 transition-all cursor-pointer disabled:opacity-50"
                       title="Upload photo"
                     >
                       <Camera className="w-3.5 h-3.5" />
@@ -638,17 +657,42 @@ export default function CustomerSettingsPage() {
                   </div>
                 </div>
 
-                {/* Change Photo Button */}
-                <div className="flex flex-col items-center sm:items-end shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#FF6E00] bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#FF6E00]/30 transition-all shadow-sm active:scale-95"
-                  >
-                    <Camera className="w-4 h-4 text-[#FF6E00]" />
-                    <span>Change Photo</span>
-                  </button>
-                  <span className="text-[10px] text-[#8C847A] mt-1.5">JPG, PNG up to 5MB</span>
+                {/* Change / Remove Photo Buttons */}
+                <div className="flex flex-col items-center sm:items-end shrink-0 gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingPhoto}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#FF6E00] bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#FF6E00]/30 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#FF6E00]" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4 text-[#FF6E00]" />
+                          <span>Change Photo</span>
+                        </>
+                      )}
+                    </button>
+
+                    {(prefs.profile.avatar || displayAvatar) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        disabled={isUploadingPhoto}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+                        title="Remove profile photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#8C847A]">JPG, PNG, WebP up to 5MB</span>
                 </div>
               </div>
 

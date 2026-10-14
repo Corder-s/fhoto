@@ -55,7 +55,7 @@ async function run() {
   const pageVikram = await get('http://localhost:3000/photographers/pro-vikram');
   console.log('Status:', pageVikram.status);
   const containsSnapshoot = pageVikram.body.includes('SNAPSHOOT');
-  const containsLoadingOrVikram = pageVikram.body.includes('Loading verified artist profile from Supabase') || pageVikram.body.includes('Vikramaditya');
+  const containsLoadingOrVikram = pageVikram.body.includes('Loading verified artist profile') || pageVikram.body.includes('Vikramaditya');
   const containsDashboardSidebar = pageVikram.body.includes('PhotographerSidebar') || pageVikram.body.includes('SellerDashboardView');
   console.log('Contains Public Marketplace Branding:', containsSnapshoot);
   console.log('Contains Valid Profile State:', containsLoadingOrVikram);

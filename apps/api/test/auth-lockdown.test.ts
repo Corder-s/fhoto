@@ -83,7 +83,7 @@ describe('Mock auth lockdown', () => {
     assert.doesNotMatch(res.message, /123456/);
   });
 
-  it('password reset is not implemented in the API (handled by Supabase in the web app)', async () => {
+  it('password reset is not implemented in the API (handled in the web app)', async () => {
     await assert.rejects(() => service.requestPasswordReset('x@y.co', 'email'), { name: 'NotImplementedException' });
   });
 

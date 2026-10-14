@@ -42,7 +42,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        script: ['var(--font-caveat)', 'Caveat', 'cursive', 'sans-serif'],
       },
       borderRadius: {
         'card-sm': '12px',

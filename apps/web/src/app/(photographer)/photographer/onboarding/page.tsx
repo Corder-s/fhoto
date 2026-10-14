@@ -102,6 +102,65 @@ export default function PhotographerOnboardingPage() {
   const [idDocType, setIdDocType] = useState('Aadhaar Card');
   const [idFileName, setIdFileName] = useState('');
   const [invoiceFileName, setInvoiceFileName] = useState('');
+  const [idDoc, setIdDoc] = useState<{
+    type: string;
+    storage_path: string;
+    file_name: string;
+    mime_type: string;
+    size_bytes: number;
+  } | null>(null);
+  const [invoiceDoc, setInvoiceDoc] = useState<{
+    type: string;
+    storage_path: string;
+    file_name: string;
+    mime_type: string;
+    size_bytes: number;
+  } | null>(null);
+  const [isUploadingId, setIsUploadingId] = useState(false);
+  const [isUploadingInvoice, setIsUploadingInvoice] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleUploadDoc = async (file: File, type: 'government_id' | 'equipment_invoice') => {
+    setUploadError('');
+    if (type === 'government_id') {
+      setIsUploadingId(true);
+    } else {
+      setIsUploadingInvoice(true);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+
+      const res = await fetch('/api/photographers/verification/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.document) {
+        throw new Error(data.error || 'Failed to upload document.');
+      }
+
+      if (type === 'government_id') {
+        setIdDoc(data.document);
+        setIdFileName(`${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+      } else {
+        setInvoiceDoc(data.document);
+        setInvoiceFileName(`${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
+      }
+    } catch (err: any) {
+      console.error('Document upload error:', err);
+      setUploadError(err.message || 'Error uploading document.');
+    } finally {
+      if (type === 'government_id') {
+        setIsUploadingId(false);
+      } else {
+        setIsUploadingInvoice(false);
+      }
+    }
+  };
 
   // 1. Fetch real creator profile and categories from Supabase on mount
   useEffect(() => {
@@ -280,13 +339,14 @@ export default function PhotographerOnboardingPage() {
             idDocType,
             idFileName,
             equipmentInvoiceFileName: invoiceFileName,
+            documents: [idDoc, invoiceDoc].filter(Boolean),
           },
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to submit onboarding profile to Supabase.');
+        throw new Error(data.error || 'Failed to submit onboarding profile.');
       }
 
       setApplicationRef(data.referenceCode || `ONB-${user.id.slice(0, 8).toUpperCase()}`);
@@ -294,7 +354,7 @@ export default function PhotographerOnboardingPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error('Error submitting application:', err);
-      setErrorMsg(err.message || 'Error occurred while saving application to Supabase.');
+      setErrorMsg(err.message || 'Error occurred while saving application.');
     } finally {
       setIsSubmitting(false);
     }
@@ -374,7 +434,7 @@ export default function PhotographerOnboardingPage() {
       <div className="max-w-2xl mx-auto py-24 text-center space-y-4">
         <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
         <p className="text-sm font-semibold text-ink-secondary">
-          Syncing creator profile with Supabase...
+          Syncing creator profile...
         </p>
       </div>
     );
@@ -389,10 +449,10 @@ export default function PhotographerOnboardingPage() {
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
-            Onboarding Profile Submitted to Supabase!
+            Onboarding Profile Submitted!
           </h1>
           <p className="text-sm text-ink-secondary max-w-lg mx-auto">
-            Your creator profile, packages, and credentials have been recorded in the database. Our curation team will verify your details within 24 to 48 hours.
+            Your creator profile, packages, and credentials have been recorded. Our curation team will verify your details within 24 to 48 hours.
           </p>
         </div>
 
@@ -404,7 +464,7 @@ export default function PhotographerOnboardingPage() {
             </span>
           </div>
           <p className="text-xs text-ink-secondary leading-relaxed">
-            Your public listing is safely registered in pending status in Supabase. You can check your compliance progress or continue to your creator workspace dashboard.
+            Your public listing is safely registered in pending status. You can check your compliance progress or continue to your creator workspace dashboard.
           </p>
         </Card>
 
@@ -431,7 +491,7 @@ export default function PhotographerOnboardingPage() {
         <div className="flex items-center gap-2 mb-1">
           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-emerald-600" />
-            <span>Supabase Live Sync Active</span>
+            <span>Live Sync Active</span>
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">
@@ -502,7 +562,7 @@ export default function PhotographerOnboardingPage() {
         <Card className="p-6 sm:p-8 space-y-6">
           <div className="border-b border-contour-subtle pb-4">
             <h2 className="text-xl font-bold text-ink-primary">Step 1: Personal & Contact Information</h2>
-            <p className="text-xs text-ink-secondary mt-1">Verified creator details synced from your Supabase profile.</p>
+            <p className="text-xs text-ink-secondary mt-1">Verified creator details synced from your profile.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -640,7 +700,7 @@ export default function PhotographerOnboardingPage() {
           <div className="border-b border-contour-subtle pb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-ink-primary">Step 3: Curate Portfolio Highlights</h2>
-              <p className="text-xs text-ink-secondary mt-1">Upload and manage sample photographs saved to Supabase.</p>
+              <p className="text-xs text-ink-secondary mt-1">Upload and manage your sample photographs.</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="brand" size="sm">{portfolioItems.length} photos</Badge>
@@ -808,7 +868,7 @@ export default function PhotographerOnboardingPage() {
           <div className="border-b border-contour-subtle pb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-ink-primary">Step 4: Photography Services & Pricing</h2>
-              <p className="text-xs text-ink-secondary mt-1">Configure packages synced directly to Supabase creator services.</p>
+              <p className="text-xs text-ink-secondary mt-1">Configure packages and instant booking services.</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="brand" size="sm">{services.length} packages</Badge>
@@ -1013,29 +1073,54 @@ export default function PhotographerOnboardingPage() {
               </select>
             </div>
 
+            {uploadError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
             {/* Document Upload Input */}
             <div className="border-2 border-dashed border-contour-strong rounded-card-md p-6 text-center space-y-2 bg-canvas-primary/60">
-              <UploadCloud className="w-8 h-8 text-[#FF6E00] mx-auto" />
+              {isUploadingId ? (
+                <Loader2 className="w-8 h-8 text-[#FF6E00] mx-auto animate-spin" />
+              ) : (
+                <UploadCloud className="w-8 h-8 text-[#FF6E00] mx-auto" />
+              )}
               <p className="text-xs font-bold text-ink-primary">
-                {idFileName ? 'Document Attached:' : 'Attach Identity Verification Document'}
+                {isUploadingId
+                  ? 'Uploading Document to Secure Storage...'
+                  : idFileName
+                  ? 'Identity Document Attached & Secured:'
+                  : 'Attach Identity Verification Document *'}
               </p>
               {idFileName ? (
                 <p className="text-xs font-mono text-emerald-700 font-semibold">{idFileName}</p>
               ) : (
-                <p className="text-xs text-ink-muted">PDF, JPG, or PNG (Max 10 MB)</p>
+                <p className="text-xs text-ink-muted">PDF, JPG, PNG, or WebP (Max 25 MB)</p>
               )}
               <label className="inline-block cursor-pointer">
-                <span className="py-1.5 px-3 rounded-lg border border-contour-strong hover:bg-white text-ink-primary font-semibold text-xs transition-colors inline-block">
-                  {idFileName ? 'Replace ID File' : 'Choose File to Upload'}
+                <span className="py-1.5 px-3 rounded-lg border border-contour-strong hover:bg-white text-ink-primary font-semibold text-xs transition-colors inline-flex items-center gap-1.5">
+                  {isUploadingId ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6E00]" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : idFileName ? (
+                    'Replace ID File'
+                  ) : (
+                    'Choose File to Upload'
+                  )}
                 </span>
                 <input
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  disabled={isUploadingId}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setIdFileName(`${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+                      handleUploadDoc(file, 'government_id');
                     }
                   }}
                 />
@@ -1046,24 +1131,31 @@ export default function PhotographerOnboardingPage() {
             <div className="space-y-1.5 pt-2">
               <label className="text-xs font-bold uppercase text-ink-primary">Camera Gear Purchase Invoice / Proof</label>
               <div className="flex items-center justify-between p-3 bg-canvas-secondary rounded-card-sm text-xs border border-contour-subtle">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#FF6E00]" />
-                  <span className="font-mono text-ink-primary">
-                    {invoiceFileName || 'No equipment invoice attached yet (Optional)'}
+                <div className="flex items-center gap-2 min-w-0">
+                  {isUploadingInvoice ? (
+                    <Loader2 className="w-4 h-4 text-[#FF6E00] animate-spin shrink-0" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-[#FF6E00] shrink-0" />
+                  )}
+                  <span className="font-mono text-ink-primary truncate">
+                    {isUploadingInvoice
+                      ? 'Uploading invoice...'
+                      : invoiceFileName || 'No equipment invoice attached yet (Optional)'}
                   </span>
                 </div>
-                <label className="cursor-pointer">
+                <label className="cursor-pointer shrink-0 ml-2">
                   <Badge variant={invoiceFileName ? 'success' : 'neutral'} size="sm">
-                    {invoiceFileName ? 'Attached' : 'Upload Proof'}
+                    {isUploadingInvoice ? 'Uploading...' : invoiceFileName ? 'Attached' : 'Upload Proof'}
                   </Badge>
                   <input
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    disabled={isUploadingInvoice}
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setInvoiceFileName(`${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
+                        handleUploadDoc(file, 'equipment_invoice');
                       }
                     }}
                   />
@@ -1191,7 +1283,7 @@ export default function PhotographerOnboardingPage() {
           }
         >
           {isSubmitting
-            ? 'Submitting to Supabase...'
+            ? 'Submitting Application...'
             : currentStep === totalSteps
             ? 'Submit Application for Review'
             : 'Save & Continue'}

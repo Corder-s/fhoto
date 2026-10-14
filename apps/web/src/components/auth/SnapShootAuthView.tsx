@@ -123,9 +123,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !isSupabaseConfigured()) {
-      setErrorMessage(
-        'Database connection required: Please enter your Supabase Project URL and Anon Key in apps/web/.env.local (and restart dev server) to log in to your Supabase account.'
-      );
+      setErrorMessage('Authentication service is temporarily unavailable. Please try again shortly.');
       return;
     }
 
@@ -227,7 +225,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
         }
       } catch (err: any) {
         setIsLoading(false);
-        setErrorMessage(err?.message || 'Supabase authentication error.');
+        setErrorMessage(err?.message || 'Authentication error. Please check your credentials and try again.');
       }
     }
   };
@@ -266,9 +264,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !isSupabaseConfigured()) {
-      setErrorMessage(
-        'Database connection required: Please enter your Supabase Project URL and Anon Key in apps/web/.env.local (and restart dev server) to create accounts in your Supabase database.'
-      );
+      setErrorMessage('Registration service is temporarily unavailable. Please try again shortly.');
       return;
     }
 
@@ -324,7 +320,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
         if (regRole === 'creator') {
           saveAuthSession(newUser, signInData.session.access_token);
-          setSuccessMessage('Creator account created in Supabase! Taking you to onboarding studio...');
+          setSuccessMessage('Creator account created! Taking you to onboarding studio...');
           setTimeout(() => {
             if (onClose) onClose();
             router.replace('/photographer/onboarding');
@@ -359,7 +355,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       if (data.user) {
         if (!data.session) {
           setSuccessMessage(
-            'Account created in Supabase! You can now log in with your credentials.'
+            'Account created! You can now log in with your credentials.'
           );
           setTimeout(() => {
             setTab('login');
@@ -377,7 +373,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
         if (regRole === 'creator') {
           saveAuthSession(newUser, data.session.access_token);
-          setSuccessMessage('Creator account created in Supabase! Taking you to onboarding studio...');
+          setSuccessMessage('Creator account created! Taking you to onboarding studio...');
           setTimeout(() => {
             if (onClose) onClose();
             router.replace('/photographer/onboarding');
@@ -388,7 +384,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       }
     } catch (err: any) {
       setIsLoading(false);
-      setErrorMessage(err?.message || 'Supabase account creation error.');
+      setErrorMessage(err?.message || 'Account creation error. Please try again.');
     }
   };
 
@@ -400,9 +396,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     if (provider === 'google') {
       const supabase = getSupabaseBrowserClient();
       if (!supabase || !isSupabaseConfigured()) {
-        setErrorMessage(
-          'Supabase is not configured. Please verify your Supabase credentials in apps/web/.env.local.'
-        );
+        setErrorMessage('Authentication service is temporarily unavailable. Please try again shortly.');
         return;
       }
 
@@ -722,14 +716,14 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             </button>
           </div>
 
-          {/* Supabase Connection Status Banner */}
+          {/* Service Configuration Status Banner */}
           {!isSupabaseConfigured() && (
             <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
               <div className="space-y-0.5">
-                <span className="font-bold text-amber-950 block">Supabase Keys Required</span>
+                <span className="font-bold text-amber-950 block">Database Configuration Required</span>
                 <span className="text-[11px] text-amber-800">
-                  Please add your <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to <code>apps/web/.env.local</code> to create real user accounts in your Supabase database.
+                  Please configure environment authentication credentials to create accounts.
                 </span>
               </div>
             </div>

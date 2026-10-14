@@ -518,8 +518,8 @@ export async function saveCustomerPreferencesToSupabase(
 
     return { success: true };
   } catch (err: any) {
-    console.error('Error saving customer preferences to Supabase:', err);
-    return { success: false, error: err?.message || 'Failed to sync with Supabase.' };
+    console.error('Error saving customer preferences:', err);
+    return { success: false, error: err?.message || 'Failed to save settings.' };
   }
 }
 

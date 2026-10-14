@@ -27,7 +27,8 @@ import {
   Check,
   ChevronLeft,
   Package,
-  Sparkles
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 
@@ -41,7 +42,43 @@ export const SellerDashboardView: React.FC = () => {
     professionalName,
     displayAvatar,
     initials,
+    uploadAvatar,
   } = useCurrentUserProfile();
+
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarToast, setAvatarToast] = useState<string | null>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.match(/^image\/(jpeg|png|webp|gif|jpg)$/i)) {
+      alert('Please select a JPG, PNG, or WebP image.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size exceeds 5MB limit.');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const res = await uploadAvatar(file);
+      if (res.success) {
+        setAvatarToast('Profile photo updated successfully!');
+        setTimeout(() => setAvatarToast(null), 3500);
+      } else {
+        alert(res.error || 'Failed to update profile photo.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error uploading profile photo.');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   const [copiedToast, setCopiedToast] = useState(false);
   const [proTipDismissed, setProTipDismissed] = useState(false);
@@ -132,6 +169,12 @@ export const SellerDashboardView: React.FC = () => {
           <span>Public profile link copied to clipboard!</span>
         </div>
       )}
+      {avatarToast && (
+        <div className="fixed top-24 right-8 z-50 bg-[#1A1816] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 border border-[#FF6E00]/40">
+          <Check className="w-4 h-4 text-[#FF6E00]" />
+          <span>{avatarToast}</span>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* TOP ROW: WELCOME BANNER & PROFILE CARD                  */}
@@ -204,18 +247,42 @@ export const SellerDashboardView: React.FC = () => {
         <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-6 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black border-2 border-[#FFE8D6] shadow-xs shrink-0 relative">
+              {/* Hidden File Input for Avatar Upload */}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black border-2 border-[#FFE8D6] shadow-xs shrink-0 relative group">
                 <span className="select-none">{initials}</span>
                 {displayAvatar && (
                   <img
                     src={displayAvatar}
                     alt={professionalName}
                     className="absolute inset-0 w-full h-full object-cover"
+                    loading="eager"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 )}
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#FF6E00]" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="absolute bottom-0 right-0 p-1 bg-[#1A1816]/80 hover:bg-[#FF6E00] text-white rounded-lg transition-all cursor-pointer opacity-80 group-hover:opacity-100 disabled:opacity-40"
+                  title="Upload / Change profile photo"
+                >
+                  <Camera className="w-3 h-3" />
+                </button>
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -670,6 +737,8 @@ export const SellerDashboardView: React.FC = () => {
                     src={item.preview_url}
                     alt={item.title}
                     className="w-full aspect-square rounded-xl object-cover border border-[#E8E2D8] hover:scale-105 transition-transform"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/reference-assets/cat_portrait.jpg';
                     }}
@@ -775,7 +844,7 @@ export const SellerDashboardView: React.FC = () => {
             </div>
             <div>
               <h4 className="text-xs font-bold text-[#1A1816]">Studio Sync Status</h4>
-              <p className="text-[11px] text-[#736B63]">Supabase Database Connected</p>
+              <p className="text-[11px] text-[#736B63]">Realtime Studio Connected</p>
             </div>
           </div>
           <Link

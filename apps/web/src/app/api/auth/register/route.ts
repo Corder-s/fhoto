@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdminClient();
   if (!admin) {
     return NextResponse.json(
-      { error: 'Supabase admin client is not configured. Check SUPABASE_SERVICE_ROLE_KEY in .env.local' },
+      { error: 'Authentication service is not configured. Please contact support.' },
       { status: 503 }
     );
   }

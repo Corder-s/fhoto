@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const client = admin || getSupabaseBrowserClient();
 
     if (!client) {
-      return NextResponse.json({ error: 'Supabase client unavailable' }, { status: 503 });
+      return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
     }
 
     let queryBuilder = client
@@ -66,59 +66,64 @@ export async function GET(request: Request) {
 
     const creators = data || [];
     const creatorIds = creators.map((c: any) => c.id);
+    const userIds = creators.map((c: any) => c.user_id).filter(Boolean);
 
-    // Fetch active services directly from creator_services table to guarantee 100% sync
-    let servicesQuery = client
-      .from('creator_services')
-      .select('*')
-      .eq('is_active', true)
-      .order('base_price', { ascending: true });
+    // Fetch active services, portfolio items, and user profiles concurrently
+    const servicesPromise = creatorIds.length > 0
+      ? client
+          .from('creator_services')
+          .select('id, creator_id, title, description, base_price, duration_minutes, delivery_time_hours, instant_booking_enabled, is_active')
+          .eq('is_active', true)
+          .in('creator_id', creatorIds)
+          .order('base_price', { ascending: true })
+      : Promise.resolve({ data: [] });
 
-    if (creatorIds.length > 0) {
-      servicesQuery = servicesQuery.in('creator_id', creatorIds);
-    }
+    const portfolioPromise = creatorIds.length > 0
+      ? client
+          .from('creator_portfolio_items')
+          .select('id, creator_id, title, preview_url, media_type, display_order, is_published')
+          .eq('is_published', true)
+          .in('creator_id', creatorIds)
+          .order('display_order', { ascending: true })
+      : Promise.resolve({ data: [] });
 
-    const { data: directServices } = await servicesQuery;
+    const profilesPromise = userIds.length > 0
+      ? client
+          .from('profiles')
+          .select('id, avatar_url, full_name')
+          .in('id', userIds)
+      : Promise.resolve({ data: [] });
+
+    const [servicesResult, portfolioResult, profilesResult] = await Promise.all([
+      servicesPromise,
+      portfolioPromise,
+      profilesPromise,
+    ]);
+
+    const directServices = servicesResult.data || [];
+    const directPortfolio = portfolioResult.data || [];
+    const profileRows = profilesResult.data || [];
+
     const servicesByCreator: Record<string, any[]> = {};
-    (directServices || []).forEach((s: any) => {
+    directServices.forEach((s: any) => {
       if (!servicesByCreator[s.creator_id]) {
         servicesByCreator[s.creator_id] = [];
       }
       servicesByCreator[s.creator_id].push(s);
     });
 
-    // Fetch portfolio items directly from creator_portfolio_items
-    let portfolioQuery = client
-      .from('creator_portfolio_items')
-      .select('*')
-      .eq('is_published', true)
-      .order('display_order', { ascending: true });
-
-    if (creatorIds.length > 0) {
-      portfolioQuery = portfolioQuery.in('creator_id', creatorIds);
-    }
-
-    const { data: directPortfolio } = await portfolioQuery;
     const portfolioByCreator: Record<string, any[]> = {};
-    (directPortfolio || []).forEach((p: any) => {
+    directPortfolio.forEach((p: any) => {
       if (!portfolioByCreator[p.creator_id]) {
         portfolioByCreator[p.creator_id] = [];
       }
       portfolioByCreator[p.creator_id].push(p);
     });
 
-    // Fetch user profiles to resolve user avatar URLs
-    const userIds = creators.map((c: any) => c.user_id).filter(Boolean);
     const profilesByUser: Record<string, any> = {};
-    if (userIds.length > 0) {
-      const { data: profileRows } = await client
-        .from('profiles')
-        .select('id, avatar_url, full_name')
-        .in('id', userIds);
-      (profileRows || []).forEach((p: any) => {
-        profilesByUser[p.id] = p;
-      });
-    }
+    profileRows.forEach((p: any) => {
+      profilesByUser[p.id] = p;
+    });
 
     // Format results to standard API structure
     const photographers = creators.map((cp: any) => {
@@ -184,11 +189,18 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      count: photographers.length,
-      photographers,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        count: photographers.length,
+        photographers,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('API Error:', err);
     return NextResponse.json({ error: 'Could not load photographers.' }, { status: 500 });

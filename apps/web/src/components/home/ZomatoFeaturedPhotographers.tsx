@@ -129,6 +129,8 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                       src={creator.coverImageUrl}
                       alt={`${creator.name} portfolio preview`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
                     />
                     {/* Availability Indicator */}
                     <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46] border border-[#C5E8D2] flex items-center gap-1.5 shadow-sm">
@@ -145,6 +147,10 @@ export const ZomatoFeaturedPhotographers: React.FC = () => {
                           src={creator.avatarUrl}
                           alt={creator.name}
                           className="w-11 h-11 rounded-full object-cover shrink-0 border border-[#E8E1D6]"
+                          loading="lazy"
+                          decoding="async"
+                          width={44}
+                          height={44}
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">

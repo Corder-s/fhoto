@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Camera,
   LayoutDashboard,
@@ -33,6 +33,7 @@ import { useAuthModal } from '../../../components/auth/AuthModalContext';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/admin/dashboard';
+  const router = useRouter();
   const { user, isAuthenticated, isMounted, logout } = useAuth();
   // Authorization is decided by the server session, not by the localStorage copy of the user.
   const serverSession = useServerSession();
@@ -72,6 +73,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     }
   }, [isMounted, isAuthenticated, pathname, openAuthModal]);
+
+  const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
+  const isAdminOrOwner = serverRoles.includes('admin') || serverRoles.includes('owner');
+  const isCreator = !isAdminOrOwner && serverRoles.includes('creator');
+
+  // Automatically redirect non-admin accounts to their appropriate workspace
+  useEffect(() => {
+    if (isMounted && isAuthenticated && serverSession.status === 'authenticated' && !isAdminOrOwner) {
+      if (isCreator) {
+        router.replace('/photographer/dashboard');
+      } else {
+        router.replace('/customer/dashboard');
+      }
+    }
+  }, [isMounted, isAuthenticated, serverSession.status, isAdminOrOwner, isCreator, router]);
 
   if (!isMounted) {
     return (
@@ -113,34 +129,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-  const isAdminOrOwner =
-    serverSession.status === 'authenticated' &&
-    (serverSession.user.roles.includes('admin') || serverSession.user.roles.includes('owner'));
   if (!isAdminOrOwner) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
-          <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-7 h-7" />
-          </div>
-          <h1 className="text-2xl font-black text-ink-primary">Access Denied</h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
-            Your current account (<strong>{user.email}</strong>, role: <em>{user.role}</em>) does not possess administrative privileges.
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-[#5A544D]">
+            {isCreator ? 'Redirecting to Creator Studio Dashboard...' : 'Redirecting to Customer Dashboard...'}
           </p>
-          <div className="space-y-2 pt-2">
-            <Link
-              href={user.role === 'creator' ? '/photographer/dashboard' : '/customer/dashboard'}
-              className="block w-full py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all text-center"
-            >
-              Return to Your Dashboard
-            </Link>
-            <button
-              onClick={() => logout()}
-              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors cursor-pointer"
-            >
-              Sign Out
-            </button>
-          </div>
         </div>
       </div>
     );

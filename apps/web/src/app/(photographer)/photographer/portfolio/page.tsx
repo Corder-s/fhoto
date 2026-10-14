@@ -136,7 +136,7 @@ export default function PhotographerPortfolioPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to save portfolio item to Supabase.');
+        throw new Error(data.error || 'Failed to save portfolio item.');
       }
 
       const created: PortfolioDisplayItem = {
@@ -153,7 +153,7 @@ export default function PhotographerPortfolioPage() {
       setNewTitle('');
       setNewImageUrl('');
     } catch (err: any) {
-      setModalError(err.message || 'Error saving to Supabase');
+      setModalError(err.message || 'Error saving portfolio item');
     } finally {
       setIsSubmittingNew(false);
     }
@@ -336,7 +336,7 @@ export default function PhotographerPortfolioPage() {
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
           <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
-          <p className="text-xs text-ink-muted">Loading portfolio from Supabase...</p>
+          <p className="text-xs text-ink-muted">Loading portfolio...</p>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="py-16 text-center border-2 border-dashed border-[#E8E2D8] rounded-3xl bg-[#FAF7F2]/50 p-8 space-y-3">

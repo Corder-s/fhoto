@@ -29,14 +29,22 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
 
   // Role gate uses the server-verified roles (never the localStorage copy).
   const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
-  const isAuthorizedRole = serverRoles.includes('creator') || serverRoles.includes('admin');
+  const isOwner = serverRoles.includes('owner');
+  const isAdmin = !isOwner && serverRoles.includes('admin');
+  const isAuthorizedRole = !isOwner && !isAdmin && serverRoles.includes('creator');
 
-  // Customers cannot enter the photographer workspace; send them to the customer dashboard.
+  // Automatic redirect based on user permissions
   useEffect(() => {
     if (isMounted && isAuthenticated && serverSession.status === 'authenticated' && !isAuthorizedRole) {
-      router.replace('/customer/dashboard');
+      if (isOwner) {
+        router.replace('/owner/dashboard');
+      } else if (isAdmin) {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/customer/dashboard');
+      }
     }
-  }, [isMounted, isAuthenticated, serverSession.status, isAuthorizedRole, router]);
+  }, [isMounted, isAuthenticated, serverSession.status, isAuthorizedRole, isOwner, isAdmin, router]);
 
   // Loading skeleton while reading storage/cookies
   if (!isMounted) {
@@ -69,62 +77,21 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
 
   if (!isAuthorizedRole) {
     return (
-      <div className="min-h-screen bg-canvas-primary text-ink-primary flex flex-col items-center justify-center p-4 sm:p-8">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle shadow-elevated p-8 text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-              Role Permission Restriction
-            </span>
-            <h1 className="text-2xl font-black text-ink-primary tracking-tight">
-              Creator Account Required
-            </h1>
-            <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              You are signed in with a <strong className="text-ink-primary">Customer</strong> account (
-              <span className="text-[#FF6E00]">{user.email}</span>). Customer accounts cannot access the photographer business studio.
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <button
-              onClick={() => router.push('/customer/dashboard')}
-              className="w-full py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Go to Customer Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => {
-                logout();
-                openAuthModal({
-                  returnUrl: pathname,
-                  initialTab: 'register',
-                  rolePreference: 'creator',
-                });
-              }}
-              className="w-full py-3 px-6 rounded-2xl bg-[#F2ECE3] hover:bg-[#E8E2D8] text-ink-primary border border-contour-subtle text-xs sm:text-sm font-bold transition-all cursor-pointer"
-            >
-              Register as Creator Partner
-            </button>
-
-            <button
-              onClick={async () => {
-                await logout();
-                router.push('/login');
-              }}
-              className="w-full py-2.5 text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors cursor-pointer"
-            >
-              Sign Out of Current Account
-            </button>
-          </div>
+      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-ink-secondary">
+            {isOwner
+              ? 'Redirecting to Owner Executive Dashboard...'
+              : isAdmin
+              ? 'Redirecting to Admin Operations Desk...'
+              : 'Redirecting to Customer Dashboard...'}
+          </p>
         </div>
       </div>
     );
   }
+
 
   // 3. Authorized Photographer Workspace
   return (

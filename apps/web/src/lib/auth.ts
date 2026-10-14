@@ -15,6 +15,90 @@ export interface AuthUser {
 const STORAGE_KEY = 'snapshoot_session';
 const COOKIE_NAME = 'snapshoot_session';
 
+// ============================================================================
+// SINGLETON AUTH STORE
+// Eliminates duplicate Supabase getSession calls and listener proliferation
+// across all 30+ components that call useAuth().
+// ============================================================================
+
+let cachedUser: AuthUser | null = null;
+let isCacheLoaded = false;
+let isGlobalSubscriptionInitialized = false;
+const authSubscribers = new Set<() => void>();
+
+function getOrLoadCachedUser(): AuthUser | null {
+  if (typeof window === 'undefined') return null;
+  if (!isCacheLoaded) {
+    cachedUser = getStoredSession();
+    isCacheLoaded = true;
+  }
+  return cachedUser;
+}
+
+function notifyAuthSubscribers(newUser: AuthUser | null): void {
+  cachedUser = newUser;
+  isCacheLoaded = true;
+  authSubscribers.forEach((subscriber) => {
+    try {
+      subscriber();
+    } catch (err) {
+      console.error('Error in auth subscriber callback:', err);
+    }
+  });
+}
+
+function initGlobalAuthSubscription(): void {
+  if (typeof window === 'undefined' || isGlobalSubscriptionInitialized) return;
+  isGlobalSubscriptionInitialized = true;
+
+  // Window event listeners for cross-tab or external changes
+  const handleAuthChange = () => {
+    const updated = getStoredSession();
+    notifyAuthSubscribers(updated);
+  };
+
+  window.addEventListener('snapshoot:auth-change', handleAuthChange);
+  window.addEventListener('storage', handleAuthChange);
+
+  // Initialize Supabase Auth listener ONCE globally
+  const supabase = getSupabaseBrowserClient();
+  if (supabase) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata || {};
+        const role = (meta.role as AuthUser['role']) || 'customer';
+        const authUser: AuthUser = {
+          id: session.user.id,
+          name: meta.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+          phone: meta.phone || session.user.phone,
+          avatarUrl: meta.avatar_url,
+          role: role === 'photographer' ? 'creator' : role,
+        };
+        saveAuthSession(authUser, session.access_token);
+      }
+    });
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata || {};
+        const role = (meta.role as AuthUser['role']) || 'customer';
+        const authUser: AuthUser = {
+          id: session.user.id,
+          name: meta.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+          phone: meta.phone || session.user.phone,
+          avatarUrl: meta.avatar_url,
+          role: role === 'photographer' ? 'creator' : role,
+        };
+        saveAuthSession(authUser, session.access_token);
+      } else if (event === 'SIGNED_OUT') {
+        clearAuthSession();
+      }
+    });
+  }
+}
+
 export function getStoredSession(): AuthUser | null {
   if (typeof window === 'undefined') return null;
 
@@ -50,6 +134,7 @@ export function saveAuthSession(user: AuthUser, token?: string): void {
       localStorage.setItem('auth_token', token);
       document.cookie = `snapshoot_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
     }
+    notifyAuthSubscribers(user);
     window.dispatchEvent(new Event('snapshoot:auth-change'));
   } catch (err) {
     console.error('Error saving auth session:', err);
@@ -64,6 +149,7 @@ export function clearAuthSession(): void {
     localStorage.removeItem('auth_token');
     document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
     document.cookie = `snapshoot_token=; path=/; max-age=0; SameSite=Lax`;
+    notifyAuthSubscribers(null);
     window.dispatchEvent(new Event('snapshoot:auth-change'));
   } catch (err) {
     console.error('Error clearing auth session:', err);
@@ -71,79 +157,28 @@ export function clearAuthSession(): void {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(getOrLoadCachedUser);
   const [isMounted, setIsMounted] = useState<boolean>(false);
-
-  const refreshSession = useCallback(() => {
-    const current = getStoredSession();
-    setUser(current);
-  }, []);
 
   useEffect(() => {
     setIsMounted(true);
-    refreshSession();
+    initGlobalAuthSubscription();
 
-    // Check Supabase session if configured
-    const supabase = getSupabaseBrowserClient();
-    if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          const meta = session.user.user_metadata || {};
-          const role = (meta.role as AuthUser['role']) || 'customer';
-          const authUser: AuthUser = {
-            id: session.user.id,
-            name: meta.full_name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            phone: meta.phone || session.user.phone,
-            avatarUrl: meta.avatar_url,
-            role: role === 'photographer' ? 'creator' : role,
-          };
-          saveAuthSession(authUser, session.access_token);
-          setUser(authUser);
-        }
-      });
+    // Ensure state synchronization on mount
+    setUser(getOrLoadCachedUser());
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          const meta = session.user.user_metadata || {};
-          const role = (meta.role as AuthUser['role']) || 'customer';
-          const authUser: AuthUser = {
-            id: session.user.id,
-            name: meta.full_name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            phone: meta.phone || session.user.phone,
-            avatarUrl: meta.avatar_url,
-            role: role === 'photographer' ? 'creator' : role,
-          };
-          saveAuthSession(authUser, session.access_token);
-          setUser(authUser);
-        } else if (_event === 'SIGNED_OUT') {
-          clearAuthSession();
-          setUser(null);
-        }
-      });
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-
-    const handleAuthChange = () => {
-      refreshSession();
+    const handleChange = () => {
+      setUser(getOrLoadCachedUser());
     };
 
-    window.addEventListener('snapshoot:auth-change', handleAuthChange);
-    window.addEventListener('storage', handleAuthChange);
-
+    authSubscribers.add(handleChange);
     return () => {
-      window.removeEventListener('snapshoot:auth-change', handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
+      authSubscribers.delete(handleChange);
     };
-  }, [refreshSession]);
+  }, []);
 
   const login = useCallback((userData: AuthUser) => {
     saveAuthSession(userData);
-    setUser(userData);
   }, []);
 
   const logout = useCallback(async () => {
@@ -156,7 +191,6 @@ export function useAuth() {
       }
     }
     clearAuthSession();
-    setUser(null);
   }, []);
 
   return {

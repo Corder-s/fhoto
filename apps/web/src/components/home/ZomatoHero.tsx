@@ -69,6 +69,8 @@ export const ZomatoHero: React.FC = () => {
           src="/reference-assets/hero_scene.jpg"
           alt="Photographer capturing outdoor story"
           className="w-full h-full object-cover object-center scale-105 filter brightness-[0.7] contrast-[1.05]"
+          fetchPriority="high"
+          loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/75" />
       </div>

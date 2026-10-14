@@ -33,7 +33,7 @@
 body {
   color: var(--color-text);
   background-color: var(--color-background);
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -58,7 +58,7 @@ body {
 }
 
 .font-script {
-  font-family: 'Caveat', cursive, sans-serif;
+  font-family: var(--font-caveat), 'Caveat', cursive, sans-serif;
 }
 
 /* ============================================================================
@@ -156,5 +156,16 @@ body {
 
 .animate-fluid-pulse-glow {
   animation: fluid-pulse-glow 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

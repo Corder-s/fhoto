@@ -268,6 +268,8 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
             src={sampleCreator.coverImageUrl}
             alt={`${profile.name} cover`}
             className="w-full h-full object-cover opacity-60"
+            fetchPriority="high"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
@@ -295,6 +297,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                   src={profile.avatar}
                   alt={profile.name}
                   className="w-full h-full object-cover"
+                  loading="eager"
                 />
               </div>
 
@@ -795,6 +798,8 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
                 src={img.url}
                 alt={img.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-3 text-white text-center">
                 <div>

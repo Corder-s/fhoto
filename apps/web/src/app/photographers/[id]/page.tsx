@@ -213,7 +213,7 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
         <main className="flex-1 bg-canvas-primary py-24">
           <div className="max-w-md mx-auto text-center px-4 space-y-3">
             <div className="w-10 h-10 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-semibold text-ink-muted">Loading verified artist profile from Supabase...</p>
+            <p className="text-xs font-semibold text-ink-muted">Loading verified artist profile...</p>
           </div>
         </main>
         <Footer />
