@@ -19,6 +19,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { clearAuthSession, useAuth } from '../../lib/auth';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
+import { useNotifications } from '../../lib/useNotifications';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -42,6 +43,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
   } = useCurrentUserProfile();
   const router = useRouter();
   const { logout } = useAuth();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,33 +54,6 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
     await logout();
     router.push('/login');
   };
-
-  const notifications = [
-    {
-      id: 'notif-1',
-      title: 'New Booking Request',
-      message: 'Riya & Karan requested Wedding Photography session for Oct 12.',
-      time: '10 min ago',
-      unread: true,
-      href: '/photographer/bookings',
-    },
-    {
-      id: 'notif-2',
-      title: 'New Booking Request',
-      message: 'Mehak Gupta requested Pre-Wedding Shoot for Oct 18.',
-      time: '1 hour ago',
-      unread: true,
-      href: '/photographer/bookings',
-    },
-    {
-      id: 'notif-3',
-      title: 'Weekly Payout Settled',
-      message: '₹48,250 has been transferred to your registered bank account.',
-      time: 'Yesterday',
-      unread: false,
-      href: '/photographer/payouts',
-    },
-  ];
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-[#E8E2D8] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
@@ -118,9 +93,11 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5 stroke-[1.8]" />
-            <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {showNotifications && (
@@ -129,26 +106,51 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                 <span className="text-xs font-black text-[#1A1816]">
                   Notifications
                 </span>
-                <span className="text-[10px] font-bold text-[#FF6E00] bg-[#FFF2E8] px-2 py-0.5 rounded-full">
-                  3 New
-                </span>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAsRead()}
+                      className="text-[10px] font-semibold text-[#FF6E00] hover:underline cursor-pointer"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                  <span className="text-[10px] font-bold text-[#FF6E00] bg-[#FFF2E8] px-2 py-0.5 rounded-full">
+                    {unreadCount} New
+                  </span>
+                </div>
               </div>
 
               <div className="max-h-72 overflow-y-auto divide-y divide-[#F2ECE3]">
-                {notifications.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setShowNotifications(false)}
-                    className="block px-4 py-3 hover:bg-[#FAF7F2] transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-bold text-[#1A1816]">{item.title}</p>
-                      <span className="text-[10px] text-[#8C847A] whitespace-nowrap">{item.time}</span>
-                    </div>
-                    <p className="text-xs text-[#736B63] mt-1 line-clamp-2">{item.message}</p>
-                  </Link>
-                ))}
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-[#8C847A]">
+                    No notifications yet.
+                  </div>
+                ) : (
+                  notifications.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.actionUrl || '/photographer/bookings'}
+                      onClick={() => {
+                        markAsRead(item.id);
+                        setShowNotifications(false);
+                      }}
+                      className={`block px-4 py-3 hover:bg-[#FAF7F2] transition-colors ${
+                        !item.readAt ? 'bg-[#FFF9F5]' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#1A1816]' : 'font-medium text-[#5A544D]'}`}>
+                          {item.title}
+                        </p>
+                        <span className="text-[10px] text-[#8C847A] whitespace-nowrap">
+                          {new Date(item.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#736B63] mt-1 line-clamp-2">{item.body}</p>
+                    </Link>
+                  ))
+                )}
               </div>
             </div>
           )}

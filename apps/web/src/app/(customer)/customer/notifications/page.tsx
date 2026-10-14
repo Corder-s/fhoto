@@ -12,22 +12,24 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { CustomerNoticeBanner } from '../../../../components/customer/CustomerNoticeBanner';
-import {
-  INITIAL_NOTIFICATIONS,
-  CustomerNotificationItem
-} from '../../../../data/customerDashboardData';
+import { useNotifications } from '../../../../lib/useNotifications';
 
 export default function CustomerNotificationsPage() {
-  const [notifications, setNotifications] = useState<CustomerNotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'transit' | 'delivery' | 'payment'>('all');
+  const { notifications: liveNotifs, unreadCount, markAsRead, loading } = useNotifications();
+  const [activeFilter, setActiveFilter] = useState<'all' | 'booking' | 'payment'>('all');
 
   const handleMarkAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, unread: false })));
+    markAsRead();
   };
 
-  const filtered = notifications.filter((n) => (activeFilter === 'all' ? true : n.type === activeFilter));
+  const filtered = liveNotifs.filter((n) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'booking') return n.notificationType.includes('booking') || n.notificationType.includes('shoot');
+    if (activeFilter === 'payment') return n.notificationType.includes('payment') || n.notificationType.includes('escrow');
+    return true;
+  });
 
-  const getIcon = (type: CustomerNotificationItem['type']) => {
+  const getIcon = (type: string) => {
     switch (type) {
       case 'transit':
         return <Navigation className="w-4 h-4 text-[#FF6E00]" />;
@@ -66,7 +68,7 @@ export default function CustomerNotificationsPage() {
 
       {/* FILTER BUTTONS */}
       <div className="flex flex-wrap items-center gap-2">
-        {(['all', 'transit', 'delivery', 'payment'] as const).map((tab) => (
+        {(['all', 'booking', 'payment'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveFilter(tab)}
@@ -83,40 +85,51 @@ export default function CustomerNotificationsPage() {
 
       {/* NOTIFICATIONS LIST */}
       <div className="space-y-3">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className={`p-5 rounded-3xl border transition-all flex items-start gap-4 ${
-              item.unread
-                ? 'bg-white border-[#FF6E00]/40 shadow-sm'
-                : 'bg-white/80 border-[#EBE4DA]'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-2xl bg-[#FAF7F2] border border-[#E8E1D6] flex items-center justify-center shrink-0">
-              {getIcon(item.type)}
-            </div>
-
-            <div className="flex-1 space-y-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="text-sm font-bold text-[#1A1816]">{item.title}</h4>
-                <span className="text-[10px] text-[#8C847A] shrink-0">{item.time}</span>
-              </div>
-              <p className="text-xs text-[#665E55] leading-relaxed">{item.message}</p>
-
-              {item.actionHref && (
-                <div className="pt-2">
-                  <Link
-                    href={item.actionHref}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6E00] hover:underline"
-                  >
-                    <span>View details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              )}
-            </div>
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-3xl border border-[#E8E1D6] space-y-2">
+            <Bell className="w-8 h-8 text-[#8C847A] mx-auto opacity-40" />
+            <p className="text-sm font-bold text-[#1A1816]">No notifications in this category</p>
+            <p className="text-xs text-[#8C847A]">You will receive updates here whenever a booking is placed or confirmed.</p>
           </div>
-        ))}
+        ) : (
+          filtered.map((item) => (
+            <div
+              key={item.id}
+              className={`p-5 rounded-3xl border transition-all flex items-start gap-4 ${
+                !item.readAt
+                  ? 'bg-white border-[#FF6E00]/40 shadow-sm'
+                  : 'bg-white/80 border-[#EBE4DA]'
+              }`}
+            >
+              <div className="w-10 h-10 rounded-2xl bg-[#FAF7F2] border border-[#E8E1D6] flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-[#FF6E00]" />
+              </div>
+
+              <div className="flex-1 space-y-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-bold text-[#1A1816]">{item.title}</h4>
+                  <span className="text-[10px] text-[#8C847A] shrink-0">
+                    {new Date(item.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  </span>
+                </div>
+                <p className="text-xs text-[#665E55] leading-relaxed">{item.body}</p>
+
+                {item.actionUrl && (
+                  <div className="pt-2">
+                    <Link
+                      href={item.actionUrl}
+                      onClick={() => markAsRead(item.id)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6E00] hover:underline"
+                    >
+                      <span>View details</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -56,7 +56,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Login State
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [loginMethod, setLoginMethod] = useState<'email_otp' | 'password' | 'phone'>('email_otp');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -115,22 +115,124 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
     }
   };
 
-  // Submit Login (Supabase Auth Only)
+  // Resend OTP for either Email OTP or Phone OTP
+  const handleResendOtp = async () => {
+    if (resendCountdown > 0 || isLoading) return;
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsLoading(true);
+
+    if (loginMethod === 'email_otp') {
+      try {
+        const res = await fetch('/api/auth/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: loginEmail.trim(), purpose: 'login' }),
+        });
+        const data = await res.json();
+        setIsLoading(false);
+        if (!res.ok) {
+          setErrorMessage(data.error || 'Failed to resend verification code.');
+          return;
+        }
+        setResendCountdown(60);
+        setSuccessMessage('A fresh verification code has been dispatched to your email.');
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMessage(err?.message || 'Could not dispatch email verification code.');
+      }
+    } else if (loginMethod === 'phone') {
+      const supabase = getSupabaseBrowserClient();
+      const cleanPhone = loginPhone.replace(/\D/g, '');
+      try {
+        if (supabase) {
+          await supabase.auth.signInWithOtp({ phone: `+91${cleanPhone}` });
+        }
+        setIsLoading(false);
+        setResendCountdown(60);
+        setSuccessMessage('A fresh SMS OTP has been sent.');
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMessage(err?.message || 'Failed to resend SMS OTP.');
+      }
+    }
+  };
+
+  // Submit Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
     setSocialNotice(null);
 
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase || !isSupabaseConfigured()) {
-      setErrorMessage('Authentication service is temporarily unavailable. Please try again shortly.');
+    // 1. EMAIL OTP LOGIN (Real Transactional Email OTP)
+    if (loginMethod === 'email_otp') {
+      if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
+        setErrorMessage('Please enter a valid email address.');
+        return;
+      }
+
+      if (!isOtpSent) {
+        setIsLoading(true);
+        try {
+          const res = await fetch('/api/auth/otp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: loginEmail.trim(), purpose: 'login' }),
+          });
+          const data = await res.json();
+          setIsLoading(false);
+          if (!res.ok) {
+            setErrorMessage(data.error || 'Failed to dispatch verification code.');
+            return;
+          }
+          setIsOtpSent(true);
+          setResendCountdown(60);
+          setSuccessMessage('A 6-digit verification code has been sent to your email.');
+        } catch (err: any) {
+          setIsLoading(false);
+          setErrorMessage(err?.message || 'Network error while requesting verification code.');
+        }
+      } else {
+        const code = loginOtp.join('');
+        if (code.length < 6) {
+          setErrorMessage('Please enter the complete 6-digit verification code.');
+          return;
+        }
+        setIsLoading(true);
+        try {
+          const res = await fetch('/api/auth/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: loginEmail.trim(), otp: code, purpose: 'login' }),
+          });
+          const data = await res.json();
+          setIsLoading(false);
+          if (!res.ok) {
+            setErrorMessage(data.error || 'Invalid or expired verification code.');
+            return;
+          }
+          if (data.user) {
+            handleAuthSuccess(data.user);
+          }
+        } catch (err: any) {
+          setIsLoading(false);
+          setErrorMessage(err?.message || 'Verification failed. Please try again.');
+        }
+      }
       return;
     }
 
+    // 2. PHONE OTP LOGIN
     if (loginMethod === 'phone') {
       const cleanPhone = loginPhone.replace(/\D/g, '');
       if (cleanPhone.length < 10) {
         setErrorMessage('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase || !isSupabaseConfigured()) {
+        setErrorMessage('Authentication service is temporarily unavailable. Please try again shortly.');
         return;
       }
 
@@ -186,47 +288,51 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           setErrorMessage(err?.message || 'Failed to verify OTP.');
         }
       }
-    } else {
-      if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
-        setErrorMessage('Please provide a valid email address.');
+      return;
+    }
+
+    // 3. EMAIL & PASSWORD LOGIN
+    if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
+      setErrorMessage('Please provide a valid email address.');
+      return;
+    }
+    if (loginPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !isSupabaseConfigured()) {
+      setErrorMessage('Authentication service is temporarily unavailable.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      setIsLoading(false);
+      if (error) {
+        setErrorMessage(error.message);
         return;
       }
-      if (loginPassword.length < 6) {
-        setErrorMessage('Password must be at least 6 characters long.');
-        return;
+      if (data.user) {
+        const meta = data.user.user_metadata || {};
+        const role = (meta.role as AuthUser['role']) || 'customer';
+        const user: AuthUser = {
+          id: data.user.id,
+          name: meta.full_name || data.user.email?.split('@')[0] || 'User',
+          email: data.user.email || loginEmail.trim(),
+          role,
+          phone: meta.phone,
+        };
+        handleAuthSuccess(user, role === 'creator' ? '/photographer/dashboard' : undefined);
       }
-
-      setIsLoading(true);
-
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: loginEmail.trim(),
-          password: loginPassword,
-        });
-
-        setIsLoading(false);
-
-        if (error) {
-          setErrorMessage(error.message);
-          return;
-        }
-
-        if (data.user) {
-          const meta = data.user.user_metadata || {};
-          const role = (meta.role as AuthUser['role']) || 'customer';
-          const user: AuthUser = {
-            id: data.user.id,
-            name: meta.full_name || data.user.email?.split('@')[0] || 'User',
-            email: data.user.email || loginEmail.trim(),
-            role,
-            phone: meta.phone,
-          };
-          handleAuthSuccess(user, role === 'creator' ? '/photographer/dashboard' : undefined);
-        }
-      } catch (err: any) {
-        setIsLoading(false);
-        setErrorMessage(err?.message || 'Authentication error. Please check your credentials and try again.');
-      }
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err?.message || 'Authentication error. Please check your credentials and try again.');
     }
   };
 
@@ -934,9 +1040,130 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           {/* ========================================================= */}
           {tab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-              {loginMethod === 'email' ? (
+              {/* Login Method Pills */}
+              <div className="grid grid-cols-3 p-1 bg-[#F2ECE3] rounded-xl text-xs font-bold mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('email_otp');
+                    setIsOtpSent(false);
+                    setErrorMessage('');
+                    setSuccessMessage('');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
+                    loginMethod === 'email_otp'
+                      ? 'bg-white text-[#FF6E00] shadow-xs'
+                      : 'text-[#736B63] hover:text-[#1A1816]'
+                  }`}
+                >
+                  Email OTP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('password');
+                    setIsOtpSent(false);
+                    setErrorMessage('');
+                    setSuccessMessage('');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
+                    loginMethod === 'password'
+                      ? 'bg-white text-[#FF6E00] shadow-xs'
+                      : 'text-[#736B63] hover:text-[#1A1816]'
+                  }`}
+                >
+                  Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('phone');
+                    setIsOtpSent(false);
+                    setErrorMessage('');
+                    setSuccessMessage('');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
+                    loginMethod === 'phone'
+                      ? 'bg-white text-[#FF6E00] shadow-xs'
+                      : 'text-[#736B63] hover:text-[#1A1816]'
+                  }`}
+                >
+                  Phone SMS
+                </button>
+              </div>
+
+              {/* METHOD 1: EMAIL OTP */}
+              {loginMethod === 'email_otp' && (
                 <>
-                  {/* Login Field: Email */}
+                  <div>
+                    <label className="block text-xs font-bold text-[#1A1816] mb-1">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                      <input
+                        type="email"
+                        disabled={isOtpSent}
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  {isOtpSent && (
+                    <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-[#1A1816]">
+                          6-Digit Email Verification Code
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          disabled={resendCountdown > 0 || isLoading}
+                          className="text-[11px] font-bold text-[#FF6E00] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+                        >
+                          {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between gap-1.5">
+                        {loginOtp.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            id={`auth-otp-${idx}`}
+                            type="text"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
+                            className="w-10 h-11 text-center font-black text-lg rounded-xl border border-[#E8E2D8] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none"
+                          />
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-[#736B63]">
+                        Enter the verification code sent to your registered email address.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading
+                      ? 'Processing...'
+                      : !isOtpSent
+                      ? 'Send Verification Code'
+                      : 'Verify Code & Sign In'}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* METHOD 2: PASSWORD */}
+              {loginMethod === 'password' && (
+                <>
                   <div>
                     <label className="block text-xs font-bold text-[#1A1816] mb-1">
                       Email Address
@@ -953,7 +1180,6 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Login Field: Password */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-[#1A1816]">Password</label>
@@ -987,10 +1213,21 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                       </button>
                     </div>
                   </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading ? 'Signing In...' : 'Log In & Continue'}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </>
-              ) : (
+              )}
+
+              {/* METHOD 3: PHONE SMS */}
+              {loginMethod === 'phone' && (
                 <>
-                  {/* Phone OTP Login */}
                   <div>
                     <label className="block text-xs font-bold text-[#1A1816] mb-1">
                       Mobile Number
@@ -1013,9 +1250,16 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs font-bold text-[#1A1816]">
-                          6-Digit Verification Code
+                          6-Digit SMS Code
                         </label>
-                        <span className="text-[11px] text-[#736B63]">Test OTP: 123456</span>
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          disabled={resendCountdown > 0 || isLoading}
+                          className="text-[11px] font-bold text-[#FF6E00] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+                        >
+                          {resendCountdown > 0 ? `Resend SMS in ${resendCountdown}s` : 'Resend SMS'}
+                        </button>
                       </div>
                       <div className="flex items-center justify-between gap-1.5">
                         {loginOtp.map((digit, idx) => (
@@ -1032,22 +1276,21 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                       </div>
                     </div>
                   )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading
+                      ? 'Signing In...'
+                      : !isOtpSent
+                      ? 'Send 6-Digit OTP'
+                      : 'Verify SMS & Continue'}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </>
               )}
-
-              {/* Submit Login Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {isLoading
-                  ? 'Signing In...'
-                  : loginMethod === 'phone' && !isOtpSent
-                  ? 'Send 6-Digit OTP'
-                  : 'Log In & Continue'}
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </form>
           )}
 

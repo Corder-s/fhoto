@@ -66,7 +66,9 @@ export interface VerificationSubmission {
   documents: DocumentEntry[];
   professionalName: string | null;
   profileVerificationStatus: string | null;
-  applicant: { fullName: string | null; email: string | null; accountStatus: string | null } | null;
+  coverImageUrl?: string | null;
+  avatarUrl?: string | null;
+  applicant: { fullName: string | null; email: string | null; accountStatus: string | null; avatarUrl?: string | null } | null;
 }
 
 const FILTERS = [
@@ -351,11 +353,34 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                     <Detail label="Reviewed" value={row.reviewedAt ? inrDate(row.reviewedAt) : null} />
                   </dl>
 
-                  {row.equipmentSummary && (
-                    <p className="text-[11px] text-[#5A544D] leading-relaxed whitespace-pre-line">{row.equipmentSummary}</p>
-                  )}
-                  {row.applicantNotes && (
-                    <p className="text-[11px] italic text-[#736B63]">“{row.applicantNotes}”</p>
+                  {(row.coverImageUrl || row.avatarUrl || row.portfolioUrl) && (
+                    <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white rounded-xl border border-[#E8E2D8]">
+                      {row.avatarUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={row.avatarUrl}
+                          alt="Avatar"
+                          className="w-12 h-12 rounded-full object-cover border border-[#E8E2D8] shrink-0"
+                        />
+                      )}
+                      {row.coverImageUrl && (
+                        <div className="h-12 w-28 rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#FAF7F2] shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={row.coverImageUrl}
+                            alt="Cover Banner"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="text-[11px] text-[#736B63] min-w-0">
+                        <p className="font-bold text-[#1A1816]">Studio Visual Identity</p>
+                        <p className="text-[10px]">
+                          {row.coverImageUrl ? 'Custom banner uploaded' : 'Default banner'}
+                          {row.portfolioUrl ? ` • Portfolio: ${row.portfolioUrl}` : ''}
+                        </p>
+                      </div>
+                    </div>
                   )}
 
                   <div className="space-y-1">

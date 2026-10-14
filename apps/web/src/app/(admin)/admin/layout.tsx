@@ -30,6 +30,7 @@ import {
 import { useAuth } from '../../../lib/auth';
 import { useServerSession } from '../../../lib/useServerSession';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
+import { useNotifications } from '../../../lib/useNotifications';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/admin/dashboard';
@@ -38,6 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Authorization is decided by the server session, not by the localStorage copy of the user.
   const serverSession = useServerSession();
   const { openAuthModal } = useAuthModal();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   // Collapsible menu states matching Reference Image B
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
@@ -191,7 +193,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
           </div>
 
-          {/* Notifications with Badge 5 */}
+          {/* Notifications with Live Badge */}
           <div className="relative">
             <button
               onClick={() => {
@@ -202,26 +204,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               title="Notifications"
             >
               <Bell className="w-5 h-5 stroke-[1.8]" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                5
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
 
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-[#E8E2D8] shadow-elevated p-3 z-50 text-xs">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E8E2D8] shadow-elevated p-3 z-50 text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-[#F2ECE3]">
                   <span className="font-black text-[#1A1816]">Admin Notifications</span>
-                  <span className="text-[10px] bg-[#FFE8D6] text-[#FF6E00] px-2 py-0.5 rounded-full font-bold">5 New</span>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAsRead()}
+                        className="text-[10px] font-semibold text-[#FF6E00] hover:underline cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    <span className="text-[10px] bg-[#FFE8D6] text-[#FF6E00] px-2 py-0.5 rounded-full font-bold">
+                      {unreadCount} New
+                    </span>
+                  </div>
                 </div>
-                <div className="divide-y divide-[#F2ECE3] py-2">
-                  <div className="py-2">
-                    <p className="font-bold text-[#1A1816]">New KYC Application</p>
-                    <p className="text-[11px] text-[#736B63]">Rajat Kapoor submitted Aadhaar verification.</p>
-                  </div>
-                  <div className="py-2">
-                    <p className="font-bold text-[#1A1816]">Dispute Raised</p>
-                    <p className="text-[11px] text-[#736B63]">Client requested mediation on Booking #1042.</p>
-                  </div>
+                <div className="divide-y divide-[#F2ECE3] max-h-72 overflow-y-auto py-1">
+                  {notifications.length === 0 ? (
+                    <div className="py-4 text-center text-[#8C847A]">No administrative alerts</div>
+                  ) : (
+                    notifications.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.actionUrl || '/admin/dashboard'}
+                        onClick={() => {
+                          markAsRead(item.id);
+                          setShowNotifs(false);
+                        }}
+                        className={`block py-2.5 px-2 rounded-lg hover:bg-[#FAF7F2] transition-colors ${
+                          !item.readAt ? 'bg-[#FFF9F5]' : ''
+                        }`}
+                      >
+                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#1A1816]' : 'font-medium text-[#5A544D]'}`}>
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-[#736B63] mt-0.5 line-clamp-2">{item.body}</p>
+                      </Link>
+                    ))
+                  )}
                 </div>
               </div>
             )}

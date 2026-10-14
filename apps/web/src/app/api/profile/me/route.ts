@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     const creatorPromise = admin
       .from('creator_profiles')
-      .select('id, user_id, professional_name, biography, experience_years, city, state, service_radius, portfolio_url, verification_status, average_rating, total_reviews, is_available, created_at, updated_at')
+      .select('id, user_id, professional_name, biography, experience_years, city, state, service_radius, portfolio_url, cover_image_url, base_address, base_latitude, base_longitude, included_travel_km, travel_fee_per_km, min_travel_fee, max_travel_fee, allow_out_of_area, verification_status, average_rating, total_reviews, is_available, created_at, updated_at')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -187,6 +187,44 @@ export async function PATCH(req: NextRequest) {
       } else {
         return jsonError(400, 'Portfolio link must be an https URL.');
       }
+    }
+    if (creatorData.coverImageUrl !== undefined || creatorData.cover_image_url !== undefined) {
+      const banner = creatorData.coverImageUrl ?? creatorData.cover_image_url;
+      if (!banner) {
+        creatorUpdate.cover_image_url = null;
+      } else if (isSafeHttpsUrl(banner) || banner.startsWith('/')) {
+        creatorUpdate.cover_image_url = banner;
+      }
+    }
+    if (creatorData.baseAddress !== undefined || creatorData.base_address !== undefined) {
+      creatorUpdate.base_address = cleanText(creatorData.baseAddress ?? creatorData.base_address, 255) || 'Delhi NCR';
+    }
+    if (creatorData.baseLatitude !== undefined || creatorData.base_latitude !== undefined) {
+      const lat = Number(creatorData.baseLatitude ?? creatorData.base_latitude);
+      if (!Number.isNaN(lat) && lat >= -90 && lat <= 90) creatorUpdate.base_latitude = lat;
+    }
+    if (creatorData.baseLongitude !== undefined || creatorData.base_longitude !== undefined) {
+      const lng = Number(creatorData.baseLongitude ?? creatorData.base_longitude);
+      if (!Number.isNaN(lng) && lng >= -180 && lng <= 180) creatorUpdate.base_longitude = lng;
+    }
+    if (creatorData.includedTravelKm !== undefined || creatorData.included_travel_km !== undefined) {
+      const inc = Number(creatorData.includedTravelKm ?? creatorData.included_travel_km);
+      if (Number.isFinite(inc) && inc >= 0) creatorUpdate.included_travel_km = Math.round(inc);
+    }
+    if (creatorData.travelFeePerKm !== undefined || creatorData.travel_fee_per_km !== undefined) {
+      const rate = Number(creatorData.travelFeePerKm ?? creatorData.travel_fee_per_km);
+      if (Number.isFinite(rate) && rate >= 0) creatorUpdate.travel_fee_per_km = Math.round(rate * 100) / 100;
+    }
+    if (creatorData.minTravelFee !== undefined || creatorData.min_travel_fee !== undefined) {
+      const minFee = Number(creatorData.minTravelFee ?? creatorData.min_travel_fee);
+      if (Number.isFinite(minFee) && minFee >= 0) creatorUpdate.min_travel_fee = Math.round(minFee * 100) / 100;
+    }
+    if (creatorData.maxTravelFee !== undefined || creatorData.max_travel_fee !== undefined) {
+      const maxFeeRaw = creatorData.maxTravelFee ?? creatorData.max_travel_fee;
+      creatorUpdate.max_travel_fee = maxFeeRaw === null ? null : Math.max(0, Number(maxFeeRaw));
+    }
+    if (creatorData.allowOutOfArea !== undefined || creatorData.allow_out_of_area !== undefined) {
+      creatorUpdate.allow_out_of_area = Boolean(creatorData.allowOutOfArea ?? creatorData.allow_out_of_area);
     }
   }
 

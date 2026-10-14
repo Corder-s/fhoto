@@ -56,6 +56,75 @@ export default function PhotographerPortfolioPage() {
   const objectUrlsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Cover Banner Management State
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
+  const [currentBanner, setCurrentBanner] = useState<string | null>(null);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [bannerToast, setBannerToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Sync banner from creatorProfile or fetch
+  useEffect(() => {
+    if (creatorProfile?.cover_image_url) {
+      setCurrentBanner(creatorProfile.cover_image_url);
+    } else if (authUser?.id) {
+      fetch(`/api/photographers/banner?userId=${authUser.id}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.bannerUrl) setCurrentBanner(d.bannerUrl);
+        })
+        .catch(() => {});
+    }
+  }, [creatorProfile?.cover_image_url, authUser?.id]);
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBanner(true);
+    setBannerToast(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/photographers/banner', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCurrentBanner(data.bannerUrl);
+        setBannerToast({ type: 'success', text: 'Cover banner updated successfully!' });
+        setTimeout(() => setBannerToast(null), 4000);
+      } else {
+        setBannerToast({ type: 'error', text: data.error || 'Failed to update banner.' });
+        setTimeout(() => setBannerToast(null), 5000);
+      }
+    } catch (err: any) {
+      setBannerToast({ type: 'error', text: err?.message || 'Error uploading banner.' });
+      setTimeout(() => setBannerToast(null), 5000);
+    } finally {
+      setIsUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    setIsUploadingBanner(true);
+    try {
+      const res = await fetch('/api/photographers/banner', { method: 'DELETE' });
+      if (res.ok) {
+        setCurrentBanner(null);
+        setBannerToast({ type: 'success', text: 'Cover banner removed.' });
+        setTimeout(() => setBannerToast(null), 3000);
+      }
+    } catch {
+      setBannerToast({ type: 'error', text: 'Could not remove banner.' });
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
   // Load real portfolio from Supabase
   useEffect(() => {
     let isCancelled = false;
@@ -314,6 +383,77 @@ export default function PhotographerPortfolioPage() {
           <span>{uploadError}</span>
         </div>
       )}
+
+      {/* Studio Profile Cover Banner (Distinct from Portfolio Items) */}
+      <div className="bg-white rounded-3xl border border-[#E8E2D8] p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-ink-primary">Studio Cover Banner</h2>
+              <Badge variant="brand" size="sm">Profile Banner</Badge>
+            </div>
+            <p className="text-xs text-ink-secondary mt-0.5">
+              Featured as the top hero background of your public photographer profile. Distinct from gallery photographs.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerFileChange}
+              id="studio-banner-upload"
+            />
+            <label htmlFor="studio-banner-upload">
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
+                disabled={isUploadingBanner}
+                className="cursor-pointer"
+              >
+                {isUploadingBanner ? 'Uploading...' : currentBanner ? 'Replace Banner' : 'Upload Banner'}
+              </Button>
+            </label>
+            {currentBanner && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveBanner}
+                disabled={isUploadingBanner}
+                className="text-xs text-red-600 hover:bg-red-50"
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {bannerToast && (
+          <div className={`p-2.5 rounded-card-sm text-xs font-semibold flex items-center gap-2 ${
+            bannerToast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{bannerToast.text}</span>
+          </div>
+        )}
+
+        <div className="relative h-44 sm:h-56 w-full rounded-2xl overflow-hidden bg-[#FAF7F2] border border-[#E8E2D8]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={currentBanner || '/reference-assets/seller_banner_photographer.jpg'}
+            alt="Studio Cover Banner"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4">
+            <span className="text-white text-xs font-semibold drop-shadow-sm">
+              Live Cover Banner Preview • Displayed on your public photographer profile
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Categories Bar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-contour-subtle pb-4">

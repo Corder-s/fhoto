@@ -33,6 +33,13 @@ export async function GET(request: Request) {
         state,
         service_radius,
         portfolio_url,
+        cover_image_url,
+        base_address,
+        base_latitude,
+        base_longitude,
+        included_travel_km,
+        travel_fee_per_km,
+        min_travel_fee,
         verification_status,
         average_rating,
         total_reviews,
@@ -137,7 +144,7 @@ export async function GET(request: Request) {
         (a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)
       );
 
-      const primaryCover = portfolio[0]?.preview_url || cp.portfolio_url || '/reference-assets/hero_scene.jpg';
+      const primaryCover = cp.cover_image_url || portfolio[0]?.preview_url || cp.portfolio_url || '/reference-assets/seller_banner_photographer.jpg';
       const secondaryCover = portfolio[1]?.preview_url || primaryCover;
 
       const userProfile = profilesByUser[cp.user_id];
@@ -161,6 +168,11 @@ export async function GET(request: Request) {
         experienceYears: cp.experience_years,
         city: cp.city,
         state: cp.state,
+        baseAddress: cp.base_address || cp.city,
+        serviceRadiusKm: cp.service_radius || 25,
+        includedTravelKm: cp.included_travel_km ?? 10,
+        travelFeePerKm: cp.travel_fee_per_km !== null ? Number(cp.travel_fee_per_km) : 20,
+        minTravelFee: cp.min_travel_fee !== null ? Number(cp.min_travel_fee) : 0,
         locationArea: `${cp.city}, ${cp.state || 'India'}`,
         startingPriceInr: minPrice,
         rating: Number(cp.average_rating) || 5.0,

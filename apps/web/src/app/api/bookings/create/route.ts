@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorize, jsonError } from '@/lib/server/session';
 import { cleanText, isApprovedCreator, isUuid, matchesSessionUser } from '@/lib/server/policy';
+import {
+  calculateAuthoritativePricing,
+  DEFAULT_TRAVEL_SETTINGS,
+  KNOWN_HUBS,
+  resolveCoordinatesFromText,
+} from '@/lib/server/pricing';
+import { createInAppNotification } from '@/lib/server/notifications';
+import { EmailTemplates, sendPlatformEmail } from '@/lib/server/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +75,24 @@ export async function POST(request: NextRequest) {
   try {
     const { data: creator, error: creatorErr } = await admin
       .from('creator_profiles')
-      .select('id, verification_status, is_available, user_id')
+      .select(`
+        id,
+        professional_name,
+        verification_status,
+        is_available,
+        user_id,
+        city,
+        state,
+        service_radius,
+        base_address,
+        base_latitude,
+        base_longitude,
+        included_travel_km,
+        travel_fee_per_km,
+        min_travel_fee,
+        max_travel_fee,
+        allow_out_of_area
+      `)
       .eq('id', creatorId)
       .maybeSingle();
 
@@ -124,11 +149,53 @@ export async function POST(request: NextRequest) {
       return jsonError(409, 'Selected creator is already reserved for this timeframe. Please pick another slot.');
     }
 
-    // Server-authoritative financials.
-    const platformFee = Math.round((agreedServicePrice * platformFeeRate) / 100);
-    const taxes = Math.round((agreedServicePrice + platformFee) * (GST_PERCENT / 100));
-    const discountAmount = 0;
-    const totalAmount = agreedServicePrice + platformFee + taxes - discountAmount;
+    // Resolve Photographer Base Coordinates
+    let photogLat = creator.base_latitude !== null ? Number(creator.base_latitude) : null;
+    let photogLng = creator.base_longitude !== null ? Number(creator.base_longitude) : null;
+    if (photogLat === null || photogLng === null || Number.isNaN(photogLat) || Number.isNaN(photogLng)) {
+      const hubCoords = resolveCoordinatesFromText(creator.base_address || creator.city || 'Delhi NCR');
+      photogLat = hubCoords?.lat ?? KNOWN_HUBS['delhi'].lat;
+      photogLng = hubCoords?.lng ?? KNOWN_HUBS['delhi'].lng;
+    }
+
+    // Resolve Venue Coordinates
+    let venueLat: number | null = null;
+    let venueLng: number | null = null;
+    if (typeof locationLatitude === 'number' && typeof locationLongitude === 'number') {
+      venueLat = locationLatitude;
+      venueLng = locationLongitude;
+    } else {
+      const resolvedVenue = resolveCoordinatesFromText(eventLocation);
+      venueLat = resolvedVenue?.lat ?? photogLat;
+      venueLng = resolvedVenue?.lng ?? photogLng;
+    }
+
+    // Server-Authoritative Distance and Pricing Calculation
+    const pricing = calculateAuthoritativePricing({
+      basePackagePrice: agreedServicePrice,
+      photographerCoords: { lat: photogLat, lng: photogLng },
+      venueCoords: { lat: venueLat, lng: venueLng },
+      photographerBaseAddress: creator.base_address || creator.city || 'Delhi NCR',
+      customerEventAddress: eventLocation,
+      travelSettings: {
+        includedTravelKm: creator.included_travel_km ?? DEFAULT_TRAVEL_SETTINGS.includedTravelKm,
+        travelFeePerKm: creator.travel_fee_per_km !== null ? Number(creator.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm,
+        minTravelFee: creator.min_travel_fee !== null ? Number(creator.min_travel_fee) : DEFAULT_TRAVEL_SETTINGS.minTravelFee,
+        maxTravelFee: creator.max_travel_fee !== null ? Number(creator.max_travel_fee) : null,
+        serviceRadiusKm: creator.service_radius || DEFAULT_TRAVEL_SETTINGS.serviceRadiusKm,
+        allowOutOfArea: creator.allow_out_of_area ?? true,
+      },
+      platformFeePercent: platformFeeRate,
+      gstPercent: GST_PERCENT,
+    });
+
+    if (pricing.isOutOfArea && creator.allow_out_of_area === false) {
+      return jsonError(
+        400,
+        `Venue is ${pricing.calculatedDistanceKm} km away, which exceeds the photographer's maximum allowed travel radius (${creator.service_radius} km).`
+      );
+    }
+
     const bookingRef = `INST-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
     const initialStatus = bookingType === 'instant' ? 'confirmed' : 'pending';
 
@@ -144,14 +211,21 @@ export async function POST(request: NextRequest) {
         start_at: startTime,
         end_at: endTime,
         event_location: eventLocation,
-        location_latitude: typeof locationLatitude === 'number' ? locationLatitude : null,
-        location_longitude: typeof locationLongitude === 'number' ? locationLongitude : null,
+        location_latitude: venueLat,
+        location_longitude: venueLng,
         customer_notes: customerNotes,
         agreed_service_price: agreedServicePrice,
-        platform_fee: platformFee,
-        taxes,
-        discount_amount: discountAmount,
-        total_amount: totalAmount,
+        travel_distance_km: pricing.calculatedDistanceKm,
+        distance_method: pricing.distanceMethod,
+        included_travel_km: pricing.includedTravelKm,
+        chargeable_distance_km: pricing.chargeableDistanceKm,
+        travel_rate_per_km: pricing.travelRatePerKm,
+        travel_fee: pricing.travelFee,
+        platform_fee: pricing.platformFee,
+        taxes: pricing.taxes,
+        discount_amount: pricing.discountAmount,
+        total_amount: pricing.totalAmount,
+        pricing_breakdown: pricing,
         currency: 'INR',
         booking_type: bookingType,
         booking_status: initialStatus,
@@ -165,37 +239,129 @@ export async function POST(request: NextRequest) {
       return jsonError(500, 'Could not create the booking. Please try again.');
     }
 
-    // Audit trail and escrow record. Failures here are logged; the booking itself is already persisted.
+    // Audit trail and escrow record.
     const { error: historyErr } = await admin.from('booking_status_history').insert({
       booking_id: created.id,
       previous_status: null,
       new_status: initialStatus,
       changed_by: user.id,
-      change_reason: 'Booking requested by customer',
+      change_reason: 'Booking requested by customer with authoritative distance pricing snapshot',
     });
     if (historyErr) console.error('Could not record booking history:', historyErr.message);
 
     const { error: payoutErr } = await admin.from('creator_payouts').insert({
       creator_id: creatorId,
       booking_id: created.id,
-      gross_amount: agreedServicePrice,
-      platform_fee: platformFee,
+      gross_amount: agreedServicePrice + pricing.travelFee,
+      platform_fee: pricing.platformFee,
       adjustment_amount: 0,
-      net_amount: agreedServicePrice - platformFee,
+      net_amount: agreedServicePrice + pricing.travelFee - pricing.platformFee,
       payout_status: 'in_escrow',
     });
     if (payoutErr) console.error('Could not create escrow record:', payoutErr.message);
+
+    // Fetch Photographer's User Profile for Notifications
+    const { data: creatorUser } = await admin
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('id', creator.user_id)
+      .maybeSingle();
+
+    const { data: customerUser } = await admin
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const customerName = customerUser?.full_name || user.email || 'Valued Client';
+    const creatorName = creator.professional_name || creatorUser?.full_name || 'Photographer';
+
+    // 1. In-App Notifications
+    await createInAppNotification({
+      userId: creator.user_id,
+      type: 'booking_request',
+      title: 'New Booking Request',
+      body: `${customerName} requested a shoot "${eventTitle}" for ${eventDate} (${pricing.calculatedDistanceKm} km away). Total: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
+      relatedBookingId: created.id,
+      actionUrl: '/photographer/bookings',
+      metadata: { bookingReference: bookingRef, distanceKm: pricing.calculatedDistanceKm },
+    });
+
+    await createInAppNotification({
+      userId: user.id,
+      type: 'booking_placed',
+      title: 'Booking Request Placed',
+      body: `Your shoot request with ${creatorName} for "${eventTitle}" on ${eventDate} is placed. Total Quoted: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
+      relatedBookingId: created.id,
+      actionUrl: '/customer/bookings',
+      metadata: { bookingReference: bookingRef },
+    });
+
+    // 2. Transactional Email Notifications
+    if (creatorUser?.email) {
+      const email = EmailTemplates.bookingRequested(
+        customerName,
+        'creator',
+        bookingRef,
+        eventTitle,
+        eventDate,
+        startTime.split('T')[1]?.slice(0, 5) || '10:00',
+        eventLocation,
+        pricing.totalAmount,
+        pricing.calculatedDistanceKm,
+        pricing.travelFee
+      );
+      await sendPlatformEmail({
+        to: { email: creatorUser.email, name: creatorName, userId: creatorUser.id },
+        subject: email.subject,
+        templateName: 'booking_requested_creator',
+        eventType: 'booking.requested',
+        html: email.html,
+        relatedEntityId: created.id,
+        idempotencyKey: `book_req_creator_${created.id}`,
+      });
+    }
+
+    if (customerUser?.email) {
+      const email = EmailTemplates.bookingRequested(
+        customerName,
+        'customer',
+        bookingRef,
+        eventTitle,
+        eventDate,
+        startTime.split('T')[1]?.slice(0, 5) || '10:00',
+        eventLocation,
+        pricing.totalAmount,
+        pricing.calculatedDistanceKm,
+        pricing.travelFee
+      );
+      await sendPlatformEmail({
+        to: { email: customerUser.email, name: customerName, userId: customerUser.id },
+        subject: email.subject,
+        templateName: 'booking_requested_customer',
+        eventType: 'booking.requested',
+        html: email.html,
+        relatedEntityId: created.id,
+        idempotencyKey: `book_req_customer_${created.id}`,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       booking: created,
       breakdown: {
         agreedServicePrice,
-        platformFee,
-        taxes,
-        totalAmount,
+        travelDistanceKm: pricing.calculatedDistanceKm,
+        distanceMethod: pricing.distanceMethod,
+        includedTravelKm: pricing.includedTravelKm,
+        chargeableDistanceKm: pricing.chargeableDistanceKm,
+        travelFee: pricing.travelFee,
+        platformFee: pricing.platformFee,
+        taxes: pricing.taxes,
+        totalAmount: pricing.totalAmount,
         currency: 'INR',
         serviceDurationMinutes: serviceDuration,
+        snapshot: pricing,
       },
     });
   } catch (err) {

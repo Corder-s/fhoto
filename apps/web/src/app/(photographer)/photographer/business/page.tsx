@@ -100,6 +100,14 @@ export default function PhotographerBusinessPage() {
   ]);
   const [bio, setBio] = useState('');
 
+  // Distance-Based Travel Pricing Settings
+  const [baseAddress, setBaseAddress] = useState('Connaught Place, New Delhi');
+  const [includedTravelKm, setIncludedTravelKm] = useState('10');
+  const [travelFeePerKm, setTravelFeePerKm] = useState('20');
+  const [minTravelFee, setMinTravelFee] = useState('0');
+  const [serviceRadius, setServiceRadius] = useState('50');
+  const [allowOutOfArea, setAllowOutOfArea] = useState(true);
+
   // Status feedback
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -115,6 +123,12 @@ export default function PhotographerBusinessPage() {
       setBaseHub(`${creatorProfile?.city || 'Delhi NCR'} & surrounding regions`);
       setExperienceYears(String(creatorProfile?.experience_years || 2));
       setBio(creatorProfile?.biography || '');
+      setBaseAddress(creatorProfile?.base_address || `${creatorProfile?.city || 'Delhi NCR'}`);
+      setIncludedTravelKm(String(creatorProfile?.included_travel_km ?? 10));
+      setTravelFeePerKm(String(creatorProfile?.travel_fee_per_km ?? 20));
+      setMinTravelFee(String(creatorProfile?.min_travel_fee ?? 0));
+      setServiceRadius(String(creatorProfile?.service_radius || 50));
+      setAllowOutOfArea(creatorProfile?.allow_out_of_area ?? true);
     }
   }, [profile, creatorProfile, accountName, professionalName]);
 
@@ -196,6 +210,12 @@ export default function PhotographerBusinessPage() {
           city: city.trim(),
           biography: bio.trim(),
           experienceYears: Number(experienceYears) || 1,
+          baseAddress: baseAddress.trim(),
+          includedTravelKm: Number(includedTravelKm) || 10,
+          travelFeePerKm: Number(travelFeePerKm) || 20,
+          minTravelFee: Number(minTravelFee) || 0,
+          serviceRadius: Number(serviceRadius) || 50,
+          allowOutOfArea,
         },
       });
 
@@ -484,6 +504,141 @@ export default function PhotographerBusinessPage() {
               <p className="text-[11px] text-ink-muted mt-1">
                 Number of documented years operating professionally as a creator.
               </p>
+            </div>
+          </div>
+
+          {/* Distance-Based Travel Pricing Rules Card */}
+          <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D8] space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E8E2D8]">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-brand" />
+                <h3 className="text-xs sm:text-sm font-extrabold text-ink-primary uppercase tracking-wider">
+                  Distance-Based Travel Pricing Configuration
+                </h3>
+              </div>
+              <Badge variant="brand" size="sm">Pricing Engine</Badge>
+            </div>
+
+            <p className="text-xs text-ink-secondary">
+              Configure how client venue distance is priced. Distance is computed between your registered base studio location and the client&apos;s shoot address.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Studio Base Address */}
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-bold text-ink-primary mb-1">
+                  Base Studio Address / Landmark *
+                </label>
+                <input
+                  type="text"
+                  value={baseAddress}
+                  onChange={(e) => {
+                    setBaseAddress(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                  placeholder="e.g. Connaught Place, New Delhi or Sector 62, Noida"
+                  required
+                />
+                <p className="text-[10px] text-ink-muted mt-0.5">
+                  Origin point used for calculating shoot travel distance.
+                </p>
+              </div>
+
+              {/* Service Radius */}
+              <div>
+                <label className="block text-[11px] font-bold text-ink-primary mb-1">
+                  Max Service Radius (km)
+                </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={500}
+                  value={serviceRadius}
+                  onChange={(e) => {
+                    setServiceRadius(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+              </div>
+
+              {/* Included Travel km */}
+              <div>
+                <label className="block text-[11px] font-bold text-ink-primary mb-1">
+                  Included Travel Distance (km)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={includedTravelKm}
+                  onChange={(e) => {
+                    setIncludedTravelKm(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+                <p className="text-[10px] text-ink-muted mt-0.5">
+                  Distance covered in base package before per-km fee kicks in.
+                </p>
+              </div>
+
+              {/* Travel Rate per KM */}
+              <div>
+                <label className="block text-[11px] font-bold text-ink-primary mb-1">
+                  Travel Fee Per KM (₹/km)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={200}
+                  value={travelFeePerKm}
+                  onChange={(e) => {
+                    setTravelFeePerKm(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+                <p className="text-[10px] text-ink-muted mt-0.5">
+                  Rate applied per chargeable kilometre beyond included distance.
+                </p>
+              </div>
+
+              {/* Minimum Travel Fee */}
+              <div>
+                <label className="block text-[11px] font-bold text-ink-primary mb-1">
+                  Minimum Travel Fee (₹)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={5000}
+                  value={minTravelFee}
+                  onChange={(e) => {
+                    setMinTravelFee(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-medium border border-contour-subtle rounded-card-sm bg-white focus:outline-none focus:border-brand"
+                />
+              </div>
+            </div>
+
+            {/* Out of Area Toggle */}
+            <div className="flex items-center gap-2.5 pt-2">
+              <input
+                type="checkbox"
+                id="allow-out-of-area"
+                checked={allowOutOfArea}
+                onChange={(e) => {
+                  setAllowOutOfArea(e.target.checked);
+                  setIsDirty(true);
+                }}
+                className="w-4 h-4 text-brand rounded focus:ring-brand"
+              />
+              <label htmlFor="allow-out-of-area" className="text-xs font-bold text-ink-primary cursor-pointer">
+                Accept bookings outside standard service radius with applicable distance travel fee
+              </label>
             </div>
           </div>
 

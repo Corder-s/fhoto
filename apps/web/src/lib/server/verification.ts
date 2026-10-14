@@ -77,8 +77,10 @@ export interface SubmissionRow {
     verification_status: string | null;
     average_rating: number | string | null;
     total_reviews: number | null;
+    cover_image_url?: string | null;
+    portfolio_url?: string | null;
   } | null;
-  applicant: { full_name: string | null; email: string | null; account_status: string | null } | null;
+  applicant: { full_name: string | null; email: string | null; account_status: string | null; avatar_url?: string | null } | null;
 }
 
 const SUBMISSION_SELECT = `
@@ -106,8 +108,8 @@ const SUBMISSION_SELECT = `
   review_reason,
   review_notes,
   reviewer:profiles!creator_verification_submissions_reviewed_by_fkey ( full_name, email ),
-  creator:creator_profiles ( id, professional_name, verification_status, average_rating, total_reviews ),
-  applicant:profiles!creator_verification_submissions_user_id_fkey ( full_name, email, account_status )
+  creator:creator_profiles ( id, professional_name, verification_status, average_rating, total_reviews, cover_image_url, portfolio_url ),
+  applicant:profiles!creator_verification_submissions_user_id_fkey ( full_name, email, account_status, avatar_url )
 `;
 
 /**

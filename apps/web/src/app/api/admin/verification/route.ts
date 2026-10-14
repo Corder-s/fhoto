@@ -9,6 +9,8 @@ import {
   revalidatePublicDirectory,
 } from '@/lib/server/verification';
 import { isUuid } from '@/lib/server/policy';
+import { EmailTemplates, sendPlatformEmail } from '@/lib/server/email';
+import { createInAppNotification } from '@/lib/server/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +66,6 @@ export async function GET(req: NextRequest) {
     city: row.city,
     state: row.state,
     serviceRadiusKm: row.service_radius_km,
-    portfolioUrl: row.portfolio_url,
     applicantNotes: row.applicant_notes,
     documentCount: Array.isArray(row.documents) ? (row.documents as unknown[]).length : 0,
     documents: Array.isArray(row.documents)
@@ -80,8 +81,11 @@ export async function GET(req: NextRequest) {
       : [],
     professionalName: row.creator?.professional_name ?? null,
     profileVerificationStatus: row.creator?.verification_status ?? null,
+    coverImageUrl: row.creator?.cover_image_url ?? null,
+    avatarUrl: row.applicant?.avatar_url ?? null,
+    portfolioUrl: row.portfolio_url || row.creator?.portfolio_url || null,
     applicant: row.applicant
-      ? { fullName: row.applicant.full_name, email: row.applicant.email, accountStatus: row.applicant.account_status }
+      ? { fullName: row.applicant.full_name, email: row.applicant.email, accountStatus: row.applicant.account_status, avatarUrl: row.applicant.avatar_url }
       : null,
   }));
 
@@ -149,15 +153,34 @@ export async function PATCH(req: NextRequest) {
           .eq('id', creatorProfile.id);
 
         try {
-          await admin.from('notifications').insert({
-            user_id: creatorProfile.user_id,
-            notification_type: 'creator_verification',
-            title: nextStatus === 'approved' ? 'Your photographer profile is live' : 'Photographer verification update',
+          await createInAppNotification({
+            userId: creatorProfile.user_id,
+            type: 'creator_verification',
+            title: nextStatus === 'approved' ? 'Your Photographer Profile Is Live!' : 'Photographer Verification Update',
             body: nextStatus === 'approved'
-              ? 'An administrator verified and published your photographer profile.'
-              : `Your photographer profile status was updated to ${nextStatus}.${body.reason ? ` Note: ${body.reason}` : ''}`,
+              ? 'An administrator verified and published your photographer profile. You are now discoverable across your hub cities.'
+              : `Your photographer profile review decision: ${nextStatus}.${body.reason ? ` Reason: ${body.reason}` : ''}`,
+            actionUrl: nextStatus === 'approved' ? '/photographer/dashboard' : '/photographer/onboarding',
           });
-        } catch {}
+
+          const { data: prof } = await admin.from('profiles').select('email, full_name').eq('id', creatorProfile.user_id).maybeSingle();
+          if (prof?.email) {
+            const emailData = nextStatus === 'approved'
+              ? EmailTemplates.photographerApproved(prof.full_name || 'Photographer')
+              : EmailTemplates.photographerRejected(prof.full_name || 'Photographer', body.reason || 'Missing required credentials');
+            await sendPlatformEmail({
+              to: { email: prof.email, name: prof.full_name, userId: creatorProfile.user_id },
+              subject: emailData.subject,
+              templateName: nextStatus === 'approved' ? 'photographer_approved' : 'photographer_rejected',
+              eventType: `creator.verification.${nextStatus}`,
+              html: emailData.html,
+              relatedEntityId: creatorProfile.id,
+              idempotencyKey: `verif_direct_${creatorProfile.id}_${nextStatus}`,
+            });
+          }
+        } catch (notifErr) {
+          console.warn('Notification/email dispatch warning:', notifErr);
+        }
 
         revalidatePublicDirectory();
 
@@ -186,6 +209,40 @@ export async function PATCH(req: NextRequest) {
     reviewerId: user.id,
   });
   if (!result.ok) return jsonError(result.status, result.error);
+
+  // Send transactional email and in-app notification to the applicant
+  try {
+    const { data: prof } = await admin.from('profiles').select('email, full_name').eq('id', result.userId).maybeSingle();
+    const applicantName = prof?.full_name || 'Photographer';
+
+    await createInAppNotification({
+      userId: result.userId,
+      type: 'creator_verification',
+      title: result.status === 'approved' ? 'Your Photographer Profile Is Live!' : 'Photographer Verification Update',
+      body: result.status === 'approved'
+        ? 'Congratulations! Your studio profile has been verified and published to the marketplace.'
+        : `Your verification application status: ${result.status}.${body.reason ? ` Note: ${body.reason}` : ''}`,
+      actionUrl: result.status === 'approved' ? '/photographer/dashboard' : '/photographer/onboarding',
+    });
+
+    if (prof?.email) {
+      const emailData = result.status === 'approved'
+        ? EmailTemplates.photographerApproved(applicantName)
+        : EmailTemplates.photographerRejected(applicantName, body.reason || 'Please review required credentials');
+
+      await sendPlatformEmail({
+        to: { email: prof.email, name: applicantName, userId: result.userId },
+        subject: emailData.subject,
+        templateName: result.status === 'approved' ? 'photographer_approved' : 'photographer_rejected',
+        eventType: `creator.verification.${result.status}`,
+        html: emailData.html,
+        relatedEntityId: result.submissionId,
+        idempotencyKey: `verif_sub_${result.submissionId}_${result.status}`,
+      });
+    }
+  } catch (emailErr) {
+    console.warn('Post-review email notification error:', emailErr);
+  }
 
   return NextResponse.json(
     {

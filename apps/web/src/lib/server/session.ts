@@ -232,11 +232,11 @@ export function authorizeAdmin(permission?: AdminPermission | null): Promise<Aut
 export async function getOwnCreatorProfile(
   admin: SupabaseClient,
   userId: string
-): Promise<{ id: string; verification_status: string } | null> {
+): Promise<{ id: string; verification_status: string; cover_image_url?: string | null } | null> {
   const { data } = await admin
     .from('creator_profiles')
-    .select('id, verification_status')
+    .select('id, verification_status, cover_image_url')
     .eq('user_id', userId)
     .maybeSingle();
-  return (data as { id: string; verification_status: string } | null) || null;
+  return (data as { id: string; verification_status: string; cover_image_url?: string | null } | null) || null;
 }

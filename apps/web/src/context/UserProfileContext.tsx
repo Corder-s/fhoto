@@ -24,7 +24,16 @@ export interface CreatorDbProfile {
   state: string;
   service_radius: number;
   portfolio_url?: string | null;
-  verification_status: 'unsubmitted' | 'pending' | 'approved' | 'rejected';
+  cover_image_url?: string | null;
+  base_address?: string | null;
+  base_latitude?: number | null;
+  base_longitude?: number | null;
+  included_travel_km?: number;
+  travel_fee_per_km?: number;
+  min_travel_fee?: number;
+  max_travel_fee?: number | null;
+  allow_out_of_area?: boolean;
+  verification_status: 'unsubmitted' | 'pending' | 'approved' | 'rejected' | 'suspended';
   average_rating: number;
   total_reviews: number;
   is_available: boolean;
@@ -56,6 +65,15 @@ export interface UpdateProfileParams {
     state?: string;
     serviceRadius?: number;
     portfolioUrl?: string | null;
+    coverImageUrl?: string | null;
+    baseAddress?: string;
+    baseLatitude?: number | null;
+    baseLongitude?: number | null;
+    includedTravelKm?: number;
+    travelFeePerKm?: number;
+    minTravelFee?: number;
+    maxTravelFee?: number | null;
+    allowOutOfArea?: boolean;
   };
 }
 

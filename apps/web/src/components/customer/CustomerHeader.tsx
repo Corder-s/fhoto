@@ -25,10 +25,13 @@ import { INITIAL_CUSTOMER_PROFILE, INITIAL_NOTIFICATIONS } from '../../data/cust
 import { clearAuthSession, useAuth } from '../../lib/auth';
 import { getCustomerPreferences, CustomerPreferences } from '../../lib/settingsService';
 
+import { useNotifications } from '../../lib/useNotifications';
+
 export const CustomerHeader: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -65,7 +68,6 @@ export const CustomerHeader: React.FC = () => {
     { label: 'Messages', href: '/customer/bookings?tab=messages', icon: MessageSquare },
   ];
 
-  const unreadCount = INITIAL_NOTIFICATIONS.filter((n) => n.unread).length || 0;
   const displayName = user?.name || currentProfile.name || 'Customer';
   const displayAvatar = user?.avatarUrl || currentProfile.avatar || '';
 
@@ -141,7 +143,7 @@ export const CustomerHeader: React.FC = () => {
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#E53935] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                  1
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
@@ -151,33 +153,54 @@ export const CustomerHeader: React.FC = () => {
               <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white border border-[#E8E1D6] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-3 py-2 border-b border-[#F0EAE1] flex items-center justify-between">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-[#1A1816]">
-                    Client Notifications
+                    Client Notifications {unreadCount > 0 && `(${unreadCount})`}
                   </span>
-                  <Link
-                    href="/customer/notifications"
-                    onClick={() => setShowNotifMenu(false)}
-                    className="text-[11px] font-bold text-[#FF6E00] hover:underline"
-                  >
-                    View all
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAsRead()}
+                        className="text-[10px] font-bold text-[#8C847A] hover:text-[#1A1816]"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                    <Link
+                      href="/customer/notifications"
+                      onClick={() => setShowNotifMenu(false)}
+                      className="text-[11px] font-bold text-[#FF6E00] hover:underline"
+                    >
+                      View all
+                    </Link>
+                  </div>
                 </div>
                 <div className="max-h-64 overflow-y-auto divide-y divide-[#F0EAE1]">
-                  {INITIAL_NOTIFICATIONS.map((n) => (
-                    <Link
-                      key={n.id}
-                      href={n.actionHref || '/customer/notifications'}
-                      onClick={() => setShowNotifMenu(false)}
-                      className={`block px-3 py-2.5 hover:bg-[#FAF7F2] transition-colors ${
-                        n.unread ? 'bg-[#FFF8F0]' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-bold text-[#1A1816]">{n.title}</p>
-                        <span className="text-[10px] text-[#8C847A] shrink-0">{n.time}</span>
-                      </div>
-                      <p className="text-[11px] text-[#665E55] mt-0.5 line-clamp-2">{n.message}</p>
-                    </Link>
-                  ))}
+                  {notifications.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-[#8C847A]">
+                      No notifications yet.
+                    </div>
+                  ) : (
+                    notifications.slice(0, 5).map((n) => (
+                      <Link
+                        key={n.id}
+                        href={n.actionUrl || '/customer/notifications'}
+                        onClick={() => {
+                          markAsRead(n.id);
+                          setShowNotifMenu(false);
+                        }}
+                        className={`block px-3 py-2.5 hover:bg-[#FAF7F2] transition-colors ${
+                          !n.readAt ? 'bg-[#FFF8F0]' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-xs font-bold text-[#1A1816]">{n.title}</p>
+                          <span className="text-[10px] text-[#8C847A] shrink-0">
+                            {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#665E55] mt-0.5 line-clamp-2">{n.body}</p>
+                      </Link>
+                    ))
+                  )}
                 </div>
               </div>
             )}

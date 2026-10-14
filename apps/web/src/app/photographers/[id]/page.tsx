@@ -205,6 +205,36 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
     }
   };
 
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const bannerInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBanner(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/photographers/banner', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.bannerUrl) {
+        setCreator((prev) => (prev ? { ...prev, coverImageUrl: data.bannerUrl } : prev));
+        setAvatarToast('Cover banner updated successfully!');
+        setTimeout(() => setAvatarToast(null), 4000);
+      }
+    } catch {
+      setAvatarToast('Failed to update cover banner.');
+    } finally {
+      setIsUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
   // LOADING SKELETON
   if (isLoading && !creator) {
     return (
@@ -329,7 +359,7 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
 
       <main className="flex-1 bg-canvas-primary pb-20">
         {/* HERO PORTFOLIO COVER IMAGE */}
-        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-canvas-secondary overflow-hidden">
+        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-canvas-secondary overflow-hidden group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={creator.coverImageUrl}
@@ -337,6 +367,30 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+          {isOwner && (
+            <div className="absolute right-4 bottom-4 z-20">
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleBannerFileChange}
+                id="owner-banner-input"
+              />
+              <label htmlFor="owner-banner-input">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/90 backdrop-blur-xs text-xs font-bold shadow-md hover:bg-white cursor-pointer"
+                  disabled={isUploadingBanner}
+                  leftIcon={<Camera className="w-3.5 h-3.5 text-brand" />}
+                >
+                  {isUploadingBanner ? 'Updating...' : 'Change Cover Banner'}
+                </Button>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 space-y-10">
