@@ -85,7 +85,8 @@ export async function POST(request: Request) {
     .update(`${normalizedEmail}:${otp}`)
     .digest('hex');
 
-  if (computedHash !== otpRecord.otp_hash) {
+  const storedHash = otpRecord.otp_code_hash || otpRecord.otp_hash;
+  if (computedHash !== storedHash) {
     const nextAttempts = otpRecord.attempts + 1;
     await admin
       .from('auth_email_otps')

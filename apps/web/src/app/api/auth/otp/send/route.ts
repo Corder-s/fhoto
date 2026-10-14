@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   // 4. Save hashed record
   const { error: insertErr } = await admin.from('auth_email_otps').insert({
     email: normalizedEmail,
-    otp_hash: otpHash,
+    otp_code_hash: otpHash,
     purpose,
     attempts: 0,
     max_attempts: 5,
@@ -94,9 +94,9 @@ export async function POST(request: Request) {
   });
 
   if (insertErr) {
-    console.error('Failed to record auth OTP:', insertErr);
+    console.error('Failed to record auth OTP:', insertErr.message || insertErr);
     return NextResponse.json(
-      { error: 'Could not generate verification code. Please try again.' },
+      { error: insertErr.message || 'Could not generate verification code. Please try again.' },
       { status: 500 }
     );
   }
