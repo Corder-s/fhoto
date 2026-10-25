@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Star, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useAuthModal } from '../auth/AuthModalContext';
+import { PhotographerCard } from '../photographer/PhotographerCard';
+import { PhotographerProfileModal } from '../photographer/PhotographerProfileModal';
 
 interface PhotographerCardData {
   id: string;
@@ -72,6 +74,7 @@ export const ReepyFeaturedPhotographers: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
   const [photographers, setPhotographers] = useState<PhotographerCardData[]>(DEFAULT_FEATURED);
+  const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -135,117 +138,21 @@ export const ReepyFeaturedPhotographers: React.FC = () => {
 
         {/* Featured Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {photographers.map((creator) => {
-            const profileHref = `/photographers/${creator.id}`;
-
-            return (
-              <div
-                key={creator.id}
-                className="bg-white rounded-3xl border border-[#E7EAEE] overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group"
-              >
-                <div>
-                  {/* Landscape Cover Photo with Floating Badges */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#171A1F]">
-                    <img
-                      src={creator.coverImageUrl}
-                      alt={creator.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-
-                    {/* Gradient Overlay for bottom text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                    {/* Top Left Floating Badges */}
-                    <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
-                      {creator.isVerified && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#14B8A6] text-[#0D0F12] shadow-sm">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Verified</span>
-                        </span>
-                      )}
-                      {creator.isAvailable && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-white text-[#191C22] shadow-sm">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Available</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Top Right Rating Badge */}
-                    <div className="absolute top-3.5 right-3.5">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#171A1F]/90 text-white backdrop-blur-xs border border-white/10 shadow-sm">
-                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                        <span>
-                          {creator.rating.toFixed(1)} <span className="text-[#94A3B8] font-normal">({creator.reviewCount})</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bottom Edge: Avatar + Name & Location */}
-                    <div className="absolute bottom-3.5 left-3.5 right-3.5 flex items-center gap-3">
-                      <img
-                        src={creator.avatarUrl}
-                        alt={creator.name}
-                        className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-md shrink-0 bg-white"
-                      />
-                      <div className="min-w-0 text-white">
-                        <h3 className="text-base font-bold truncate tracking-tight text-white drop-shadow-xs">
-                          {creator.name}
-                        </h3>
-                        <p className="text-xs text-[#CBD5E1] flex items-center gap-1 truncate drop-shadow-xs">
-                          <MapPin className="w-3 h-3 text-[#14B8A6] shrink-0" />
-                          <span className="truncate">{creator.locationArea}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-5 sm:p-6 space-y-4">
-                    <p className="text-xs sm:text-sm text-[#64748B] line-clamp-2 leading-relaxed">
-                      {creator.bio}
-                    </p>
-
-                    {/* Specialty Chips */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {creator.specialties.map((spec, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 rounded-full text-xs font-semibold bg-[#EFFCF8] text-[#0F766E] border border-[#99F6E4]/50"
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#F1F3F5] text-[#64748B]">
-                        +1 more
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="p-5 sm:p-6 pt-0 border-t border-[#F1F3F5] mt-2 flex items-center justify-between">
-                  <div>
-                    <span className="block text-[11px] font-medium text-[#94A3B8]">
-                      Starting from
-                    </span>
-                    <span className="text-base sm:text-lg font-black text-[#191C22]">
-                      Rs.{creator.startingPriceInr.toLocaleString('en-IN')}<span className="text-xs font-normal text-[#64748B]">/hr</span>
-                    </span>
-                  </div>
-
-                  <Link
-                    href={profileHref}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#171A1F] hover:bg-black text-white text-xs sm:text-sm font-bold shadow-sm transition-colors cursor-pointer"
-                  >
-                    <span>View Profile</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+          {photographers.map((creator) => (
+            <PhotographerCard
+              key={creator.id}
+              photographer={creator}
+              onViewProfileClick={(p) => setSelectedModalPhotographerId(p.id)}
+            />
+          ))}
         </div>
+
+        {/* Profile Modal */}
+        <PhotographerProfileModal
+          isOpen={!!selectedModalPhotographerId}
+          photographerId={selectedModalPhotographerId}
+          onClose={() => setSelectedModalPhotographerId(null)}
+        />
       </div>
     </section>
   );

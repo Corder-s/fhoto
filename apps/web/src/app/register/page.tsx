@@ -5,44 +5,47 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { SnapShootAuthView } from '../../components/auth/SnapShootAuthView';
-import { useAuth } from '../../lib/auth';
+import { clearAuthSession, useAuth } from '../../lib/auth';
 import { useServerSession } from '../../lib/useServerSession';
 import { resolvePostAuthRedirect } from '../../lib/safeRedirect';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isMounted } = useAuth();
+  const { isAuthenticated, isMounted } = useAuth();
   const serverSession = useServerSession();
 
   useEffect(() => {
-    if (isMounted && isAuthenticated && user) {
-      if (serverSession.status === 'authenticated') {
-        if (serverSession.user.roleSelected === false) {
-          router.replace('/auth/select-role');
-          return;
-        }
-      } else if (user.roleSelected === false) {
+    if (!isMounted) return;
+
+    if (serverSession.status === 'loading') return;
+
+    if (serverSession.status === 'anonymous' || serverSession.status === 'error') {
+      if (isAuthenticated) {
+        clearAuthSession();
+      }
+      return;
+    }
+
+    if (serverSession.status === 'authenticated') {
+      if (serverSession.user.roleSelected === false) {
         router.replace('/auth/select-role');
         return;
       }
 
-      const primaryRole =
-        serverSession.status === 'authenticated'
-          ? serverSession.user.roles.includes('owner')
-            ? 'owner'
-            : serverSession.user.roles.includes('admin')
-            ? 'admin'
-            : serverSession.user.roles.includes('creator')
-            ? 'creator'
-            : 'customer'
-          : user.role;
+      const primaryRole = serverSession.user.roles.includes('owner')
+        ? 'owner'
+        : serverSession.user.roles.includes('admin')
+        ? 'admin'
+        : serverSession.user.roles.includes('creator')
+        ? 'creator'
+        : 'customer';
 
       const target = resolvePostAuthRedirect(primaryRole);
       router.replace(target);
     }
-  }, [isMounted, isAuthenticated, user, serverSession, router]);
+  }, [isMounted, isAuthenticated, serverSession, router]);
 
-  if (isMounted && isAuthenticated && user) {
+  if (isMounted && serverSession.status === 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F7F9]">
         <div className="text-center space-y-3">

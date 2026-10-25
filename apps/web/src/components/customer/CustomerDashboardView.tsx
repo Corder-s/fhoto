@@ -27,6 +27,8 @@ import {
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 import { useAuth } from '../../lib/auth';
 import { getPhotographerSlug } from '../../lib/photographerSlug';
+import { PhotographerCard } from '../photographer/PhotographerCard';
+import { PhotographerProfileModal } from '../photographer/PhotographerProfileModal';
 
 interface CustomerBookingItem {
   id: string;
@@ -76,6 +78,7 @@ export const CustomerDashboardView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [isLoadingPhotographers, setIsLoadingPhotographers] = useState(true);
+  const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(null);
 
   const activeUserId = authUser?.id;
   const clientName = accountName || 'Customer';
@@ -635,122 +638,11 @@ export const CustomerDashboardView: React.FC = () => {
         ) : filteredPhotographers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPhotographers.slice(0, 6).map((creator) => (
-              <div
+              <PhotographerCard
                 key={creator.id}
-                className="bg-white rounded-2xl border border-[#EBE4DA] overflow-hidden shadow-[0_2px_12px_-2px_rgba(26,24,22,0.04)] hover:shadow-card hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between"
-              >
-                <div className="space-y-4">
-                  {/* Top: Avatar, Name, Verification, Location, Rating */}
-                  <div className="flex items-start justify-between gap-3">
-                    <Link
-                      href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}`}
-                      className="flex items-center gap-3 min-w-0 group/creator hover:opacity-90 transition-opacity"
-                    >
-                      <img
-                        src={creator.avatarUrl || '/reference-assets/seller_profile_aman.jpg'}
-                        alt={creator.name}
-                        className="w-11 h-11 rounded-full object-cover shrink-0 border border-[#E7EAEE] group-hover/creator:border-[#14B8A6] transition-colors"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <h3 className="text-sm font-bold text-[#191C22] truncate group-hover/creator:text-[#14B8A6] transition-colors">
-                            {creator.name}
-                          </h3>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                        </div>
-                        <p className="text-[11px] text-[#94A3B8] flex items-center gap-1 mt-0.5 truncate">
-                          <MapPin className="w-3 h-3 text-[#94A3B8] shrink-0" />
-                          <span>{creator.locationArea || creator.city}</span>
-                        </p>
-                      </div>
-                    </Link>
-
-                    <div className="flex items-center gap-1 text-xs font-bold text-[#191C22] shrink-0">
-                      <Star className="w-3.5 h-3.5 text-[#14B8A6] fill-[#14B8A6]" />
-                      <span>{creator.rating}</span>
-                      <span className="text-[#94A3B8] font-normal">({creator.reviewCount})</span>
-                    </div>
-                  </div>
-
-                  {/* Middle: Clickable Portfolio Image Collage */}
-                  <Link href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}`} className="block group/collage">
-                    <div className="grid grid-cols-12 gap-1.5 h-26 rounded-xl overflow-hidden bg-[#F5F7F9]">
-                      <div className="col-span-7 h-full overflow-hidden">
-                        <img
-                          src={
-                            creator.portfolio?.[0]?.url ||
-                            creator.coverImageUrl ||
-                            '/reference-assets/cat_portrait.jpg'
-                          }
-                          alt={`${creator.name} Showcase 1`}
-                          className="w-full h-full object-cover group-hover/collage:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <div className="col-span-5 h-full relative overflow-hidden">
-                        <img
-                          src={
-                            creator.portfolio?.[1]?.url ||
-                            creator.secondaryCoverUrl ||
-                            '/reference-assets/cat_reels.jpg'
-                          }
-                          alt={`${creator.name} Showcase 2`}
-                          className="w-full h-full object-cover group-hover/collage:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors flex items-center justify-center text-white font-bold text-xs">
-                          View Work
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* Specialty Tags */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    {creator.specialties.slice(0, 3).map((cat) => (
-                      <span
-                        key={cat}
-                        className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#F1F3F5] text-[#64748B]"
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bottom: Pricing & Action Links */}
-                <div className="pt-4 mt-4 border-t border-[#EBE4DA] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-[#94A3B8]">
-                      <span>From </span>
-                      <span className="text-sm font-black text-[#191C22]">
-                        ₹{creator.startingPriceInr.toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-[10px]"> / session</span>
-                    </div>
-
-                    <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46] flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#1E7D46]" />
-                      <span>{creator.availabilityStatus}</span>
-                    </div>
-                  </div>
-
-                  {/* Interactive Action Links: Guaranteed responsive */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Link
-                      href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}`}
-                      className="w-full py-2 px-3 rounded-xl border border-[#D5CEC4] bg-white hover:bg-[#F5F7F9] text-[#191C22] text-xs font-bold text-center transition-all flex items-center justify-center gap-1 shadow-2xs"
-                    >
-                      <span>View Profile</span>
-                      <ArrowRight className="w-3 h-3 text-[#94A3B8]" />
-                    </Link>
-                    <Link
-                      href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}?book=true`}
-                      className="w-full py-2 px-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold text-center transition-all shadow-2xs"
-                    >
-                      <span>Book Shoot</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                photographer={creator}
+                onViewProfileClick={(p) => setSelectedModalPhotographerId(p.id)}
+              />
             ))}
           </div>
         ) : (
@@ -887,6 +779,13 @@ export const CustomerDashboardView: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Photographer Profile Modal */}
+      <PhotographerProfileModal
+        isOpen={!!selectedModalPhotographerId}
+        photographerId={selectedModalPhotographerId}
+        onClose={() => setSelectedModalPhotographerId(null)}
+      />
     </div>
   );
 };

@@ -98,6 +98,26 @@ export const ReepyHero: React.FC = () => {
                 <span>Search</span>
               </button>
             </form>
+
+            {/* Popular Category Shortcuts (Phase 2.2 Requirement) */}
+            <div className="pt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[#64748B] font-semibold">Popular:</span>
+              {[
+                { label: 'Reels', slug: 'Reels' },
+                { label: 'Weddings', slug: 'Weddings' },
+                { label: 'Portraits', slug: 'Portraits' },
+                { label: 'Fashion', slug: 'Fashion' },
+              ].map((cat) => (
+                <button
+                  key={cat.slug}
+                  type="button"
+                  onClick={() => router.push(`/explore?category=${encodeURIComponent(cat.slug)}`)}
+                  className="px-3.5 py-1 rounded-full bg-[#1F242D] hover:bg-[#2A313C] text-[#CBD5E1] hover:text-[#99F6E4] border border-[#2D333B] hover:border-[#14B8A6] transition-all cursor-pointer"
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

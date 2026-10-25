@@ -93,6 +93,7 @@ export const PortfolioLightbox: React.FC<PortfolioLightboxProps> = ({
         <img
           src={currentImage.url}
           alt={currentImage.title}
+          referrerPolicy="no-referrer"
           className="max-w-full max-h-[75vh] object-contain rounded-card-sm shadow-2xl transition-all"
         />
 

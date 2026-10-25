@@ -43,6 +43,8 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../lib/auth';
 import { useAuthModal } from '../../components/auth/AuthModalContext';
+import { PhotographerCard } from '../../components/photographer/PhotographerCard';
+import { PhotographerProfileModal } from '../../components/photographer/PhotographerProfileModal';
 import { getPhotographerSlug } from '../../lib/photographerSlug';
 
 // Curated AI Aesthetic Vibe Presets for Rapid Discovery
@@ -57,12 +59,18 @@ const VIBE_PRESETS = [
 ];
 
 const GENRES = [
-  { slug: 'all', label: 'All Genres', icon: Camera },
-  { slug: 'portraits', label: 'Portraits & Studio', icon: Camera },
-  { slug: 'reels', label: 'Reels & 4K Video', icon: Video },
-  { slug: 'couples', label: 'Couples & Weddings', icon: Heart },
-  { slug: 'events', label: 'Events & Parties', icon: Flame },
-  { slug: 'fashion', label: 'Fashion & Editorial', icon: Film },
+  { slug: 'all', label: 'All specialties', icon: Camera },
+  { slug: 'reels', label: 'Reels', icon: Video },
+  { slug: 'weddings', label: 'Weddings', icon: Heart },
+  { slug: 'portraits', label: 'Portraits', icon: Camera },
+  { slug: 'fashion', label: 'Fashion', icon: Film },
+  { slug: 'food', label: 'Food', icon: Sparkles },
+  { slug: 'travel', label: 'Travel', icon: Compass },
+  { slug: 'events', label: 'Events', icon: Flame },
+  { slug: 'product', label: 'Product', icon: Layers },
+  { slug: 'lifestyle', label: 'Lifestyle', icon: Sparkles },
+  { slug: 'street', label: 'Street', icon: Camera },
+  { slug: 'corporate', label: 'Corporate', icon: ShieldCheck },
 ];
 
 const LOCATION_HUBS = [
@@ -86,7 +94,7 @@ const GEAR_TIERS = [
 ];
 
 function matchesCategory(categories: string[], filter: string): boolean {
-  if (!filter || filter === 'all') return true;
+  if (!filter || filter === 'all' || filter === 'All specialties') return true;
   const f = filter.toLowerCase().trim();
   return categories.some((c) => {
     const cl = c.toLowerCase();
@@ -98,6 +106,12 @@ function matchesCategory(categories: string[], filter: string): boolean {
     }
     if (f === 'events' || f === 'event') return cl.includes('event');
     if (f === 'fashion' || f === 'editorial') return cl.includes('fashion') || cl.includes('editorial');
+    if (f === 'food') return cl.includes('food') || cl.includes('culinary');
+    if (f === 'travel') return cl.includes('travel') || cl.includes('landscape') || cl.includes('outdoor');
+    if (f === 'product') return cl.includes('product') || cl.includes('commercial');
+    if (f === 'lifestyle') return cl.includes('lifestyle');
+    if (f === 'street') return cl.includes('street');
+    if (f === 'corporate') return cl.includes('corporate') || cl.includes('headshot');
     return cl.includes(f) || f.includes(cl);
   });
 }
@@ -107,6 +121,7 @@ function ExploreContent() {
   const urlLocation = searchParams.get('location') || '';
   const urlCategory = searchParams.get('category') || 'all';
   const urlQuery = searchParams.get('q') || '';
+  const urlPhotographer = searchParams.get('photographer') || searchParams.get('profile') || '';
 
   // Core Search State
   const [searchLocation, setSearchLocation] = useState(urlLocation);
@@ -120,8 +135,11 @@ function ExploreContent() {
   const [selectedAvailability, setSelectedAvailability] = useState('all');
   const [selectedGearTier, setSelectedGearTier] = useState('all');
   const [sameDayOnly, setSameDayOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_low' | 'price_high' | 'experience'>('recommended');
+  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'reviews' | 'price_low' | 'price_high' | 'experience'>('recommended');
   
+  // Profile Modal State (Phase 6 View Profile Modal)
+  const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(urlPhotographer || null);
+
   // UI Experience State
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -149,7 +167,8 @@ function ExploreContent() {
     if (urlLocation) setSearchLocation(urlLocation);
     if (urlCategory) setSelectedCategory(urlCategory);
     if (urlQuery) setSearchQuery(urlQuery);
-  }, [urlLocation, urlCategory, urlQuery]);
+    if (urlPhotographer) setSelectedModalPhotographerId(urlPhotographer);
+  }, [urlLocation, urlCategory, urlQuery, urlPhotographer]);
 
   // Synchronize live creators directly from /api/photographers (Supabase live data)
   useEffect(() => {
@@ -359,6 +378,8 @@ function ExploreContent() {
     // Advanced Sorting
     if (sortBy === 'rating') {
       result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'reviews') {
+      result.sort((a, b) => b.reviewCount - a.reviewCount);
     } else if (sortBy === 'price_low') {
       result.sort((a, b) => a.startingPriceInr - b.startingPriceInr);
     } else if (sortBy === 'price_high') {
@@ -810,10 +831,11 @@ function ExploreContent() {
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-[#F5F7F9] px-3 py-1.5 rounded-xl border border-[#E7EAEE] text-xs font-bold text-[#191C22] focus:outline-none cursor-pointer"
                 >
-                  <option value="recommended">Recommended (AI Score)</option>
-                  <option value="rating">Highest Client Rating</option>
-                  <option value="price_low">Starting Price: Low to High</option>
-                  <option value="price_high">Starting Price: High to Low</option>
+                  <option value="recommended">Recommended</option>
+                  <option value="rating">Top Rated</option>
+                  <option value="price_low">Price: Low to High</option>
+                  <option value="price_high">Price: High to Low</option>
+                  <option value="reviews">Most Reviewed</option>
                   <option value="experience">Years of Experience</option>
                 </select>
 
@@ -832,8 +854,20 @@ function ExploreContent() {
           </div>
 
           {/* ========================================================= */}
-          {/* 4. RESULTS COUNTER & TRUST GUARANTEE HEADER               */}
+          {/* 4. DISCOVERY HEADER & RESULTS COUNTER                      */}
           {/* ========================================================= */}
+          <div className="text-center max-w-2xl mx-auto space-y-2 pt-2">
+            <span className="text-xs sm:text-sm font-black tracking-widest text-[#14B8A6] uppercase">
+              BROWSE PHOTOGRAPHERS
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#191C22] tracking-tight">
+              Meet the talent near you
+            </h2>
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Discover verified visual creators, explore real portfolios, and book sessions with 100% escrow protection.
+            </p>
+          </div>
+
           <div id="artists-listing-section" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <div className="flex items-center gap-2">
               <p className="text-sm font-black text-[#191C22]">
@@ -980,180 +1014,13 @@ function ExploreContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredPhotographers.map((creator) => {
-                  const isFav = !!favorites[creator.id];
-                  const isComparing = compareList.includes(creator.id);
-                  const activePhotoIdx = activePhotoIndices[creator.id] || 0;
-                  const displayImage = creator.portfolioPreviews[activePhotoIdx] || creator.portfolioPreviews[0];
-
-                  return (
-                    <Card
-                      key={creator.id}
-                      hoverEffect
-                      className="p-0 overflow-hidden flex flex-col justify-between group rounded-3xl border border-[#E7EAEE]"
-                    >
-                      <div>
-                        {/* Interactive Multi-Photo Preview Cover */}
-                        <div className="relative aspect-[16/10] overflow-hidden bg-[#F1F3F5]">
-                          <img
-                            src={displayImage}
-                            alt={creator.name}
-                            className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                          />
-
-                          {/* Top Left Badges: Experience & Live Availability Beacon */}
-                          <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#191C22]/90 text-white backdrop-blur-md">
-                              {creator.experienceYears} Yrs Exp
-                            </span>
-                            {creator.availabilityStatus.toLowerCase().includes('today') && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500 text-white shadow-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                <span>Today</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Top Right Action Buttons: Compare Checkbox & Favorite */}
-                          <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                            {/* Compare Checkbox */}
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleCompare(creator.id, e)}
-                              className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer ${
-                                isComparing
-                                  ? 'bg-[#14B8A6] text-white shadow-md'
-                                  : 'bg-black/50 text-white/80 hover:text-white hover:bg-black/70'
-                              }`}
-                              title={isComparing ? 'Remove from compare' : 'Add to compare'}
-                            >
-                              <Scale className="w-4 h-4" />
-                            </button>
-
-                            {/* Favorite Heart */}
-                            <button
-                              type="button"
-                              onClick={(e) => toggleFavorite(creator.id, e)}
-                              aria-label={isFav ? 'Remove from favorites' : 'Save to favorites'}
-                              className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer ${
-                                isFav
-                                  ? 'bg-white text-red-500 shadow-md'
-                                  : 'bg-black/50 text-white hover:text-red-400'
-                              }`}
-                            >
-                              <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500' : ''}`} />
-                            </button>
-                          </div>
-
-                          {/* Interactive Thumbnail Previews Strip on Cover */}
-                          <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between p-1.5 rounded-xl bg-black/40 backdrop-blur-md">
-                            <span className="text-[10px] font-bold text-white/80 pl-1">
-                              Preview:
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              {creator.portfolioPreviews.slice(0, 3).map((thumb, idx) => (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={(e) => handleThumbnailHover(creator.id, idx, e)}
-                                  className={`w-7 h-5 rounded overflow-hidden border transition-all cursor-pointer ${
-                                    activePhotoIdx === idx
-                                      ? 'border-[#14B8A6] scale-110 shadow-xs'
-                                      : 'border-white/40 opacity-70 hover:opacity-100'
-                                  }`}
-                                >
-                                  <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Card Info Body */}
-                        <div className="p-5 space-y-3">
-                          {/* Name, Verified Handshake, Rating */}
-                          <div className="flex items-start justify-between">
-                            <Link href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}`} className="min-w-0 group/link">
-                              <div className="flex items-center gap-1.5">
-                                <h3 className="text-base sm:text-lg font-black text-[#191C22] group-hover/link:text-[#14B8A6] transition-colors">
-                                  {creator.name}
-                                </h3>
-                                {creator.isVerified && (
-                                  <span title="Identity & Gear Verified by REEPY">
-                                    <CheckCircle2 className="w-4 h-4 text-[#14B8A6] fill-[#EFFCF8] shrink-0" />
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-[#94A3B8] flex items-center gap-1 mt-0.5">
-                                <MapPin className="w-3 h-3 text-[#14B8A6]" />
-                                <span>{creator.locationArea}</span>
-                              </p>
-                            </Link>
-
-                            {/* Client Rating Pill */}
-                            <div className="flex items-center gap-1 text-xs font-bold text-[#191C22] bg-[#F1F3F5] px-2.5 py-1 rounded-full shrink-0">
-                              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                              <span>{creator.rating}</span>
-                              <span className="text-[#94A3B8] font-normal">({creator.reviewCount})</span>
-                            </div>
-                          </div>
-
-                          {/* Tagline / Style Bio */}
-                          <p className="text-xs text-[#64748B] font-medium leading-relaxed line-clamp-2">
-                            {creator.tagline}
-                          </p>
-
-                          {/* Camera Gear & Cinema Specs Badge */}
-                          <div className="p-2.5 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] flex items-center gap-2">
-                            <Camera className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                            <span className="text-[11px] font-semibold text-[#191C22] truncate">
-                              {creator.cameraGear}
-                            </span>
-                          </div>
-
-                          {/* Category Tag Pills */}
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {creator.categories.slice(0, 3).map((cat) => (
-                              <span
-                                key={cat}
-                                className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F1F3F5] text-[#64748B]"
-                              >
-                                {cat}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Footer: Starting Price & Primary CTA Links */}
-                      <div className="p-5 pt-3.5 border-t border-[#E7EAEE] flex items-center justify-between bg-[#F5F7F9]/50">
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-[#94A3B8]">Starting From</p>
-                          <p className="text-lg font-black text-[#191C22]">
-                            ₹{creator.startingPriceInr.toLocaleString('en-IN')}
-                            <span className="text-[10px] font-normal text-[#94A3B8] ml-1">/ session</span>
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}`}
-                            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-xs font-bold border border-[#D5CEC4] bg-white hover:bg-[#F5F7F9] text-[#191C22] transition-all"
-                          >
-                            <span>Profile</span>
-                          </Link>
-                          <Link
-                            href={`/photographers/${getPhotographerSlug(creator.name, creator.id)}?book=true`}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#14B8A6] hover:bg-[#0D9488] active:scale-95 text-white shadow-xs transition-all"
-                          >
-                            <span>Book</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                {filteredPhotographers.map((creator) => (
+                  <PhotographerCard
+                    key={creator.id}
+                    photographer={creator}
+                    onViewProfileClick={(p) => setSelectedModalPhotographerId(p.id)}
+                  />
+                ))}
               </div>
             )
           )}
@@ -1374,6 +1241,15 @@ function ExploreContent() {
               )}
             </div>
           </Modal>
+
+          {/* ========================================================= */}
+          {/* 9. PHOTOGRAPHER PROFILE MODAL (PHASE 6 PRIMARY INTERACTION) */}
+          {/* ========================================================= */}
+          <PhotographerProfileModal
+            isOpen={!!selectedModalPhotographerId}
+            photographerId={selectedModalPhotographerId}
+            onClose={() => setSelectedModalPhotographerId(null)}
+          />
 
         </div>
       </main>

@@ -15,26 +15,26 @@ export const ReepyHowItWorks: React.FC = () => {
     {
       number: '1',
       icon: <Search className="w-5 h-5 text-white" />,
-      title: 'Search & discover',
-      description: 'Filter by locality, specialty, budget, and real portfolio styles.',
+      title: 'Search your locality',
+      description: 'Find vetted visual creators in your city or locality filtered by specialty and portfolio style.',
     },
     {
       number: '2',
       icon: <Users className="w-5 h-5 text-white" />,
-      title: 'Compare & pick',
-      description: 'Browse verified creators, transparent package pricing, and real client reviews.',
+      title: 'Compare and connect',
+      description: 'Review transparent starting prices, camera gear, ratings, and genuine past client feedback.',
     },
     {
       number: '3',
       icon: <Calendar className="w-5 h-5 text-white" />,
-      title: 'Book with escrow',
-      description: 'Select a date, pay safely with full escrow hold and secure Shoot-Start OTP.',
+      title: 'Book and shoot',
+      description: 'Request your shoot date, verify photographer arrival with Shoot-Start OTP, and shoot with confidence.',
     },
     {
       number: '4',
       icon: <Star className="w-5 h-5 text-white" />,
-      title: 'Shoot & get delivered',
-      description: 'Meet on shoot day, verify arrival, and download color-graded 4K photos in 24-48h.',
+      title: 'Review and repeat',
+      description: 'Receive color-graded 4K galleries within 24-48 hours, release payment via escrow, and leave a review.',
     },
   ];
 

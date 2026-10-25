@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, Star, MapPin, TrendingUp } from 'lucide-react';
 
 interface MetricItem {
@@ -10,25 +10,67 @@ interface MetricItem {
 }
 
 export const ReepyStatsStrip: React.FC = () => {
+  const [stats, setStats] = useState<{
+    photographers: number;
+    reviews: number;
+    cities: number;
+    avgRating: number;
+  }>({
+    photographers: 8,
+    reviews: 319,
+    cities: 6,
+    avgRating: 4.8,
+  });
+
+  useEffect(() => {
+    let isCancelled = false;
+    fetch('/api/photographers')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isCancelled) return;
+        if (data.photographers && Array.isArray(data.photographers) && data.photographers.length > 0) {
+          const proCount = data.photographers.length;
+          const totalReviews = data.photographers.reduce((sum: number, p: any) => sum + (Number(p.reviewCount) || 0), 0);
+          const citySet = new Set(data.photographers.map((p: any) => p.city || 'Delhi NCR').filter(Boolean));
+          const ratingSum = data.photographers.reduce((sum: number, p: any) => sum + (Number(p.rating) || 5.0), 0);
+          const avg = ratingSum / proCount;
+
+          setStats({
+            photographers: proCount,
+            reviews: totalReviews > 0 ? totalReviews : 319,
+            cities: citySet.size > 0 ? citySet.size : 6,
+            avgRating: Number(avg.toFixed(1)),
+          });
+        }
+      })
+      .catch(() => {
+        // Safe graceful fallback
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   const metrics: MetricItem[] = [
     {
       icon: <Camera className="w-5 h-5 text-[#14B8A6]" />,
-      value: '8',
+      value: String(stats.photographers),
       label: 'Photographers',
     },
     {
       icon: <Star className="w-5 h-5 text-[#14B8A6]" />,
-      value: '319',
+      value: String(stats.reviews),
       label: 'Reviews',
     },
     {
       icon: <MapPin className="w-5 h-5 text-[#14B8A6]" />,
-      value: '6',
+      value: String(stats.cities),
       label: 'Cities',
     },
     {
       icon: <TrendingUp className="w-5 h-5 text-[#14B8A6]" />,
-      value: '4.8',
+      value: String(stats.avgRating),
       label: 'Avg Rating',
     },
   ];

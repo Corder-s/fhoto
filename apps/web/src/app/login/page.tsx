@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { SnapShootAuthView } from '../../components/auth/SnapShootAuthView';
-import { useAuth } from '../../lib/auth';
+import { clearAuthSession, useAuth } from '../../lib/auth';
 import { useServerSession } from '../../lib/useServerSession';
 import { resolvePostAuthRedirect } from '../../lib/safeRedirect';
 
@@ -19,40 +19,47 @@ import { resolvePostAuthRedirect } from '../../lib/safeRedirect';
 function LoginView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isMounted } = useAuth();
+  const { isAuthenticated, isMounted } = useAuth();
   const serverSession = useServerSession();
   const requested = searchParams?.get('next') || searchParams?.get('returnUrl') || undefined;
   const returnUrl = requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : undefined;
 
   useEffect(() => {
-    if (isMounted && isAuthenticated && user) {
-      if (serverSession.status === 'authenticated') {
-        if (serverSession.user.roleSelected === false) {
-          router.replace(`/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
-          return;
-        }
-      } else if (user.roleSelected === false) {
+    if (!isMounted) return;
+
+    // While server session is determining status, do not redirect
+    if (serverSession.status === 'loading') return;
+
+    // If server session is not authenticated, clean up any stale localStorage state
+    if (serverSession.status === 'anonymous' || serverSession.status === 'error') {
+      if (isAuthenticated) {
+        clearAuthSession();
+      }
+      return;
+    }
+
+    // Only redirect if the server session is genuinely authenticated
+    if (serverSession.status === 'authenticated') {
+      if (serverSession.user.roleSelected === false) {
         router.replace(`/auth/select-role${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
         return;
       }
 
-      const primaryRole =
-        serverSession.status === 'authenticated'
-          ? serverSession.user.roles.includes('owner')
-            ? 'owner'
-            : serverSession.user.roles.includes('admin')
-            ? 'admin'
-            : serverSession.user.roles.includes('creator')
-            ? 'creator'
-            : 'customer'
-          : user.role;
+      const primaryRole = serverSession.user.roles.includes('owner')
+        ? 'owner'
+        : serverSession.user.roles.includes('admin')
+        ? 'admin'
+        : serverSession.user.roles.includes('creator')
+        ? 'creator'
+        : 'customer';
 
       const target = resolvePostAuthRedirect(primaryRole, returnUrl);
       router.replace(target);
     }
-  }, [isMounted, isAuthenticated, user, serverSession, returnUrl, router]);
+  }, [isMounted, isAuthenticated, serverSession, returnUrl, router]);
 
-  if (isMounted && isAuthenticated && user) {
+  // Only display redirecting spinner when server session is genuinely authenticated
+  if (isMounted && serverSession.status === 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F7F9]">
         <div className="text-center space-y-3">
