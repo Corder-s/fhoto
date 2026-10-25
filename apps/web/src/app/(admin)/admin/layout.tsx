@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -8,49 +8,72 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  CalendarDays,
   CreditCard,
   Layers,
   Star,
   BarChart2,
+  TrendingUp,
   Settings,
-  FileText,
+  Folder,
+  Image as ImageIcon,
   MessageSquare,
   ChevronDown,
-  ChevronRight,
   Bell,
   Search,
-  CheckCircle2,
   Lock,
+  ShieldCheck,
   ShieldAlert,
-  LogOut,
-  Sliders,
+  Scale,
+  Clock,
+  ArrowDownCircle,
   Mail,
-  Cpu
+  Sliders,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import { useServerSession } from '../../../lib/useServerSession';
 import { useAuthModal } from '../../../components/auth/AuthModalContext';
 import { useNotifications } from '../../../lib/useNotifications';
+import { AdminProvider, useAdmin, DateRangeOption } from '../../../components/admin/AdminContext';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/admin/dashboard';
   const router = useRouter();
   const { user, isAuthenticated, isMounted, logout } = useAuth();
-  // Authorization is decided by the server session, not by the localStorage copy of the user.
   const serverSession = useServerSession();
   const { openAuthModal } = useAuthModal();
   const { notifications, unreadCount, markAsRead } = useNotifications();
 
-  // Collapsible menu states matching Reference Image B
-  const [userMgmtOpen, setUserMgmtOpen] = useState(true);
-  const [contentMgmtOpen, setContentMgmtOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [dateRange] = useState('Oct 1, 2024 - Oct 31, 2024');
-  const [searchQuery, setSearchQuery] = useState('');
+  const {
+    dateRange,
+    setDateRange,
+    dateRangeLabel,
+    searchQuery,
+    setSearchQuery,
+    mobileMenuOpen,
+    setMobileMenuOpen,
+  } = useAdmin();
+
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [liveDisputeCount, setLiveDisputeCount] = useState<number>(0);
   const [livePendingPhotographers, setLivePendingPhotographers] = useState<number>(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut Ctrl+K or Cmd+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -93,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!isMounted) {
     return (
-      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -101,13 +124,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-[#E2E8F0] p-8 text-center space-y-4 shadow-2xl">
           <div className="w-14 h-14 rounded-2xl bg-[#14B8A6] text-white flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-black text-ink-primary">Admin Authentication Required</h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
+          <h1 className="text-2xl font-black text-[#0F172A]">Admin Authentication Required</h1>
+          <p className="text-xs sm:text-sm text-[#64748B]">
             Please log in with an administrator account to access the platform operations desk.
           </p>
           <button
@@ -116,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             Log In as Administrator
           </button>
-          <Link href="/" className="block text-xs font-semibold text-ink-muted hover:text-ink-primary pt-2">
+          <Link href="/" className="block text-xs font-semibold text-[#64748B] hover:text-[#0F172A] pt-2">
             Return to Homepage
           </Link>
         </div>
@@ -126,17 +149,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (serverSession.status === 'loading') {
     return (
-      <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
   if (!isAdminOrOwner) {
     return (
-      <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-4">
+        <div className="text-center space-y-3 text-white">
           <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-[#64748B]">
+          <p className="text-xs font-semibold text-[#94A3B8]">
             {isCreator ? 'Redirecting to Creator Studio Dashboard...' : 'Redirecting to Customer Dashboard...'}
           </p>
         </div>
@@ -144,472 +167,401 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#F5F7F9] text-[#191C22] flex flex-col">
-      {/* ======================================================== */}
-      {/* TOP HEADER: EXACT REFERENCE IMAGE B                      */}
-      {/* ======================================================== */}
-      <header className="sticky top-0 z-40 bg-white border-b border-[#E7EAEE] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-        {/* Left Branding */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="REEPY Brand">
-            <div className="w-9 h-9 rounded-xl bg-[#14B8A6] flex items-center justify-center text-white shadow-2xs">
-              <Camera className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <span className="text-base font-black tracking-tight text-[#191C22] uppercase">
-                REEPY
-              </span>
-              <p className="text-[9px] font-medium text-[#94A3B8] leading-none">
-                Moments. People. Stories.
-              </p>
-            </div>
-          </div>
+  // REEPY Navigation Groups matching screenshot
+  const navGroups = [
+    {
+      title: 'MAIN',
+      items: [
+        { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      ],
+    },
+    {
+      title: 'MANAGE USERS',
+      items: [
+        { label: 'Customers', href: '/admin/dashboard?tab=customers', icon: Users },
+        {
+          label: 'Photographers',
+          href: '/admin/photographers',
+          icon: Camera,
+          badge: livePendingPhotographers > 0 ? livePendingPhotographers : undefined,
+          badgeColor: 'bg-amber-500',
+        },
+        { label: 'Admins & Roles', href: '/admin/dashboard?tab=roles', icon: ShieldCheck },
+      ],
+    },
+    {
+      title: 'BOOKINGS',
+      items: [
+        { label: 'All Bookings', href: '/admin/bookings', icon: Calendar },
+        { label: 'Calendar View', href: '/admin/bookings?view=calendar', icon: CalendarDays },
+        {
+          label: 'Booking Requests',
+          href: '/admin/bookings?status=pending',
+          icon: Clock,
+          badge: 12,
+          badgeColor: 'bg-[#FF4D4D]',
+        },
+        {
+          label: 'Disputes',
+          href: '/admin/disputes',
+          icon: Scale,
+          badge: liveDisputeCount > 0 ? liveDisputeCount : undefined,
+          badgeColor: 'bg-[#FF4D4D]',
+        },
+      ],
+    },
+    {
+      title: 'PAYMENTS',
+      items: [
+        { label: 'Transactions', href: '/admin/bookings', icon: CreditCard },
+        { label: 'Payouts', href: '/admin/bookings', icon: ArrowDownCircle },
+        { label: 'Subscriptions', href: '/admin/dashboard#subscriptions', icon: Layers },
+      ],
+    },
+    {
+      title: 'CONTENT',
+      items: [
+        { label: 'Categories', href: '/categories', icon: Folder },
+        { label: 'Portfolio & Media', href: '/admin/photographers', icon: ImageIcon },
+        { label: 'Reviews & Ratings', href: '/admin/dashboard#reviews', icon: Star },
+        { label: 'Reported Content', href: '/admin/disputes', icon: ShieldAlert },
+      ],
+    },
+    {
+      title: 'REPORTS',
+      items: [
+        { label: 'Analytics', href: '/admin/dashboard', icon: BarChart2 },
+        { label: 'Revenue Reports', href: '/admin/dashboard', icon: TrendingUp },
+      ],
+    },
+    {
+      title: 'SETTINGS',
+      items: [
+        { label: 'Platform Settings', href: '/admin/dashboard#settings', icon: Settings },
+        { label: 'Email & Notifications', href: '/admin/dashboard#notifications', icon: Mail },
+        { label: 'Appearance', href: '/admin/dashboard#appearance', icon: Sliders },
+      ],
+    },
+  ];
+
+  const dateOptions: { id: DateRangeOption; label: string }[] = [
+    { id: '30d', label: 'Oct 1, 2024 - Oct 31, 2024' },
+    { id: '7d', label: 'Last 7 days' },
+    { id: 'month', label: 'This month' },
+    { id: 'today', label: 'Today' },
+  ];
+
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full select-none">
+      {/* Top Branding */}
+      <div className="p-5 flex items-center gap-3 border-b border-[#1E293B] shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#14B8A6] flex items-center justify-center text-white shadow-sm shrink-0">
+          <Camera className="w-5 h-5 stroke-[2.2]" />
         </div>
-
-        {/* Center Search Input with Ctrl + K */}
-        <div className="flex-1 max-w-xl hidden md:block">
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users, photographers, bookings, payments, reports..."
-              className="w-full pl-9 pr-16 py-2 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs text-[#191C22] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-white border border-[#E7EAEE] text-[9px] font-bold text-[#94A3B8]">
-              Ctrl + K
-            </span>
-          </div>
+        <div>
+          <span className="text-base font-black tracking-tight text-white uppercase block leading-tight">
+            REEPY
+          </span>
+          <p className="text-[10px] font-medium text-[#94A3B8] leading-tight">
+            Moments. People. Stories.
+          </p>
         </div>
+      </div>
 
-        {/* Right Controls: Date Range, Notifications, Messages, Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Date Range Selector Pill */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs font-bold text-[#191C22] cursor-pointer hover:bg-white transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-[#94A3B8]" />
-            <span>{dateRange}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-          </div>
+      {/* Navigation Groups */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+        {navGroups.map((group) => (
+          <div key={group.title} className="space-y-1">
+            <h4 className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider px-3 pb-1">
+              {group.title}
+            </h4>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  item.href === '/admin/dashboard'
+                    ? pathname === '/admin/dashboard' || pathname === '/admin'
+                    : pathname.startsWith(item.href.split('?')[0]);
 
-          {/* Notifications with Live Badge */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowNotifs(!showNotifs);
-                setShowProfileMenu(false);
-              }}
-              className="relative p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors cursor-pointer"
-              title="Notifications"
-            >
-              <Bell className="w-5 h-5 stroke-[1.8]" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-
-            {showNotifs && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated p-3 z-50 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-[#F1F3F5]">
-                  <span className="font-black text-[#191C22]">Admin Notifications</span>
-                  <div className="flex items-center gap-2">
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={() => markAsRead()}
-                        className="text-[10px] font-semibold text-[#14B8A6] hover:underline cursor-pointer"
-                      >
-                        Mark all read
-                      </button>
-                    )}
-                    <span className="text-[10px] bg-[#FFE8D6] text-[#14B8A6] px-2 py-0.5 rounded-full font-bold">
-                      {unreadCount} New
-                    </span>
-                  </div>
-                </div>
-                <div className="divide-y divide-[#F1F3F5] max-h-72 overflow-y-auto py-1">
-                  {notifications.length === 0 ? (
-                    <div className="py-4 text-center text-[#94A3B8]">No administrative alerts</div>
-                  ) : (
-                    notifications.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={item.actionUrl || '/admin/dashboard'}
-                        onClick={() => {
-                          markAsRead(item.id);
-                          setShowNotifs(false);
-                        }}
-                        className={`block py-2.5 px-2 rounded-lg hover:bg-[#F5F7F9] transition-colors ${
-                          !item.readAt ? 'bg-[#FFF9F5]' : ''
-                        }`}
-                      >
-                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#191C22]' : 'font-medium text-[#64748B]'}`}>
-                          {item.title}
-                        </p>
-                        <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-2">{item.body}</p>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Message Bubble with Badge 3 */}
-          <div className="relative">
-            <button
-              className="p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors relative cursor-pointer"
-              title="Support & Messages"
-            >
-              <MessageSquare className="w-5 h-5 stroke-[1.8]" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                3
-              </span>
-            </button>
-          </div>
-
-          {/* Profile Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowProfileMenu(!showProfileMenu);
-                setShowNotifs(false);
-              }}
-              className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#F5F7F9] transition-colors cursor-pointer"
-            >
-              <img
-                src="/reference-assets/seller_profile_aman.jpg"
-                alt="System Administrator"
-                className="w-8 h-8 rounded-full object-cover border border-[#E7EAEE]"
-              />
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-black text-[#191C22] leading-tight">
-                  Admin Panel
-                </p>
-                <p className="text-[10px] text-[#94A3B8] font-medium leading-tight">
-                  System Administrator
-                </p>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-            </button>
-
-            {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated p-2 z-50 text-xs">
-                <div className="p-2 border-b border-[#F1F3F5]">
-                  <p className="font-bold text-[#191C22]">{user.email}</p>
-                  <p className="text-[10px] text-[#94A3B8] uppercase font-bold">Role: {user.role}</p>
-                </div>
-                <div className="py-1">
+                return (
                   <Link
-                    href="/"
-                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Public Website
-                  </Link>
-                  <Link
-                    href="/photographer/dashboard"
-                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Photographer Studio
-                  </Link>
-                  <Link
-                    href="/customer/dashboard"
-                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Customer Account
-                  </Link>
-                </div>
-                <div className="pt-1 border-t border-[#F1F3F5]">
-                  <button
-                    onClick={() => logout()}
-                    className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ======================================================== */}
-      {/* BODY FRAME: SIDEBAR + MAIN CONTENT                       */}
-      {/* ======================================================== */}
-      <div className="flex-1 flex min-h-[calc(100vh-4rem)]">
-        {/* SIDEBAR: EXACT REFERENCE IMAGE B */}
-        <aside className="w-64 bg-white border-r border-[#E7EAEE] flex flex-col justify-between shrink-0 hidden md:flex">
-          {(() => {
-            const isDashboard = pathname === '/admin/dashboard' || pathname === '/admin';
-            const isBookings = pathname.startsWith('/admin/bookings');
-            const isPhotographers = pathname.startsWith('/admin/photographers');
-            const isLogs = pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/system-logs');
-            const isDisputes = pathname.startsWith('/admin/disputes');
-            return (
-              <nav className="p-3 space-y-1 overflow-y-auto">
-                {/* Dashboard */}
-                <Link
-                  href="/admin/dashboard"
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
-                    isDashboard
-                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
-                  }`}
-                >
-                  <LayoutDashboard className={`w-4 h-4 ${isDashboard ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
-                  <span>Dashboard</span>
-                </Link>
-
-                {/* User Management (Collapsible) */}
-                <div>
-                  <button
-                    onClick={() => setUserMgmtOpen(!userMgmtOpen)}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
+                      isActive
+                        ? 'bg-[#0D9488] text-white font-bold shadow-sm'
+                        : 'text-[#94A3B8] hover:text-white hover:bg-white/5 font-medium'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-[#94A3B8]" />
-                      <span>User Management</span>
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
+                      <span>{item.label}</span>
                     </div>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
-                        userMgmtOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-
-                  {userMgmtOpen && (
-                    <div className="pl-9 pr-2 py-1 space-y-1">
-                      <Link
-                        href="/admin/dashboard"
-                        className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                      >
-                        Customers
-                      </Link>
-                      <Link
-                        href="/admin/photographers"
-                        className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                          isPhotographers
-                            ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                            : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9]'
+                    {item.badge != null && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-black text-white ${
+                          item.badgeColor || 'bg-[#14B8A6]'
                         }`}
                       >
-                        <span>Photographers</span>
-                        {livePendingPhotographers > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white animate-pulse">
-                            {livePendingPhotographers}
-                          </span>
-                        )}
-                      </Link>
-                      <Link
-                        href="/admin/dashboard"
-                        className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                      >
-                        Admins &amp; Roles
-                      </Link>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bookings */}
-                <Link
-                  href="/admin/bookings"
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
-                    isBookings
-                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Calendar className={`w-4 h-4 ${isBookings ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
-                    <span>Bookings</span>
-                  </div>
-                  <ChevronRight className={`w-3.5 h-3.5 ${isBookings ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
-                </Link>
-
-            {/* Payments & Transactions */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
-            >
-              <CreditCard className="w-4 h-4 text-[#94A3B8]" />
-              <span>Payments &amp; Transactions</span>
-            </Link>
-
-            {/* Subscriptions */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
-            >
-              <Layers className="w-4 h-4 text-[#94A3B8]" />
-              <span>Subscriptions</span>
-            </Link>
-
-            {/* Content Management (Collapsible) */}
-            <div>
-              <button
-                onClick={() => setContentMgmtOpen(!contentMgmtOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-[#94A3B8]" />
-                  <span>Content Management</span>
-                </div>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
-                    contentMgmtOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {contentMgmtOpen && (
-                <div className="pl-9 pr-2 py-1 space-y-1">
-                  <Link
-                    href="/categories"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Categories
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Packages
-                  </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Gallery Review
-                  </Link>
-                </div>
-              )}
+                );
+              })}
             </div>
-
-            {/* Reviews & Ratings */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
-            >
-              <Star className="w-4 h-4 text-[#94A3B8]" />
-              <span>Reviews &amp; Ratings</span>
-            </Link>
-
-            {/* Reports & Analytics */}
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
-            >
-              <BarChart2 className="w-4 h-4 text-[#94A3B8]" />
-              <span>Reports &amp; Analytics</span>
-            </Link>
-
-            {/* Platform Settings (Collapsible) */}
-            <div>
-              <button
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <Settings className="w-4 h-4 text-[#94A3B8]" />
-                  <span>Platform Settings</span>
-                </div>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
-                    settingsOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {settingsOpen && (
-                <div className="pl-9 pr-2 py-1 space-y-1">
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    General Settings
-                  </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Email &amp; Notifications
-                  </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    Payment Settings
-                  </Link>
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
-                  >
-                    AI &amp; Integrations
-                  </Link>
-                </div>
-              )}
-            </div>
-
-                {/* System Logs */}
-                <Link
-                  href="/admin/logs"
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
-                    isLogs
-                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
-                  }`}
-                >
-                  <FileText className={`w-4 h-4 ${isLogs ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
-                  <span>System Logs</span>
-                </Link>
-
-                {/* Support & Disputes */}
-                <Link
-                  href="/admin/disputes"
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
-                    isDisputes
-                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className={`w-4 h-4 ${isDisputes ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
-                    <span>Support &amp; Disputes</span>
-                  </div>
-                  {liveDisputeCount > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#FF4D4D] text-white animate-pulse">
-                      {liveDisputeCount}
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#F5F7F9] border border-[#E7EAEE] text-[#64748B]">
-                      0
-                    </span>
-                  )}
-                </Link>
-              </nav>
-            );
-          })()}
-
-          {/* Bottom Platform Status Card */}
-          <div className="p-3 m-3 rounded-2xl bg-[#F0FDF4] border border-[#DCFCE7] space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-black text-emerald-950">Platform Status</span>
-            </div>
-            <p className="text-[11px] font-bold text-emerald-800">
-              All Systems Operational
-            </p>
-            <p className="text-[10px] text-emerald-600 font-medium">99.9% Uptime</p>
           </div>
-        </aside>
+        ))}
+      </div>
+    </div>
+  );
 
-        {/* MAIN ADMIN CONTENT AREA */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex">
+      {/* ======================================================== */}
+      {/* DESKTOP DARK SIDEBAR (#0B0F17)                          */}
+      {/* ======================================================== */}
+      <aside className="w-64 bg-[#0B0F17] border-r border-[#1E293B] shrink-0 hidden md:flex flex-col h-screen sticky top-0 z-40">
+        <SidebarContent />
+      </aside>
+
+      {/* ======================================================== */}
+      {/* MOBILE SIDEBAR DRAWER OVERLAY                            */}
+      {/* ======================================================== */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="relative w-64 max-w-[80vw] bg-[#0B0F17] h-full shadow-2xl flex flex-col z-10">
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-4 right-3 text-[#94A3B8] hover:text-white p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <SidebarContent />
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* RIGHT SIDE: HEADER + MAIN WORKSPACE                      */}
+      {/* ======================================================== */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* TOP HEADER: Clean White (#FFFFFF), height 64px */}
+        <header className="sticky top-0 z-30 bg-white border-b border-[#E2E8F0] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+          {/* Left: Mobile Toggle & Search */}
+          <div className="flex items-center gap-3 flex-1 max-w-xl">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] rounded-xl transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Global Search Bar with Ctrl K indicator */}
+            <div className="relative w-full">
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search users, photographers, bookings, payments..."
+                className="w-full pl-9 pr-14 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-white border border-[#E2E8F0] text-[9px] font-bold text-[#94A3B8] select-none pointer-events-none hidden sm:inline">
+                Ctrl K
+              </span>
+            </div>
+          </div>
+
+          {/* Right Controls: Date Range, Notifications, Messages, Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Date Range Selector Pill */}
+            <div className="relative">
+              <button
+                onClick={() => setDateDropdownOpen(!dateDropdownOpen)}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer shadow-2xs"
+              >
+                <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
+                <span>{dateRangeLabel}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
+              </button>
+
+              {dateDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-1.5 z-50 text-xs">
+                  <div className="px-3 py-2 text-[10px] font-bold text-[#94A3B8] uppercase">
+                    Select Period
+                  </div>
+                  {dateOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setDateRange(opt.id);
+                        setDateDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-between ${
+                        dateRange === opt.id
+                          ? 'bg-[#EFFCF8] text-[#0D9488] font-bold'
+                          : 'text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {dateRange === opt.id && <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6]" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Notifications Button with Red Badge 3 */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowNotifs(!showNotifs);
+                  setShowProfileMenu(false);
+                }}
+                className="relative p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-colors cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="w-5 h-5 stroke-[1.8]" />
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {unreadCount > 0 ? unreadCount : 3}
+                </span>
+              </button>
+
+              {showNotifs && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-3 z-50 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
+                    <span className="font-bold text-[#0F172A]">Notifications</span>
+                    <button
+                      onClick={() => markAsRead()}
+                      className="text-[10px] font-semibold text-[#14B8A6] hover:underline cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="divide-y divide-[#F1F5F9] max-h-72 overflow-y-auto py-1">
+                    {notifications.length === 0 ? (
+                      <div className="py-4 text-center text-[#94A3B8]">
+                        3 pending administrative alerts
+                      </div>
+                    ) : (
+                      notifications.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={item.actionUrl || '/admin/dashboard'}
+                          onClick={() => {
+                            markAsRead(item.id);
+                            setShowNotifs(false);
+                          }}
+                          className="block py-2.5 px-2 rounded-lg hover:bg-[#F8FAFC] transition-colors"
+                        >
+                          <p className="text-xs font-bold text-[#0F172A]">{item.title}</p>
+                          <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-2">{item.body}</p>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Messages Button with Red Badge 5 */}
+            <div className="relative">
+              <button
+                className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-colors relative cursor-pointer"
+                title="Support & Inquiries"
+              >
+                <MessageSquare className="w-5 h-5 stroke-[1.8]" />
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  5
+                </span>
+              </button>
+            </div>
+
+            {/* Admin Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowProfileMenu(!showProfileMenu);
+                  setShowNotifs(false);
+                }}
+                className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+              >
+                <img
+                  src="/reference-assets/seller_profile_aman.jpg"
+                  alt="Administrator Avatar"
+                  className="w-8 h-8 rounded-full object-cover border border-[#E2E8F0]"
+                />
+                <div className="text-left hidden sm:block">
+                  <p className="text-xs font-bold text-[#0F172A] leading-tight">
+                    Admin Panel
+                  </p>
+                  <p className="text-[10px] text-[#64748B] font-medium leading-tight">
+                    System Administrator
+                  </p>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-2 z-50 text-xs">
+                  <div className="p-2 border-b border-[#F1F5F9]">
+                    <p className="font-bold text-[#0F172A] truncate">{user.email}</p>
+                    <p className="text-[10px] text-[#94A3B8] uppercase font-bold">Role: {user.role}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/"
+                      className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A] rounded-lg"
+                    >
+                      Public Website
+                    </Link>
+                    <Link
+                      href="/photographer/dashboard"
+                      className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A] rounded-lg"
+                    >
+                      Photographer Studio
+                    </Link>
+                    <Link
+                      href="/customer/dashboard"
+                      className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A] rounded-lg"
+                    >
+                      Customer Account
+                    </Link>
+                  </div>
+                  <div className="pt-1 border-t border-[#F1F5F9]">
+                    <button
+                      onClick={() => logout()}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* MAIN ADMIN WORKSPACE */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto overflow-y-auto">
           {children}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminProvider>
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </AdminProvider>
   );
 }
