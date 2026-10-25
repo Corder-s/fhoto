@@ -446,26 +446,26 @@ export default function PhotographerBookingsPage() {
                 }`}
               >
                 {/* PROMINENT "I WAS BOOKED BY" HEADER BANNER */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FFF8F2] border border-[#FFDFC6] mb-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#EFFCF8] border border-[#99F6E4] mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#FF6E00] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#14B8A6] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
                       {b.customerName.charAt(0)}
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-[#8C847A] uppercase tracking-wider block">
+                      <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block">
                         Assigned Client Order
                       </span>
-                      <h4 className="text-sm font-black text-[#1A1816]">
-                        I was booked by <span className="text-[#FF6E00]">{b.customerName}</span>
+                      <h4 className="text-sm font-black text-[#191C22]">
+                        I was booked by <span className="text-[#14B8A6]">{b.customerName}</span>
                       </h4>
                     </div>
                   </div>
                   <div className="text-left sm:text-right text-xs">
-                    <span className="font-bold text-[#1A1816] flex items-center gap-1 sm:justify-end">
-                      <Phone className="w-3.5 h-3.5 text-[#8C847A]" />
+                    <span className="font-bold text-[#191C22] flex items-center gap-1 sm:justify-end">
+                      <Phone className="w-3.5 h-3.5 text-[#94A3B8]" />
                       {b.customerPhone}
                     </span>
-                    <span className="text-[11px] text-[#8C847A] block">{b.customerEmail}</span>
+                    <span className="text-[11px] text-[#94A3B8] block">{b.customerEmail}</span>
                   </div>
                 </div>
 
@@ -536,7 +536,7 @@ export default function PhotographerBookingsPage() {
                           <span>Cancellation Request Pending Admin Resolution</span>
                         </div>
                         <p className="text-[11px] text-amber-800">
-                          Your emergency cancellation request has been forwarded to the SnapShoot Admin operations desk. An administrator will mediate and either reassign or arbitrate this booking.
+                          Your emergency cancellation request has been forwarded to the REEPY Admin operations desk. An administrator will mediate and either reassign or arbitrate this booking.
                         </p>
                         {b.cancellationReason && (
                           <div className="text-[11px] text-amber-900 font-semibold bg-white/80 p-2 rounded-lg border border-amber-200/60">
@@ -665,14 +665,14 @@ export default function PhotographerBookingsPage() {
         >
           <div className="space-y-4 text-xs">
             {/* Client Info Banner */}
-            <div className="p-3.5 bg-[#FFF8F2] border border-[#FFDFC6] rounded-2xl flex items-center justify-between">
+            <div className="p-3.5 bg-[#EFFCF8] border border-[#99F6E4] rounded-2xl flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-[#8C847A] uppercase">Customer Identity</p>
-                <p className="text-sm font-black text-[#1A1816]">I was booked by {selectedBooking.customerName}</p>
+                <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Customer Identity</p>
+                <p className="text-sm font-black text-[#191C22]">I was booked by {selectedBooking.customerName}</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-[#1A1816]">{selectedBooking.customerPhone}</p>
-                <p className="text-[11px] text-[#8C847A]">{selectedBooking.customerEmail}</p>
+                <p className="font-bold text-[#191C22]">{selectedBooking.customerPhone}</p>
+                <p className="text-[11px] text-[#94A3B8]">{selectedBooking.customerEmail}</p>
               </div>
             </div>
 
@@ -698,7 +698,7 @@ export default function PhotographerBookingsPage() {
                   <span className="font-bold text-ink-primary">₹{selectedBooking.grossAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-ink-muted">
-                  <span>SnapShoot Marketplace Commission (20%):</span>
+                  <span>REEPY Marketplace Commission (20%):</span>
                   <span>-₹{selectedBooking.platformFee.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-sm font-extrabold text-brand pt-1 border-t border-contour-subtle">
@@ -833,10 +833,10 @@ export default function PhotographerBookingsPage() {
             <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 space-y-1">
               <div className="flex items-center gap-2 font-bold text-xs">
                 <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>SnapShoot Platform Reliability Policy</span>
+                <span>REEPY Platform Reliability Policy</span>
               </div>
               <p className="text-[11px] leading-relaxed">
-                Because you already approved and confirmed this booking, you cannot unilaterally decline it. Dropping confirmed shoots affects client trust. Submitting this form forwards your case to the SnapShoot Admin operations desk for mediation or client refund/reassignment.
+                Because you already approved and confirmed this booking, you cannot unilaterally decline it. Dropping confirmed shoots affects client trust. Submitting this form forwards your case to the REEPY Admin operations desk for mediation or client refund/reassignment.
               </p>
             </div>
 

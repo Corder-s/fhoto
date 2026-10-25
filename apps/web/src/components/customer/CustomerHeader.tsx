@@ -72,16 +72,16 @@ export const CustomerHeader: React.FC = () => {
   const displayAvatar = user?.avatarUrl || currentProfile.avatar || '';
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E1D6]">
+    <header className="sticky top-0 z-40 bg-[#F5F7F9]/95 backdrop-blur-md border-b border-[#E7EAEE]">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div className="flex items-center gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-card-sm bg-[#FF6E00] flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
+            <div className="w-9 h-9 rounded-card-sm bg-[#14B8A6] flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
               <Camera className="w-5 h-5 fill-white/20 stroke-[2.2]" />
             </div>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-[#1A1816]">
-              SnapShoot
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-[#191C22]">
+              REEPY
             </span>
           </Link>
         </div>
@@ -97,13 +97,13 @@ export const CustomerHeader: React.FC = () => {
             }}
             className="w-full relative"
           >
-            <Search className="w-4 h-4 text-[#8C847A] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search photographers, locations, or categories..."
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-full bg-white border border-[#E0D8CD] placeholder-[#8C847A] text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all shadow-sm"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-full bg-white border border-[#E7EAEE] placeholder-[#94A3B8] text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all shadow-sm"
             />
           </form>
         </div>
@@ -118,8 +118,8 @@ export const CustomerHeader: React.FC = () => {
                 href={item.href}
                 className={`text-xs font-bold transition-all ${
                   isActive
-                    ? 'text-[#FF6E00]'
-                    : 'text-[#5A544D] hover:text-[#1A1816]'
+                    ? 'text-[#14B8A6]'
+                    : 'text-[#64748B] hover:text-[#191C22]'
                 }`}
               >
                 {item.label}
@@ -137,7 +137,7 @@ export const CustomerHeader: React.FC = () => {
                 setShowNotifMenu(!showNotifMenu);
                 setShowProfileMenu(false);
               }}
-              className="p-2 rounded-full text-[#5A544D] hover:text-[#1A1816] hover:bg-[#F2ECE3] relative transition-colors"
+              className="p-2 rounded-full text-[#64748B] hover:text-[#191C22] hover:bg-[#F1F3F5] relative transition-colors"
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -150,16 +150,16 @@ export const CustomerHeader: React.FC = () => {
 
             {/* Notifications Popover */}
             {showNotifMenu && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white border border-[#E8E1D6] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-2 border-b border-[#F0EAE1] flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#1A1816]">
+              <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white border border-[#E7EAEE] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-2 border-b border-[#E7EAEE] flex items-center justify-between">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#191C22]">
                     Client Notifications {unreadCount > 0 && `(${unreadCount})`}
                   </span>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
                       <button
                         onClick={() => markAsRead()}
-                        className="text-[10px] font-bold text-[#8C847A] hover:text-[#1A1816]"
+                        className="text-[10px] font-bold text-[#94A3B8] hover:text-[#191C22]"
                       >
                         Mark read
                       </button>
@@ -167,15 +167,15 @@ export const CustomerHeader: React.FC = () => {
                     <Link
                       href="/customer/notifications"
                       onClick={() => setShowNotifMenu(false)}
-                      className="text-[11px] font-bold text-[#FF6E00] hover:underline"
+                      className="text-[11px] font-bold text-[#14B8A6] hover:underline"
                     >
                       View all
                     </Link>
                   </div>
                 </div>
-                <div className="max-h-64 overflow-y-auto divide-y divide-[#F0EAE1]">
+                <div className="max-h-64 overflow-y-auto divide-y divide-[#E7EAEE]">
                   {notifications.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-[#8C847A]">
+                    <div className="py-6 text-center text-xs text-[#94A3B8]">
                       No notifications yet.
                     </div>
                   ) : (
@@ -187,17 +187,17 @@ export const CustomerHeader: React.FC = () => {
                           markAsRead(n.id);
                           setShowNotifMenu(false);
                         }}
-                        className={`block px-3 py-2.5 hover:bg-[#FAF7F2] transition-colors ${
-                          !n.readAt ? 'bg-[#FFF8F0]' : ''
+                        className={`block px-3 py-2.5 hover:bg-[#F5F7F9] transition-colors ${
+                          !n.readAt ? 'bg-[#EFFCF8]' : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs font-bold text-[#1A1816]">{n.title}</p>
-                          <span className="text-[10px] text-[#8C847A] shrink-0">
+                          <p className="text-xs font-bold text-[#191C22]">{n.title}</p>
+                          <span className="text-[10px] text-[#94A3B8] shrink-0">
                             {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#665E55] mt-0.5 line-clamp-2">{n.body}</p>
+                        <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-2">{n.body}</p>
                       </Link>
                     ))
                   )}
@@ -213,9 +213,9 @@ export const CustomerHeader: React.FC = () => {
                 setShowProfileMenu(!showProfileMenu);
                 setShowNotifMenu(false);
               }}
-              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-[#E0D8CD] bg-white hover:bg-[#FAF7F2] transition-all"
+              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-[#E7EAEE] bg-white hover:bg-[#F5F7F9] transition-all"
             >
-              <div className="w-7 h-7 rounded-full overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-[10px] font-black border border-[#E8E1D6] shrink-0 relative">
+              <div className="w-7 h-7 rounded-full overflow-hidden bg-[#14B8A6] text-white flex items-center justify-center text-[10px] font-black border border-[#E7EAEE] shrink-0 relative">
                 <span className="select-none">{displayName[0]?.toUpperCase() || 'C'}</span>
                 {displayAvatar && (
                   <img
@@ -228,49 +228,49 @@ export const CustomerHeader: React.FC = () => {
                   />
                 )}
               </div>
-              <span className="hidden md:inline text-xs font-bold text-[#1A1816]">
+              <span className="hidden md:inline text-xs font-bold text-[#191C22]">
                 {displayName}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
             </button>
 
             {/* Profile Dropdown */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E1D6] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-2 border-b border-[#F0EAE1]">
-                  <p className="text-xs font-bold text-[#1A1816]">{displayName}</p>
-                  <p className="text-[11px] text-[#8C847A] truncate">{user?.email || currentProfile.email || 'priya.sharma@example.com'}</p>
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E7EAEE] rounded-2xl shadow-elevated p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-2 border-b border-[#E7EAEE]">
+                  <p className="text-xs font-bold text-[#191C22]">{displayName}</p>
+                  <p className="text-[11px] text-[#94A3B8] truncate">{user?.email || currentProfile.email || 'priya.sharma@example.com'}</p>
                 </div>
                 <div className="py-1">
                   <Link
                     href="/customer/settings"
                     onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
-                    <Settings className="w-3.5 h-3.5 text-[#8C847A]" />
+                    <Settings className="w-3.5 h-3.5 text-[#94A3B8]" />
                     <span>Account Settings</span>
                   </Link>
                   {user?.role === 'creator' ? (
                     <Link
                       href="/photographer/dashboard"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4E6] rounded-lg"
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#14B8A6] hover:bg-[#EFFCF8] rounded-lg"
                     >
-                      <Camera className="w-3.5 h-3.5 text-[#FF6E00]" />
+                      <Camera className="w-3.5 h-3.5 text-[#14B8A6]" />
                       <span>Switch to Creator Studio</span>
                     </Link>
                   ) : (
                     <Link
                       href="/photographer/onboarding"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4E6] rounded-lg"
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#14B8A6] hover:bg-[#EFFCF8] rounded-lg"
                     >
-                      <Camera className="w-3.5 h-3.5 text-[#FF6E00]" />
+                      <Camera className="w-3.5 h-3.5 text-[#14B8A6]" />
                       <span>Become a Photographer</span>
                     </Link>
                   )}
                 </div>
-                <div className="border-t border-[#F0EAE1] pt-1 mt-1">
+                <div className="border-t border-[#E7EAEE] pt-1 mt-1">
                   <Link
                     href="/login"
                     onClick={handleSignOut}
@@ -287,7 +287,7 @@ export const CustomerHeader: React.FC = () => {
           {/* Mobile Menu Hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-[#1A1816] hover:bg-[#F2ECE3] rounded-full lg:hidden"
+            className="p-2 text-[#191C22] hover:bg-[#F1F3F5] rounded-full lg:hidden"
             aria-label="Toggle Navigation"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -297,8 +297,8 @@ export const CustomerHeader: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-[#E8E1D6] bg-[#FAF7F2] px-4 pt-2 pb-6 space-y-3">
-          <nav className="flex flex-col space-y-1.5 font-bold text-xs text-[#1A1816]">
+        <div className="lg:hidden border-b border-[#E7EAEE] bg-[#F5F7F9] px-4 pt-2 pb-6 space-y-3">
+          <nav className="flex flex-col space-y-1.5 font-bold text-xs text-[#191C22]">
             {navLinks.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -308,7 +308,7 @@ export const CustomerHeader: React.FC = () => {
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${
-                    isActive ? 'bg-[#FF6E00] text-white' : 'hover:bg-[#F2ECE3] text-[#5A544D]'
+                    isActive ? 'bg-[#14B8A6] text-white' : 'hover:bg-[#F1F3F5] text-[#64748B]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -318,11 +318,11 @@ export const CustomerHeader: React.FC = () => {
             })}
           </nav>
 
-          <div className="pt-2 border-t border-[#E8E1D6] flex flex-col gap-2">
+          <div className="pt-2 border-t border-[#E7EAEE] flex flex-col gap-2">
             <Link
               href="/explore"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-full font-bold text-xs text-white bg-[#FF6E00] shadow-sm"
+              className="w-full text-center py-2.5 rounded-full font-bold text-xs text-white bg-[#14B8A6] shadow-sm"
             >
               + Book New Shoot
             </Link>
@@ -330,7 +330,7 @@ export const CustomerHeader: React.FC = () => {
               <Link
                 href="/photographer/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#FF6E00] bg-[#FFF2E8] border border-[#FFD9BE]"
+                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#14B8A6] bg-[#EFFCF8] border border-[#99F6E4]"
               >
                 Switch to Creator Studio
               </Link>
@@ -338,7 +338,7 @@ export const CustomerHeader: React.FC = () => {
               <Link
                 href="/photographer/onboarding"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#FF6E00] bg-[#FFF2E8] border border-[#FFD9BE]"
+                className="w-full text-center py-2 rounded-full font-bold text-xs text-[#14B8A6] bg-[#EFFCF8] border border-[#99F6E4]"
               >
                 Become a Photographer
               </Link>

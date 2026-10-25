@@ -250,7 +250,7 @@ export default function PhotographerBusinessPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FF6E00]/10 text-[#FF6E00]">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14B8A6]/10 text-[#14B8A6]">
               Creator Studio Suite
             </span>
             <span className="text-xs text-ink-muted">· Commercial Studio Profile</span>
@@ -306,7 +306,7 @@ export default function PhotographerBusinessPage() {
                     onError={() => setAvatarImgError(true)}
                   />
                 ) : (
-                  <div className="w-full h-full bg-[#FF6E00] text-white flex items-center justify-center text-xl font-black select-none">
+                  <div className="w-full h-full bg-[#14B8A6] text-white flex items-center justify-center text-xl font-black select-none">
                     {initials}
                   </div>
                 )}
@@ -330,7 +330,7 @@ export default function PhotographerBusinessPage() {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-0 right-0 p-1.5 bg-[#FF6E00] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                className="absolute bottom-0 right-0 p-1.5 bg-[#14B8A6] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
                 title="Change profile photo"
               >
                 <Camera className="w-3 h-3" />
@@ -508,8 +508,8 @@ export default function PhotographerBusinessPage() {
           </div>
 
           {/* Distance-Based Travel Pricing Rules Card */}
-          <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D8] space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E8E2D8]">
+          <div className="p-5 rounded-2xl bg-[#F5F7F9] border border-[#E7EAEE] space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E7EAEE]">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-brand" />
                 <h3 className="text-xs sm:text-sm font-extrabold text-ink-primary uppercase tracking-wider">
@@ -674,7 +674,7 @@ export default function PhotographerBusinessPage() {
                     onClick={() => handleSpecialtyToggle(spec)}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                       isSelected
-                        ? 'bg-[#FF6E00] text-white shadow-xs'
+                        ? 'bg-[#14B8A6] text-white shadow-xs'
                         : 'bg-canvas-secondary text-ink-secondary hover:bg-canvas-tertiary'
                     }`}
                   >

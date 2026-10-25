@@ -432,7 +432,7 @@ export default function PhotographerOnboardingPage() {
   if (isLoadingData) {
     return (
       <div className="max-w-2xl mx-auto py-24 text-center space-y-4">
-        <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
+        <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin mx-auto" />
         <p className="text-sm font-semibold text-ink-secondary">
           Syncing creator profile...
         </p>
@@ -520,7 +520,7 @@ export default function PhotographerOnboardingPage() {
                 disabled={step.num > currentStep}
                 className={`flex flex-col items-center text-center p-2 rounded-card-sm transition-all ${
                   isCurrent
-                    ? 'bg-[#FF6E00] text-white font-bold'
+                    ? 'bg-[#14B8A6] text-white font-bold'
                     : isCompleted
                     ? 'bg-canvas-secondary text-ink-primary hover:bg-canvas-tertiary'
                     : 'text-ink-muted opacity-50 cursor-not-allowed'
@@ -543,7 +543,7 @@ export default function PhotographerOnboardingPage() {
         {/* Progress Bar */}
         <div className="w-full bg-canvas-secondary rounded-full h-1.5 mt-4 overflow-hidden">
           <div
-            className="bg-[#FF6E00] h-1.5 rounded-full transition-all duration-300"
+            className="bg-[#14B8A6] h-1.5 rounded-full transition-all duration-300"
             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           />
         </div>
@@ -573,7 +573,7 @@ export default function PhotographerOnboardingPage() {
                 value={personal.name}
                 onChange={(e) => setPersonal({ ...personal, name: e.target.value })}
                 placeholder="e.g. Your Legal Name"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -584,7 +584,7 @@ export default function PhotographerOnboardingPage() {
                 value={personal.phone}
                 onChange={(e) => setPersonal({ ...personal, phone: e.target.value })}
                 placeholder="+91 98765 43210"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -595,7 +595,7 @@ export default function PhotographerOnboardingPage() {
                 value={personal.email}
                 onChange={(e) => setPersonal({ ...personal, email: e.target.value })}
                 placeholder="your.email@example.com"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -606,7 +606,7 @@ export default function PhotographerOnboardingPage() {
                 value={personal.city}
                 onChange={(e) => setPersonal({ ...personal, city: e.target.value })}
                 placeholder="e.g. New Delhi, Mumbai, Bengaluru"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -617,7 +617,7 @@ export default function PhotographerOnboardingPage() {
                 value={personal.serviceArea}
                 onChange={(e) => setPersonal({ ...personal, serviceArea: e.target.value })}
                 placeholder="e.g. South Delhi, Connaught Place, Gurugram Cyber Hub, Noida"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
               <p className="text-[11px] text-ink-muted">Separate multiple neighborhoods or cities with commas.</p>
             </div>
@@ -641,7 +641,7 @@ export default function PhotographerOnboardingPage() {
                 value={professional.bio}
                 onChange={(e) => setProfessional({ ...professional, bio: e.target.value })}
                 placeholder="Describe your photography style, creative approach, and what clients can expect..."
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -653,7 +653,7 @@ export default function PhotographerOnboardingPage() {
                   min={1}
                   value={professional.experienceYears}
                   onChange={(e) => setProfessional({ ...professional, experienceYears: Number(e.target.value) })}
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
                 />
               </div>
 
@@ -664,7 +664,7 @@ export default function PhotographerOnboardingPage() {
                   value={professional.languages}
                   onChange={(e) => setProfessional({ ...professional, languages: e.target.value })}
                   placeholder="e.g. English, Hindi, Punjabi"
-                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                  className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
                 />
               </div>
             </div>
@@ -676,7 +676,7 @@ export default function PhotographerOnboardingPage() {
                 value={professional.cameras}
                 onChange={(e) => setProfessional({ ...professional, cameras: e.target.value })}
                 placeholder="e.g. Sony A7 IV, Canon EOS R6, Nikon Z6 II"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
 
@@ -687,7 +687,7 @@ export default function PhotographerOnboardingPage() {
                 value={professional.lenses}
                 onChange={(e) => setProfessional({ ...professional, lenses: e.target.value })}
                 placeholder="e.g. 24-70mm f/2.8, 85mm f/1.4, 50mm f/1.8"
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               />
             </div>
           </div>
@@ -717,8 +717,8 @@ export default function PhotographerOnboardingPage() {
           </div>
 
           {portfolioItems.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-contour-strong rounded-card-md p-6 space-y-3 bg-[#FAF7F2]/50">
-              <ImageIcon className="w-10 h-10 text-[#FF6E00] mx-auto opacity-70" />
+            <div className="text-center py-12 border-2 border-dashed border-contour-strong rounded-card-md p-6 space-y-3 bg-[#F5F7F9]/50">
+              <ImageIcon className="w-10 h-10 text-[#14B8A6] mx-auto opacity-70" />
               <div className="space-y-1">
                 <p className="text-sm font-bold text-ink-primary">No portfolio items added yet</p>
                 <p className="text-xs text-ink-secondary max-w-sm mx-auto">
@@ -812,7 +812,7 @@ export default function PhotographerOnboardingPage() {
                       value={newPhoto.title}
                       onChange={(e) => setNewPhoto({ ...newPhoto, title: e.target.value })}
                       placeholder="e.g. Sunset Golden Hour Portrait"
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                     />
                   </div>
 
@@ -823,7 +823,7 @@ export default function PhotographerOnboardingPage() {
                     <select
                       value={newPhoto.category}
                       onChange={(e) => setNewPhoto({ ...newPhoto, category: e.target.value })}
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00] bg-white"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6] bg-white"
                     >
                       <option value="Portraits">Portraits</option>
                       <option value="Weddings">Weddings</option>
@@ -843,7 +843,7 @@ export default function PhotographerOnboardingPage() {
                       value={newPhoto.imageUrl}
                       onChange={(e) => setNewPhoto({ ...newPhoto, imageUrl: e.target.value })}
                       placeholder="https://images.unsplash.com/... or /reference-assets/..."
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                     />
                   </div>
                 </div>
@@ -885,8 +885,8 @@ export default function PhotographerOnboardingPage() {
           </div>
 
           {services.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-contour-strong rounded-card-md p-6 space-y-3 bg-[#FAF7F2]/50">
-              <Package className="w-10 h-10 text-[#FF6E00] mx-auto opacity-70" />
+            <div className="text-center py-12 border-2 border-dashed border-contour-strong rounded-card-md p-6 space-y-3 bg-[#F5F7F9]/50">
+              <Package className="w-10 h-10 text-[#14B8A6] mx-auto opacity-70" />
               <div className="space-y-1">
                 <p className="text-sm font-bold text-ink-primary">No service packages added yet</p>
                 <p className="text-xs text-ink-secondary max-w-sm mx-auto">
@@ -909,7 +909,7 @@ export default function PhotographerOnboardingPage() {
                 <div key={srv.id} className="p-4 bg-canvas-secondary/40 rounded-card-sm border border-contour-subtle space-y-2 relative group">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-extrabold uppercase text-[#FF6E00] mr-2">[{srv.category}]</span>
+                      <span className="text-xs font-extrabold uppercase text-[#14B8A6] mr-2">[{srv.category}]</span>
                       <span className="text-sm font-bold text-ink-primary">{srv.title}</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -959,7 +959,7 @@ export default function PhotographerOnboardingPage() {
                       value={newService.title}
                       onChange={(e) => setNewService({ ...newService, title: e.target.value })}
                       placeholder="e.g. Standard Portrait Session"
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                     />
                   </div>
 
@@ -971,7 +971,7 @@ export default function PhotographerOnboardingPage() {
                       <select
                         value={newService.category}
                         onChange={(e) => setNewService({ ...newService, category: e.target.value })}
-                        className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00] bg-white"
+                        className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6] bg-white"
                       >
                         <option value="Portraits">Portraits</option>
                         <option value="Weddings">Weddings</option>
@@ -991,7 +991,7 @@ export default function PhotographerOnboardingPage() {
                         step={500}
                         value={newService.priceInr}
                         onChange={(e) => setNewService({ ...newService, priceInr: Number(e.target.value) })}
-                        className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                        className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                       />
                     </div>
                   </div>
@@ -1006,7 +1006,7 @@ export default function PhotographerOnboardingPage() {
                       max={12}
                       value={newService.durationHours}
                       onChange={(e) => setNewService({ ...newService, durationHours: Number(e.target.value) })}
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                     />
                   </div>
 
@@ -1019,7 +1019,7 @@ export default function PhotographerOnboardingPage() {
                       value={newService.description}
                       onChange={(e) => setNewService({ ...newService, description: e.target.value })}
                       placeholder="e.g. 2 hours of outdoor portrait photography with 2 outfit changes..."
-                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                      className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                     />
                   </div>
                 </div>
@@ -1044,14 +1044,14 @@ export default function PhotographerOnboardingPage() {
           <div className="border-b border-contour-subtle pb-4">
             <h2 className="text-xl font-bold text-ink-primary">Step 5: Identity & Equipment Verification</h2>
             <p className="text-xs text-ink-secondary mt-1">
-              SnapShoot requires trust and safety verification for all photographers before marketplace dispatch.
+              REEPY requires trust and safety verification for all photographers before marketplace dispatch.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="p-4 rounded-card-sm bg-brand-subtle/50 border border-brand-border space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold text-ink-primary">
-                <ShieldCheck className="w-4 h-4 text-[#FF6E00]" />
+                <ShieldCheck className="w-4 h-4 text-[#14B8A6]" />
                 <span>Zero Public Exposure Guarantee</span>
               </div>
               <p className="text-xs text-ink-secondary leading-relaxed">
@@ -1064,7 +1064,7 @@ export default function PhotographerOnboardingPage() {
               <select
                 value={idDocType}
                 onChange={(e) => setIdDocType(e.target.value)}
-                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#FF6E00] outline-none"
+                className="w-full bg-white border border-contour-strong rounded-card-sm p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#14B8A6] outline-none"
               >
                 <option value="Aadhaar Card">Government Aadhaar Card (Front + Back)</option>
                 <option value="PAN Card">Permanent Account Number (PAN Card)</option>
@@ -1083,9 +1083,9 @@ export default function PhotographerOnboardingPage() {
             {/* Document Upload Input */}
             <div className="border-2 border-dashed border-contour-strong rounded-card-md p-6 text-center space-y-2 bg-canvas-primary/60">
               {isUploadingId ? (
-                <Loader2 className="w-8 h-8 text-[#FF6E00] mx-auto animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#14B8A6] mx-auto animate-spin" />
               ) : (
-                <UploadCloud className="w-8 h-8 text-[#FF6E00] mx-auto" />
+                <UploadCloud className="w-8 h-8 text-[#14B8A6] mx-auto" />
               )}
               <p className="text-xs font-bold text-ink-primary">
                 {isUploadingId
@@ -1103,7 +1103,7 @@ export default function PhotographerOnboardingPage() {
                 <span className="py-1.5 px-3 rounded-lg border border-contour-strong hover:bg-white text-ink-primary font-semibold text-xs transition-colors inline-flex items-center gap-1.5">
                   {isUploadingId ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6E00]" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#14B8A6]" />
                       <span>Uploading...</span>
                     </>
                   ) : idFileName ? (
@@ -1133,9 +1133,9 @@ export default function PhotographerOnboardingPage() {
               <div className="flex items-center justify-between p-3 bg-canvas-secondary rounded-card-sm text-xs border border-contour-subtle">
                 <div className="flex items-center gap-2 min-w-0">
                   {isUploadingInvoice ? (
-                    <Loader2 className="w-4 h-4 text-[#FF6E00] animate-spin shrink-0" />
+                    <Loader2 className="w-4 h-4 text-[#14B8A6] animate-spin shrink-0" />
                   ) : (
-                    <FileText className="w-4 h-4 text-[#FF6E00] shrink-0" />
+                    <FileText className="w-4 h-4 text-[#14B8A6] shrink-0" />
                   )}
                   <span className="font-mono text-ink-primary truncate">
                     {isUploadingInvoice
@@ -1172,7 +1172,7 @@ export default function PhotographerOnboardingPage() {
           <div className="border-b border-contour-subtle pb-4">
             <h2 className="text-xl font-bold text-ink-primary">Step 6: Review & Confirmation</h2>
             <p className="text-xs text-ink-secondary mt-1">
-              Confirm your application details before sending to the SnapShoot curation team.
+              Confirm your application details before sending to the REEPY curation team.
             </p>
           </div>
 
@@ -1188,7 +1188,7 @@ export default function PhotographerOnboardingPage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(1)}
-                className="text-xs font-bold text-[#FF6E00] hover:underline"
+                className="text-xs font-bold text-[#14B8A6] hover:underline"
               >
                 Edit
               </button>
@@ -1206,7 +1206,7 @@ export default function PhotographerOnboardingPage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="text-xs font-bold text-[#FF6E00] hover:underline"
+                className="text-xs font-bold text-[#14B8A6] hover:underline"
               >
                 Edit
               </button>
@@ -1222,7 +1222,7 @@ export default function PhotographerOnboardingPage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
-                className="text-xs font-bold text-[#FF6E00] hover:underline"
+                className="text-xs font-bold text-[#14B8A6] hover:underline"
               >
                 Edit
               </button>
@@ -1239,7 +1239,7 @@ export default function PhotographerOnboardingPage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(5)}
-                className="text-xs font-bold text-[#FF6E00] hover:underline"
+                className="text-xs font-bold text-[#14B8A6] hover:underline"
               >
                 Edit
               </button>

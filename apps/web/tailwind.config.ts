@@ -10,35 +10,38 @@ const config: Config = {
     extend: {
       colors: {
         canvas: {
-          primary: '#FAF7F2',    // Signature warm cream background
-          secondary: '#F2ECE3',  // Soft stone pill & surface fill
-          tertiary: '#EAE2D7',   // Hover & active neutral container fill
-          card: '#FFFFFF',       // Clean card surface
+          primary: '#F5F7F9',    // REEPY light cool grey background
+          secondary: '#F1F3F5',  // Muted surface / pill fill
+          tertiary: '#E2E8F0',   // Container hover fill
+          card: '#FFFFFF',       // Card background
+          dark: '#0D0F12',       // REEPY dark marketing background
+          darkSurface: '#171A1F',// REEPY dark card/panel surface
         },
         brand: {
-          DEFAULT: '#FF6E00',    // Signature SnapShoot primary orange
-          hover: '#E86300',      // Vibrant dark hover state
-          active: '#D65B00',     // Pressed tactile state
-          subtle: '#FFF3E5',     // Soft orange tint pill background
-          border: '#FFD4A8',     // Subtle orange badge/card border
+          DEFAULT: '#14B8A6',    // REEPY Primary teal
+          hover: '#0D9488',      // Teal hover
+          active: '#0F766E',     // Teal dark/active
+          subtle: '#EFFCF8',     // Subtle teal background
+          border: '#99F6E4',     // Subtle teal border
         },
         ink: {
-          primary: '#1A1816',    // Deep charcoal near-black typography
-          secondary: '#5A544D',  // Editorial secondary text
-          muted: '#8C847A',      // Subtle captions, icons, and placeholder hints
+          primary: '#191C22',    // Primary text
+          secondary: '#64748B',  // Secondary text
+          muted: '#94A3B8',      // Muted supporting text
           inverse: '#FFFFFF',
         },
         contour: {
-          subtle: '#E8E2D8',     // Neutral warm border
-          strong: '#D5CEC4',     // Defined border / divider
+          subtle: '#E7EAEE',     // Subtle border
+          strong: '#CBD5E1',     // Defined border / divider
+          dark: '#262B33',       // Dark surface border
         },
         status: {
           success: '#16A34A',
-          'success-subtle': '#E7F5EC',
+          'success-subtle': '#ECFDF5',
           warning: '#D97706',
-          'warning-subtle': '#FEF3C7',
+          'warning-subtle': '#FFFBEB',
           error: '#DC2626',
-          'error-subtle': '#FEE2E2',
+          'error-subtle': '#FEF2F2',
         },
       },
       fontFamily: {

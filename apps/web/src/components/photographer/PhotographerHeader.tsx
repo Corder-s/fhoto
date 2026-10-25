@@ -56,7 +56,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-[#E8E2D8] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-white border-b border-[#E7EAEE] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
       {/* Left: Mobile Toggle + Search Bar */}
       <div className="flex items-center gap-3 flex-1 max-w-xl">
         <button
@@ -69,13 +69,13 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
 
         {/* Search input matching Reference Image A */}
         <div className="relative w-full max-w-md hidden sm:block">
-          <Search className="w-4 h-4 text-[#8C847A] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search bookings, clients, messages..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] text-xs text-[#1A1816] placeholder:text-[#8C847A] focus:outline-none focus:border-[#FF6E00] focus:bg-white transition-all"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs text-[#191C22] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
           />
         </div>
       </div>
@@ -89,7 +89,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
               setShowNotifications(!showNotifications);
               setShowProfileMenu(false);
             }}
-            className="relative p-2 text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-xl transition-colors cursor-pointer"
+            className="relative p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors cursor-pointer"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5 stroke-[1.8]" />
@@ -101,29 +101,29 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E8E2D8] shadow-elevated py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 py-2 border-b border-[#F2ECE3] flex items-center justify-between">
-                <span className="text-xs font-black text-[#1A1816]">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-2 border-b border-[#F1F3F5] flex items-center justify-between">
+                <span className="text-xs font-black text-[#191C22]">
                   Notifications
                 </span>
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
                     <button
                       onClick={() => markAsRead()}
-                      className="text-[10px] font-semibold text-[#FF6E00] hover:underline cursor-pointer"
+                      className="text-[10px] font-semibold text-[#14B8A6] hover:underline cursor-pointer"
                     >
                       Mark all as read
                     </button>
                   )}
-                  <span className="text-[10px] font-bold text-[#FF6E00] bg-[#FFF2E8] px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-[#14B8A6] bg-[#EFFCF8] px-2 py-0.5 rounded-full">
                     {unreadCount} New
                   </span>
                 </div>
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-[#F2ECE3]">
+              <div className="max-h-72 overflow-y-auto divide-y divide-[#F1F3F5]">
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-[#8C847A]">
+                  <div className="p-4 text-center text-xs text-[#94A3B8]">
                     No notifications yet.
                   </div>
                 ) : (
@@ -135,19 +135,19 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                         markAsRead(item.id);
                         setShowNotifications(false);
                       }}
-                      className={`block px-4 py-3 hover:bg-[#FAF7F2] transition-colors ${
+                      className={`block px-4 py-3 hover:bg-[#F5F7F9] transition-colors ${
                         !item.readAt ? 'bg-[#FFF9F5]' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#1A1816]' : 'font-medium text-[#5A544D]'}`}>
+                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#191C22]' : 'font-medium text-[#64748B]'}`}>
                           {item.title}
                         </p>
-                        <span className="text-[10px] text-[#8C847A] whitespace-nowrap">
+                        <span className="text-[10px] text-[#94A3B8] whitespace-nowrap">
                           {new Date(item.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <p className="text-xs text-[#736B63] mt-1 line-clamp-2">{item.body}</p>
+                      <p className="text-xs text-[#64748B] mt-1 line-clamp-2">{item.body}</p>
                     </Link>
                   ))
                 )}
@@ -159,7 +159,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
         {/* Message bubble icon */}
         <Link
           href="/photographer/dashboard"
-          className="p-2 text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-xl transition-colors relative"
+          className="p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors relative"
           title="Messages"
         >
           <MessageSquare className="w-5 h-5 stroke-[1.8]" />
@@ -172,9 +172,9 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
               setShowProfileMenu(!showProfileMenu);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#F5F7F9] transition-colors cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-xs font-black border border-[#E8E2D8] shadow-2xs shrink-0 relative">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-[#14B8A6] text-white flex items-center justify-center text-xs font-black border border-[#E7EAEE] shadow-2xs shrink-0 relative">
               <span className="select-none">{initials}</span>
               {displayAvatar && (
                 <img
@@ -188,14 +188,14 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
               )}
             </div>
             <div className="text-left hidden md:block">
-              <p className="text-xs font-black text-[#1A1816] leading-tight">
+              <p className="text-xs font-black text-[#191C22] leading-tight">
                 {accountName}
               </p>
-              <p className="text-[10px] text-[#8C847A] font-medium leading-tight">
+              <p className="text-[10px] text-[#94A3B8] font-medium leading-tight">
                 {creatorProfile?.city ? `${creatorProfile.city} • Creator` : 'Verified Creator'}
               </p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
           </button>
 
           {showProfileMenu && (

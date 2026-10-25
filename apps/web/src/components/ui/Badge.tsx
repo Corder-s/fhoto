@@ -17,12 +17,12 @@ export const Badge: React.FC<BadgeProps> = ({
   const baseStyles = 'inline-flex items-center font-bold tracking-wide rounded-full';
 
   const variants = {
-    brand: 'bg-[#FFF3E5] text-[#FF6E00] border border-[#FFD4A8]',
+    brand: 'bg-[#EFFCF8] text-[#0F766E] border border-[#99F6E4]',
     success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     warning: 'bg-amber-50 text-amber-700 border border-amber-200',
     error: 'bg-red-50 text-red-700 border border-red-200',
-    neutral: 'bg-[#F2ECE3] text-[#5A544D] border border-[#E8E2D8]',
-    dark: 'bg-[#1A1816] text-white border border-transparent',
+    neutral: 'bg-[#F1F3F5] text-[#64748B] border border-[#E7EAEE]',
+    dark: 'bg-[#171A1F] text-white border border-[#262B33]',
   };
 
   const sizes = {

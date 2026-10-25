@@ -300,11 +300,11 @@ export default function PhotographerServicesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FF6E00]/10 text-[#FF6E00]">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14B8A6]/10 text-[#14B8A6]">
               Active Packages: {services.length} / {plan.maxServicePackages} ({plan.name})
             </span>
             {isAtQuota && (
-              <Link href="/photographer/subscription" className="text-xs text-[#FF6E00] font-bold hover:underline">
+              <Link href="/photographer/subscription" className="text-xs text-[#14B8A6] font-bold hover:underline">
                 Upgrade Plan for More →
               </Link>
             )}
@@ -331,12 +331,12 @@ export default function PhotographerServicesPage() {
       {/* Services Grid */}
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
-          <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
+          <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin mx-auto" />
           <p className="text-xs text-ink-muted">Loading packages...</p>
         </div>
       ) : services.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed border-[#E8E2D8] rounded-3xl bg-[#FAF7F2]/50 p-8 space-y-3">
-          <Package className="w-12 h-12 text-[#FF6E00] mx-auto opacity-70" />
+        <div className="py-16 text-center border-2 border-dashed border-[#E7EAEE] rounded-3xl bg-[#F5F7F9]/50 p-8 space-y-3">
+          <Package className="w-12 h-12 text-[#14B8A6] mx-auto opacity-70" />
           <div className="space-y-1">
             <h3 className="text-base font-bold text-ink-primary">No photography packages configured yet</h3>
             <p className="text-xs text-ink-secondary max-w-md mx-auto">
@@ -378,7 +378,7 @@ export default function PhotographerServicesPage() {
                   title={srv.isActive ? 'Deactivate Package' : 'Activate Package'}
                 >
                   {srv.isActive ? (
-                    <ToggleRight className="w-6 h-6 text-[#FF6E00]" />
+                    <ToggleRight className="w-6 h-6 text-[#14B8A6]" />
                   ) : (
                     <ToggleLeft className="w-6 h-6 text-zinc-400" />
                   )}
@@ -434,7 +434,7 @@ export default function PhotographerServicesPage() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g. Standard Portrait Session"
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
 
@@ -447,7 +447,7 @@ export default function PhotographerServicesPage() {
                     step={500}
                     value={formData.priceInr}
                     onChange={(e) => setFormData({ ...formData, priceInr: Number(e.target.value) })}
-                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                   />
                 </div>
                 <div>
@@ -458,7 +458,7 @@ export default function PhotographerServicesPage() {
                     max={12}
                     value={formData.durationHours}
                     onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
-                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                   />
                 </div>
               </div>
@@ -470,7 +470,7 @@ export default function PhotographerServicesPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe what is covered during this photography session..."
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
 
@@ -500,7 +500,7 @@ export default function PhotographerServicesPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
 
@@ -513,7 +513,7 @@ export default function PhotographerServicesPage() {
                     step={500}
                     value={formData.priceInr}
                     onChange={(e) => setFormData({ ...formData, priceInr: Number(e.target.value) })}
-                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                   />
                 </div>
                 <div>
@@ -524,7 +524,7 @@ export default function PhotographerServicesPage() {
                     max={12}
                     value={formData.durationHours}
                     onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
-                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                    className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                   />
                 </div>
               </div>
@@ -535,7 +535,7 @@ export default function PhotographerServicesPage() {
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
 

@@ -526,10 +526,10 @@ export default function CustomerSettingsPage() {
         {/* LEFT SETTINGS SIDEBAR */}
         {/* ========================================================= */}
         <aside className="w-full lg:w-64 xl:w-72 shrink-0">
-          <div className="bg-white rounded-2xl border border-[#E8E1D6] p-3 sm:p-4 shadow-sm">
+          <div className="bg-white rounded-2xl border border-[#E7EAEE] p-3 sm:p-4 shadow-sm">
             {/* Sidebar Title */}
-            <div className="flex items-center gap-2.5 px-3 py-2.5 mb-2 text-[#1A1816]">
-              <Settings className="w-5 h-5 text-[#1A1816] stroke-[2.2]" />
+            <div className="flex items-center gap-2.5 px-3 py-2.5 mb-2 text-[#191C22]">
+              <Settings className="w-5 h-5 text-[#191C22] stroke-[2.2]" />
               <h2 className="text-base font-bold tracking-tight">Settings</h2>
             </div>
 
@@ -552,20 +552,20 @@ export default function CustomerSettingsPage() {
                     }}
                     className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-left ${
                       isActive
-                        ? 'bg-[#FFF4EB] text-[#FF6E00] font-bold shadow-xs'
-                        : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2]'
+                        ? 'bg-[#FFF4EB] text-[#14B8A6] font-bold shadow-xs'
+                        : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9]'
                     }`}
                   >
                     <div className="flex items-center gap-3 truncate">
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? 'text-[#FF6E00]' : 'text-[#8C847A]'
+                          isActive ? 'text-[#14B8A6]' : 'text-[#94A3B8]'
                         }`}
                       />
                       <span className="truncate">{item.label}</span>
                     </div>
                     {item.badge && (
-                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF7F2] text-[#8C847A] border border-[#E8E1D6]">
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F5F7F9] text-[#94A3B8] border border-[#E7EAEE]">
                         {item.badge}
                       </span>
                     )}
@@ -575,20 +575,20 @@ export default function CustomerSettingsPage() {
             </nav>
 
             {/* Creator Studio Quick Link */}
-            <div className="mt-4 pt-4 border-t border-[#F0EAE1]">
+            <div className="mt-4 pt-4 border-t border-[#E7EAEE]">
               <Link
                 href="/photographer/dashboard"
-                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-[#FF6E00] hover:bg-[#FFF4EB] transition-colors"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-[#14B8A6] hover:bg-[#FFF4EB] transition-colors"
               >
-                <Camera className="w-4 h-4 text-[#FF6E00]" />
+                <Camera className="w-4 h-4 text-[#14B8A6]" />
                 <span>Switch to Creator Studio</span>
               </Link>
             </div>
 
             {/* Account Actions Section */}
-            <div className="mt-4 pt-4 border-t border-[#F0EAE1]">
+            <div className="mt-4 pt-4 border-t border-[#E7EAEE]">
               <div className="px-3.5 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C847A]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                   Account Actions
                 </span>
               </div>
@@ -613,12 +613,12 @@ export default function CustomerSettingsPage() {
             <div className="space-y-6">
               {/* Page Title & Subtitle */}
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Profile & Account</h1>
-                <p className="text-xs text-[#665E55] mt-1">Manage your personal information and account settings</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Profile & Account</h1>
+                <p className="text-xs text-[#64748B] mt-1">Manage your personal information and account settings</p>
               </div>
 
               {/* 1. Profile Summary Card */}
-              <div className="bg-white rounded-2xl border border-[#E8E1D6] p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="bg-white rounded-2xl border border-[#E7EAEE] p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
                   {/* Hidden File Input for Avatar Upload */}
                   <input
@@ -631,7 +631,7 @@ export default function CustomerSettingsPage() {
 
                   {/* Avatar with Camera Overlay */}
                   <div className="relative group shrink-0">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border border-[#E8E1D6] shadow-sm relative flex items-center justify-center bg-[#FAF7F2]">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border border-[#E7EAEE] shadow-sm relative flex items-center justify-center bg-[#F5F7F9]">
                       {prefs.profile.avatar || displayAvatar ? (
                         <img
                           src={(prefs.profile.avatar || displayAvatar) || undefined}
@@ -639,14 +639,14 @@ export default function CustomerSettingsPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-[#FF6E00]/10 border border-[#FF6E00]/20 flex items-center justify-center text-[#FF6E00] text-2xl font-black shadow-sm">
+                        <div className="w-full h-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center text-[#14B8A6] text-2xl font-black shadow-sm">
                           {(prefs.profile.displayName || user?.name || user?.email || 'U')[0].toUpperCase()}
                         </div>
                       )}
 
                       {isUploadingPhoto && (
                         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-xs">
-                          <Loader2 className="w-5 h-5 animate-spin text-[#FF6E00]" />
+                          <Loader2 className="w-5 h-5 animate-spin text-[#14B8A6]" />
                         </div>
                       )}
                     </div>
@@ -654,7 +654,7 @@ export default function CustomerSettingsPage() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploadingPhoto}
-                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border border-[#E0D8CD] shadow flex items-center justify-center text-[#5A544D] hover:text-[#FF6E00] hover:scale-105 transition-all cursor-pointer disabled:opacity-50"
+                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border border-[#E7EAEE] shadow flex items-center justify-center text-[#64748B] hover:text-[#14B8A6] hover:scale-105 transition-all cursor-pointer disabled:opacity-50"
                       title="Upload photo"
                     >
                       <Camera className="w-3.5 h-3.5" />
@@ -663,11 +663,11 @@ export default function CustomerSettingsPage() {
 
                   {/* Profile Name & Badges */}
                   <div>
-                    <h2 className="text-xl font-bold text-[#1A1816]">
+                    <h2 className="text-xl font-bold text-[#191C22]">
                       {prefs.profile.displayName || prefs.profile.name || user?.name || 'Customer'}
                     </h2>
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
-                      <span className="text-xs font-medium text-[#665E55]">
+                      <span className="text-xs font-medium text-[#64748B]">
                         {prefs.profile.handle || (user?.email ? `@${user.email.split('@')[0]}` : '@customer')}
                       </span>
                       {prefs.profile.emailVerified && (
@@ -677,8 +677,8 @@ export default function CustomerSettingsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[#5A544D] mt-1.5">
-                      {prefs.profile.tagline || 'SnapShoot verified customer'}
+                    <p className="text-xs text-[#64748B] mt-1.5">
+                      {prefs.profile.tagline || 'REEPY verified customer'}
                     </p>
                   </div>
                 </div>
@@ -690,16 +690,16 @@ export default function CustomerSettingsPage() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploadingPhoto}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#FF6E00] bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#FF6E00]/30 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#14B8A6] bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#14B8A6]/30 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
                     >
                       {isUploadingPhoto ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin text-[#FF6E00]" />
+                          <Loader2 className="w-4 h-4 animate-spin text-[#14B8A6]" />
                           <span>Uploading...</span>
                         </>
                       ) : (
                         <>
-                          <Camera className="w-4 h-4 text-[#FF6E00]" />
+                          <Camera className="w-4 h-4 text-[#14B8A6]" />
                           <span>Change Photo</span>
                         </>
                       )}
@@ -718,23 +718,23 @@ export default function CustomerSettingsPage() {
                       </button>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#8C847A]">JPG, PNG, WebP up to 5MB</span>
+                  <span className="text-[10px] text-[#94A3B8]">JPG, PNG, WebP up to 5MB</span>
                 </div>
               </div>
 
               {/* 2. Personal Information Form */}
-              <div className="bg-white rounded-2xl border border-[#E8E1D6] p-6 shadow-sm">
+              <div className="bg-white rounded-2xl border border-[#E7EAEE] p-6 shadow-sm">
                 <div>
-                  <h3 className="text-base font-bold text-[#1A1816]">Personal Information</h3>
-                  <p className="text-xs text-[#8C847A] mt-0.5">Update your basic information</p>
+                  <h3 className="text-base font-bold text-[#191C22]">Personal Information</h3>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">Update your basic information</p>
                 </div>
 
                 <form onSubmit={handleSave} className="mt-5 space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {/* First Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">
-                        First Name <span className="text-[#FF6E00]">*</span>
+                      <label className="text-xs font-bold text-[#191C22]">
+                        First Name <span className="text-[#14B8A6]">*</span>
                       </label>
                       <input
                         type="text"
@@ -752,15 +752,15 @@ export default function CustomerSettingsPage() {
                           });
                           setIsDirty(true);
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                         placeholder="First name"
                       />
                     </div>
 
                     {/* Last Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">
-                        Last Name <span className="text-[#FF6E00]">*</span>
+                      <label className="text-xs font-bold text-[#191C22]">
+                        Last Name <span className="text-[#14B8A6]">*</span>
                       </label>
                       <input
                         type="text"
@@ -778,14 +778,14 @@ export default function CustomerSettingsPage() {
                           });
                           setIsDirty(true);
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                         placeholder="Last name"
                       />
                     </div>
 
                     {/* Display Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">Display Name</label>
+                      <label className="text-xs font-bold text-[#191C22]">Display Name</label>
                       <input
                         type="text"
                         value={prefs.profile.displayName || ''}
@@ -796,15 +796,15 @@ export default function CustomerSettingsPage() {
                           });
                           setIsDirty(true);
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                         placeholder="Display name"
                       />
                     </div>
 
                     {/* Email Address */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">
-                        Email Address <span className="text-[#FF6E00]">*</span>
+                      <label className="text-xs font-bold text-[#191C22]">
+                        Email Address <span className="text-[#14B8A6]">*</span>
                       </label>
                       <div className="relative flex items-center">
                         <input
@@ -812,7 +812,7 @@ export default function CustomerSettingsPage() {
                           required
                           value={prefs.profile.email || ''}
                           readOnly
-                          className="w-full pl-3.5 pr-24 py-2.5 rounded-xl border border-[#E0D8CD] bg-[#FAF7F2] text-xs font-medium text-[#5A544D] cursor-not-allowed focus:outline-none"
+                          className="w-full pl-3.5 pr-24 py-2.5 rounded-xl border border-[#E7EAEE] bg-[#F5F7F9] text-xs font-medium text-[#64748B] cursor-not-allowed focus:outline-none"
                         />
                         {prefs.profile.emailVerified && (
                           <span className="absolute right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -825,13 +825,13 @@ export default function CustomerSettingsPage() {
 
                     {/* Phone Number with +91 Country Code */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">
+                      <label className="text-xs font-bold text-[#191C22]">
                         Phone Number
                       </label>
-                      <div className="relative flex items-center border border-[#E0D8CD] rounded-xl bg-white overflow-hidden focus-within:border-[#FF6E00] focus-within:ring-1 focus-within:ring-[#FF6E00]/20 transition-all">
-                        <div className="flex items-center gap-1 px-3 py-2.5 bg-[#FAF7F2] border-r border-[#E0D8CD] text-xs font-bold text-[#1A1816] shrink-0">
+                      <div className="relative flex items-center border border-[#E7EAEE] rounded-xl bg-white overflow-hidden focus-within:border-[#14B8A6] focus-within:ring-1 focus-within:ring-[#14B8A6]/20 transition-all">
+                        <div className="flex items-center gap-1 px-3 py-2.5 bg-[#F5F7F9] border-r border-[#E7EAEE] text-xs font-bold text-[#191C22] shrink-0">
                           <span>{prefs.profile.phoneCountryCode || '+91'}</span>
-                          <ChevronDown className="w-3 h-3 text-[#8C847A]" />
+                          <ChevronDown className="w-3 h-3 text-[#94A3B8]" />
                         </div>
                         <input
                           type="text"
@@ -843,7 +843,7 @@ export default function CustomerSettingsPage() {
                             });
                             setIsDirty(true);
                           }}
-                          className="w-full px-3 py-2.5 text-xs font-medium text-[#1A1816] focus:outline-none"
+                          className="w-full px-3 py-2.5 text-xs font-medium text-[#191C22] focus:outline-none"
                           placeholder="10-digit mobile number"
                         />
                         {prefs.profile.phoneVerified && (
@@ -857,7 +857,7 @@ export default function CustomerSettingsPage() {
 
                     {/* Date of Birth */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">Date of Birth</label>
+                      <label className="text-xs font-bold text-[#191C22]">Date of Birth</label>
                       <div className="relative flex items-center">
                         <input
                           type="text"
@@ -869,16 +869,16 @@ export default function CustomerSettingsPage() {
                             });
                             setIsDirty(true);
                           }}
-                          className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                          className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                           placeholder="DD MMM YYYY"
                         />
-                        <Calendar className="w-4 h-4 text-[#8C847A] absolute right-3 pointer-events-none" />
+                        <Calendar className="w-4 h-4 text-[#94A3B8] absolute right-3 pointer-events-none" />
                       </div>
                     </div>
 
                     {/* Gender */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">Gender</label>
+                      <label className="text-xs font-bold text-[#191C22]">Gender</label>
                       <div className="relative">
                         <select
                           value={prefs.profile.gender || 'Prefer not to say'}
@@ -889,20 +889,20 @@ export default function CustomerSettingsPage() {
                             });
                             setIsDirty(true);
                           }}
-                          className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                          className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                         >
                           <option value="Prefer not to say">Prefer not to say</option>
                           <option value="Female">Female</option>
                           <option value="Male">Male</option>
                           <option value="Non-binary">Non-binary</option>
                         </select>
-                        <ChevronDown className="w-4 h-4 text-[#8C847A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDown className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
                     </div>
 
                     {/* Preferred Language */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">Preferred Language</label>
+                      <label className="text-xs font-bold text-[#191C22]">Preferred Language</label>
                       <div className="relative">
                         <select
                           value={prefs.profile.preferredLanguage || 'English'}
@@ -913,7 +913,7 @@ export default function CustomerSettingsPage() {
                             });
                             setIsDirty(true);
                           }}
-                          className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                          className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                         >
                           <option value="English">English</option>
                           <option value="Hindi">Hindi</option>
@@ -924,15 +924,15 @@ export default function CustomerSettingsPage() {
                           <option value="Telugu">Telugu</option>
                           <option value="Kannada">Kannada</option>
                         </select>
-                        <ChevronDown className="w-4 h-4 text-[#8C847A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDown className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
                     </div>
 
                     {/* Preferred City */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#1A1816]">Preferred City</label>
+                      <label className="text-xs font-bold text-[#191C22]">Preferred City</label>
                       <div className="relative flex items-center">
-                        <MapPin className="w-4 h-4 text-[#8C847A] absolute left-3 pointer-events-none" />
+                        <MapPin className="w-4 h-4 text-[#94A3B8] absolute left-3 pointer-events-none" />
                         <input
                           type="text"
                           value={prefs.profile.city || ''}
@@ -943,7 +943,7 @@ export default function CustomerSettingsPage() {
                             });
                             setIsDirty(true);
                           }}
-                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00]/20 transition-all"
+                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]/20 transition-all"
                           placeholder="e.g. Mumbai, Delhi NCR, Bengaluru"
                         />
                       </div>
@@ -951,18 +951,18 @@ export default function CustomerSettingsPage() {
                   </div>
 
                   {/* Form Action Buttons */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F0EAE1]">
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E7EAEE]">
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E7EAEE] transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                      className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
                       {isSaving ? 'Syncing...' : 'Save Changes'}
                     </button>
@@ -973,15 +973,15 @@ export default function CustomerSettingsPage() {
               {/* 3. Bottom Row: Account Information & Profile Completion */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Account Information Card */}
-                <div className="bg-white rounded-2xl border border-[#E8E1D6] p-6 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl border border-[#E7EAEE] p-6 shadow-sm flex flex-col justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-[#1A1816]">Account Information</h3>
-                    <p className="text-xs text-[#8C847A] mt-0.5">Your account details and status</p>
+                    <h3 className="text-base font-bold text-[#191C22]">Account Information</h3>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">Your account details and status</p>
                   </div>
 
-                  <div className="mt-5 space-y-3.5 divide-y divide-[#F2ECE3]">
+                  <div className="mt-5 space-y-3.5 divide-y divide-[#F1F3F5]">
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-xs text-[#665E55]">Account Status</span>
+                      <span className="text-xs text-[#64748B]">Account Status</span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         {prefs.profile.accountStatus || 'Active'}
@@ -989,30 +989,30 @@ export default function CustomerSettingsPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-3">
-                      <span className="text-xs text-[#665E55]">Member Since</span>
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1A1816]">
-                        <Calendar className="w-3.5 h-3.5 text-[#8C847A]" />
+                      <span className="text-xs text-[#64748B]">Member Since</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#191C22]">
+                        <Calendar className="w-3.5 h-3.5 text-[#94A3B8]" />
                         {prefs.profile.memberSince || 'Active Member'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-3">
-                      <span className="text-xs text-[#665E55]">Account Type</span>
-                      <span className="text-xs font-semibold text-[#1A1816]">
+                      <span className="text-xs text-[#64748B]">Account Type</span>
+                      <span className="text-xs font-semibold text-[#191C22]">
                         {prefs.profile.accountType || 'Customer'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-3">
-                      <span className="text-xs text-[#665E55]">User ID</span>
-                      <span className="text-xs font-mono font-bold text-[#5A544D]">
+                      <span className="text-xs text-[#64748B]">User ID</span>
+                      <span className="text-xs font-mono font-bold text-[#64748B]">
                         {prefs.profile.userId || (user?.id ? `#${user.id.slice(0, 8).toUpperCase()}` : '#USR')}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-3">
-                      <span className="text-xs text-[#665E55]">Last Login</span>
-                      <span className="text-xs font-medium text-[#5A544D]">
+                      <span className="text-xs text-[#64748B]">Last Login</span>
+                      <span className="text-xs font-medium text-[#64748B]">
                         {prefs.profile.lastLogin || 'Active session'}
                       </span>
                     </div>
@@ -1020,14 +1020,14 @@ export default function CustomerSettingsPage() {
                 </div>
 
                 {/* Profile Completion Card */}
-                <div className="bg-white rounded-2xl border border-[#E8E1D6] p-6 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl border border-[#E7EAEE] p-6 shadow-sm flex flex-col justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-[#1A1816]">Profile Completion</h3>
-                    <p className="text-xs text-[#8C847A] mt-0.5">Complete your profile to get better recommendations</p>
+                    <h3 className="text-base font-bold text-[#191C22]">Profile Completion</h3>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">Complete your profile to get better recommendations</p>
                   </div>
 
                   {/* Circular Meter + Headline */}
-                  <div className="flex items-center gap-4 mt-5 p-3.5 rounded-xl bg-[#FAF7F2] border border-[#EBE4DA]">
+                  <div className="flex items-center gap-4 mt-5 p-3.5 rounded-xl bg-[#F5F7F9] border border-[#EBE4DA]">
                     {/* SVG Circular Ring */}
                     <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
                       <svg className="w-14 h-14 transform -rotate-90">
@@ -1043,7 +1043,7 @@ export default function CustomerSettingsPage() {
                           cx="28"
                           cy="28"
                           r={radius}
-                          stroke="#FF6E00"
+                          stroke="#14B8A6"
                           strokeWidth="5"
                           strokeDasharray={circumference}
                           strokeDashoffset={strokeDashoffset}
@@ -1052,26 +1052,26 @@ export default function CustomerSettingsPage() {
                           className="transition-all duration-700 ease-out"
                         />
                       </svg>
-                      <span className="absolute text-xs font-black text-[#1A1816]">
+                      <span className="absolute text-xs font-black text-[#191C22]">
                         {completionPercent}%
                       </span>
                     </div>
 
                     {/* Copy text */}
                     <div>
-                      <h4 className="text-xs font-bold text-[#1A1816]">Almost there!</h4>
-                      <p className="text-[11px] text-[#5A544D] mt-0.5 leading-relaxed">
+                      <h4 className="text-xs font-bold text-[#191C22]">Almost there!</h4>
+                      <p className="text-[11px] text-[#64748B] mt-0.5 leading-relaxed">
                         Complete your profile to get personalized recommendations and connect with the best photographers.
                       </p>
                     </div>
                   </div>
 
                   {/* 2-Column Checklist */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-[#F0EAE1]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-[#E7EAEE]">
                     {completionItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-2">
                         {item.completed ? (
-                          <span className="w-4 h-4 rounded-full bg-[#FF6E00] text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <span className="w-4 h-4 rounded-full bg-[#14B8A6] text-white flex items-center justify-center shrink-0 shadow-xs">
                             <Check className="w-2.5 h-2.5 stroke-[3]" />
                           </span>
                         ) : (
@@ -1079,7 +1079,7 @@ export default function CustomerSettingsPage() {
                         )}
                         <span
                           className={`text-xs ${
-                            item.completed ? 'text-[#1A1816] font-medium' : 'text-[#8C847A]'
+                            item.completed ? 'text-[#191C22] font-medium' : 'text-[#94A3B8]'
                           }`}
                         >
                           {item.label}
@@ -1096,36 +1096,36 @@ export default function CustomerSettingsPage() {
           {activeTab === 'security' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Login & Security</h1>
-                <p className="text-xs text-[#665E55] mt-1">Manage password credentials and active browser sessions</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Login & Security</h1>
+                <p className="text-xs text-[#64748B] mt-1">Manage password credentials and active browser sessions</p>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#F0EAE1]">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#E7EAEE]">
                   <div>
-                    <h3 className="text-sm font-bold text-[#1A1816]">Account Password</h3>
-                    <p className="text-xs text-[#8C847A] mt-0.5">
+                    <h3 className="text-sm font-bold text-[#191C22]">Account Password</h3>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
                       Last modified {prefs.security.lastPasswordChange}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsPasswordModalOpen(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#1A1816] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#191C22] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E7EAEE] transition-all"
                   >
                     Change Password
                   </button>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#F0EAE1]">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#E7EAEE]">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-[#1A1816]">Two-Factor Authentication (2FA)</h3>
+                      <h3 className="text-sm font-bold text-[#191C22]">Two-Factor Authentication (2FA)</h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Recommended
                       </span>
                     </div>
-                    <p className="text-xs text-[#8C847A] mt-0.5">
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
                       Receive an SMS OTP code on your verified mobile phone whenever you log in.
                     </p>
                   </div>
@@ -1144,25 +1144,25 @@ export default function CustomerSettingsPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6E00]"></div>
+                    <div className="w-11 h-6 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#14B8A6]"></div>
                   </label>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-[#1A1816] mb-3">Active Device Sessions</h3>
+                  <h3 className="text-sm font-bold text-[#191C22] mb-3">Active Device Sessions</h3>
                   <div className="space-y-3">
                     {prefs.security.activeSessions.map((session) => (
                       <div
                         key={session.id}
-                        className="p-3.5 rounded-xl border border-[#E8E1D6] bg-[#FAF7F2] flex items-center justify-between"
+                        className="p-3.5 rounded-xl border border-[#E7EAEE] bg-[#F5F7F9] flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          <Smartphone className="w-4 h-4 text-[#8C847A]" />
+                          <Smartphone className="w-4 h-4 text-[#94A3B8]" />
                           <div>
-                            <p className="text-xs font-bold text-[#1A1816]">
+                            <p className="text-xs font-bold text-[#191C22]">
                               {session.device} • {session.browser}
                             </p>
-                            <p className="text-[11px] text-[#8C847A]">
+                            <p className="text-[11px] text-[#94A3B8]">
                               {session.location} ({session.ipMasked}) — {session.lastActive}
                             </p>
                           </div>
@@ -1202,11 +1202,11 @@ export default function CustomerSettingsPage() {
           {activeTab === 'notifications' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Notifications</h1>
-                <p className="text-xs text-[#665E55] mt-1">Configure SMS alerts, WhatsApp shoot milestones, and receipts</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Notifications</h1>
+                <p className="text-xs text-[#64748B] mt-1">Configure SMS alerts, WhatsApp shoot milestones, and receipts</p>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm divide-y divide-[#F0EAE1]">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm divide-y divide-[#E7EAEE]">
                 {[
                   {
                     key: 'smsMilestones' as const,
@@ -1236,8 +1236,8 @@ export default function CustomerSettingsPage() {
                 ].map((item) => (
                   <div key={item.key} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                     <div>
-                      <h4 className="text-xs font-bold text-[#1A1816]">{item.title}</h4>
-                      <p className="text-[11px] text-[#8C847A] mt-0.5">{item.desc}</p>
+                      <h4 className="text-xs font-bold text-[#191C22]">{item.title}</h4>
+                      <p className="text-[11px] text-[#94A3B8] mt-0.5">{item.desc}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input
@@ -1257,7 +1257,7 @@ export default function CustomerSettingsPage() {
                         }}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF6E00]"></div>
+                      <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#14B8A6]"></div>
                     </label>
                   </div>
                 ))}
@@ -1269,14 +1269,14 @@ export default function CustomerSettingsPage() {
           {activeTab === 'preferences' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Booking Preferences</h1>
-                <p className="text-xs text-[#665E55] mt-1">Customize photoshoot styles, genres, and RAW deliverables</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Booking Preferences</h1>
+                <p className="text-xs text-[#64748B] mt-1">Customize photoshoot styles, genres, and RAW deliverables</p>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-6">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-6">
                 <div>
-                  <label className="text-xs font-bold text-[#1A1816]">Preferred Photography Genres</label>
-                  <p className="text-[11px] text-[#8C847A] mt-0.5">Select styles you book most frequently</p>
+                  <label className="text-xs font-bold text-[#191C22]">Preferred Photography Genres</label>
+                  <p className="text-[11px] text-[#94A3B8] mt-0.5">Select styles you book most frequently</p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {['Portraits', 'Events', 'Couple Shoots', 'Creator Reels', 'Product', 'Fashion', 'Wedding'].map(
                       (genre) => {
@@ -1301,8 +1301,8 @@ export default function CustomerSettingsPage() {
                             }}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                               isSelected
-                                ? 'bg-[#FF6E00] text-white shadow-xs'
-                                : 'bg-[#FAF7F2] text-[#5A544D] border border-[#E0D8CD] hover:bg-[#F2ECE3]'
+                                ? 'bg-[#14B8A6] text-white shadow-xs'
+                                : 'bg-[#F5F7F9] text-[#64748B] border border-[#E7EAEE] hover:bg-[#F1F3F5]'
                             }`}
                           >
                             {genre}
@@ -1313,8 +1313,8 @@ export default function CustomerSettingsPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#F0EAE1]">
-                  <label className="text-xs font-bold text-[#1A1816]">Preferred Shoot Aesthetic</label>
+                <div className="pt-4 border-t border-[#E7EAEE]">
+                  <label className="text-xs font-bold text-[#191C22]">Preferred Shoot Aesthetic</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                     {(['natural', 'studio', 'candid', 'editorial'] as const).map((style) => (
                       <button
@@ -1330,8 +1330,8 @@ export default function CustomerSettingsPage() {
                         }}
                         className={`p-3 rounded-xl border text-center capitalize text-xs font-bold transition-all ${
                           prefs.bookingPreferences.shootStyle === style
-                            ? 'border-[#FF6E00] bg-[#FFF4EB] text-[#FF6E00]'
-                            : 'border-[#E0D8CD] bg-white text-[#5A544D] hover:bg-[#FAF7F2]'
+                            ? 'border-[#14B8A6] bg-[#FFF4EB] text-[#14B8A6]'
+                            : 'border-[#E7EAEE] bg-white text-[#64748B] hover:bg-[#F5F7F9]'
                         }`}
                       >
                         {style}
@@ -1340,10 +1340,10 @@ export default function CustomerSettingsPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#F0EAE1] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E7EAEE] flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1A1816]">Receive High-Res RAW Previews</h4>
-                    <p className="text-[11px] text-[#8C847A] mt-0.5">
+                    <h4 className="text-xs font-bold text-[#191C22]">Receive High-Res RAW Previews</h4>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">
                       Request photographers provide uncompressed color profiles alongside processed JPEG photos.
                     </p>
                   </div>
@@ -1364,7 +1364,7 @@ export default function CustomerSettingsPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF6E00]"></div>
+                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#14B8A6]"></div>
                   </label>
                 </div>
               </div>
@@ -1376,13 +1376,13 @@ export default function CustomerSettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Saved Locations</h1>
-                  <p className="text-xs text-[#665E55] mt-1">Manage favorite venues and studios for 1-click booking</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Saved Locations</h1>
+                  <p className="text-xs text-[#64748B] mt-1">Manage favorite venues and studios for 1-click booking</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsLocationModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] shadow-sm transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] shadow-sm transition-all"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                   <span>Add Venue</span>
@@ -1390,16 +1390,16 @@ export default function CustomerSettingsPage() {
               </div>
 
               {prefs.savedLocations.length === 0 ? (
-                <div className="p-8 bg-white rounded-2xl border border-dashed border-[#E8E1D6] text-center space-y-3">
-                  <MapPin className="w-8 h-8 text-[#8C847A] mx-auto" />
-                  <h4 className="text-sm font-bold text-[#1A1816]">No Saved Venues Yet</h4>
-                  <p className="text-xs text-[#8C847A] max-w-sm mx-auto">
+                <div className="p-8 bg-white rounded-2xl border border-dashed border-[#E7EAEE] text-center space-y-3">
+                  <MapPin className="w-8 h-8 text-[#94A3B8] mx-auto" />
+                  <h4 className="text-sm font-bold text-[#191C22]">No Saved Venues Yet</h4>
+                  <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
                     Save your home studio, terrace, or favorite shoot location for 1-click booking with photographers.
                   </p>
                   <button
                     type="button"
                     onClick={() => setIsLocationModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] shadow-sm transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] shadow-sm transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4 stroke-[2.5]" />
                     <span>Add Your First Venue</span>
@@ -1410,26 +1410,26 @@ export default function CustomerSettingsPage() {
                   {prefs.savedLocations.map((loc) => (
                     <div
                       key={loc.id}
-                      className="p-5 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm flex flex-col justify-between"
+                      className="p-5 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-[#FF6E00]" />
-                            <h4 className="text-xs font-bold text-[#1A1816]">{loc.label}</h4>
+                            <MapPin className="w-4 h-4 text-[#14B8A6]" />
+                            <h4 className="text-xs font-bold text-[#191C22]">{loc.label}</h4>
                           </div>
                           {loc.isDefault && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF7F2] text-[#8C847A] border border-[#E0D8CD]">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F5F7F9] text-[#94A3B8] border border-[#E7EAEE]">
                               Default
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-[#5A544D] mt-2 leading-relaxed">{loc.address}</p>
+                        <p className="text-xs text-[#64748B] mt-2 leading-relaxed">{loc.address}</p>
                         {loc.instructions && (
-                          <p className="text-[11px] text-[#8C847A] mt-1 italic">Note: {loc.instructions}</p>
+                          <p className="text-[11px] text-[#94A3B8] mt-1 italic">Note: {loc.instructions}</p>
                         )}
                       </div>
-                      <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#F0EAE1]">
+                      <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#E7EAEE]">
                         <button
                           type="button"
                           onClick={() => handleDeleteLocation(loc.id)}
@@ -1450,23 +1450,23 @@ export default function CustomerSettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Payment Methods</h1>
-                  <p className="text-xs text-[#665E55] mt-1">Manage UPI IDs, credit cards, and 100% escrow protection</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Payment Methods</h1>
+                  <p className="text-xs text-[#64748B] mt-1">Manage UPI IDs, credit cards, and 100% escrow protection</p>
                 </div>
                 <Link
                   href="/customer/payments"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6E00] hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#14B8A6] hover:underline"
                 >
                   <span>Payments & Escrow Dashboard</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-5">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-5">
                 <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
                   <Shield className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-emerald-900">SnapShoot 100% Escrow Protection</h4>
+                    <h4 className="text-xs font-bold text-emerald-900">REEPY 100% Escrow Protection</h4>
                     <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
                       All booking deposits remain securely locked in platform escrow until you meet your photographer
                       at the venue and verify the shoot handshake OTP.
@@ -1475,12 +1475,12 @@ export default function CustomerSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="p-4 rounded-xl border border-[#E8E1D6] bg-[#FAF7F2] flex items-center justify-between">
+                  <div className="p-4 rounded-xl border border-[#E7EAEE] bg-[#F5F7F9] flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-[#FF6E00]" />
+                      <CreditCard className="w-5 h-5 text-[#14B8A6]" />
                       <div>
-                        <p className="text-xs font-bold text-[#1A1816]">Razorpay Payment & Escrow Gateway</p>
-                        <p className="text-[11px] text-[#8C847A]">UPI, Cards, NetBanking &amp; Wallets enabled for shoot bookings</p>
+                        <p className="text-xs font-bold text-[#191C22]">Razorpay Payment & Escrow Gateway</p>
+                        <p className="text-[11px] text-[#94A3B8]">UPI, Cards, NetBanking &amp; Wallets enabled for shoot bookings</p>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1488,17 +1488,17 @@ export default function CustomerSettingsPage() {
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-dashed border-[#E8E1D6] bg-white flex items-center justify-between">
+                  <div className="p-4 rounded-xl border border-dashed border-[#E7EAEE] bg-white flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5 text-[#8C847A]" />
+                      <Smartphone className="w-5 h-5 text-[#94A3B8]" />
                       <div>
-                        <p className="text-xs font-bold text-[#1A1816]">Checkout-Linked Payment Methods</p>
-                        <p className="text-[11px] text-[#8C847A]">Payment accounts and UPI handles are secured during reservation checkouts</p>
+                        <p className="text-xs font-bold text-[#191C22]">Checkout-Linked Payment Methods</p>
+                        <p className="text-[11px] text-[#94A3B8]">Payment accounts and UPI handles are secured during reservation checkouts</p>
                       </div>
                     </div>
                     <Link
                       href="/customer/payments"
-                      className="text-[11px] font-bold text-[#FF6E00] hover:underline"
+                      className="text-[11px] font-bold text-[#14B8A6] hover:underline"
                     >
                       View Escrow History →
                     </Link>
@@ -1513,28 +1513,28 @@ export default function CustomerSettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">My Bookings</h1>
-                  <p className="text-xs text-[#665E55] mt-1">Review active and completed photography reservations</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">My Bookings</h1>
+                  <p className="text-xs text-[#64748B] mt-1">Review active and completed photography reservations</p>
                 </div>
                 <Link
                   href="/customer/bookings"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] shadow-sm transition-all"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] shadow-sm transition-all"
                 >
                   Open Full Bookings Portal
                 </Link>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm text-center py-10 space-y-3">
-                <CalendarCheck className="w-10 h-10 text-[#FF6E00] mx-auto" />
-                <h3 className="text-base font-bold text-[#1A1816]">Active Photography Shoots</h3>
-                <p className="text-xs text-[#8C847A] max-w-md mx-auto">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm text-center py-10 space-y-3">
+                <CalendarCheck className="w-10 h-10 text-[#14B8A6] mx-auto" />
+                <h3 className="text-base font-bold text-[#191C22]">Active Photography Shoots</h3>
+                <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
                   You can track shoot arrival, OTP handshakes, photo deliveries, and photographer chats in the Bookings
                   management center.
                 </p>
                 <div className="pt-2">
                   <Link
                     href="/customer/bookings"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] shadow-sm transition-all"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] shadow-sm transition-all"
                   >
                     <span>View All Bookings</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1548,15 +1548,15 @@ export default function CustomerSettingsPage() {
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Privacy & Data</h1>
-                <p className="text-xs text-[#665E55] mt-1">Control phone number masking, gallery access, and GDPR export</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Privacy & Data</h1>
+                <p className="text-xs text-[#64748B] mt-1">Control phone number masking, gallery access, and GDPR export</p>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm divide-y divide-[#F0EAE1]">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm divide-y divide-[#E7EAEE]">
                 <div className="pb-5 flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1A1816]">Mask Mobile Number Until Booking Confirmation</h4>
-                    <p className="text-[11px] text-[#8C847A] mt-0.5">
+                    <h4 className="text-xs font-bold text-[#191C22]">Mask Mobile Number Until Booking Confirmation</h4>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">
                       Keep your real contact number confidential until you confirm a shoot reservation.
                     </p>
                   </div>
@@ -1574,14 +1574,14 @@ export default function CustomerSettingsPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF6E00]"></div>
+                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#14B8A6]"></div>
                   </label>
                 </div>
 
                 <div className="py-5 flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1A1816]">Private Password-Protected Photo Deliveries</h4>
-                    <p className="text-[11px] text-[#8C847A] mt-0.5">
+                    <h4 className="text-xs font-bold text-[#191C22]">Private Password-Protected Photo Deliveries</h4>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">
                       Ensure your delivered shoot links are locked behind an OTP code.
                     </p>
                   </div>
@@ -1599,14 +1599,14 @@ export default function CustomerSettingsPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF6E00]"></div>
+                    <div className="w-10 h-5 bg-[#D5CEC4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#14B8A6]"></div>
                   </label>
                 </div>
 
                 <div className="pt-5 flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1A1816]">Download Personal Data Archive</h4>
-                    <p className="text-[11px] text-[#8C847A] mt-0.5">
+                    <h4 className="text-xs font-bold text-[#191C22]">Download Personal Data Archive</h4>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">
                       Export a JSON package containing your profile, bookings history, and saved locations.
                     </p>
                   </div>
@@ -1614,7 +1614,7 @@ export default function CustomerSettingsPage() {
                     type="button"
                     onClick={handleExportData}
                     disabled={isExporting}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#1A1816] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#191C22] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E7EAEE] transition-all"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>{isExporting ? 'Generating...' : 'Export JSON'}</span>
@@ -1628,13 +1628,13 @@ export default function CustomerSettingsPage() {
           {activeTab === 'language' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Language & Accessibility</h1>
-                <p className="text-xs text-[#665E55] mt-1">Configure portal language, font readability, and regional settings</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Language & Accessibility</h1>
+                <p className="text-xs text-[#64748B] mt-1">Configure portal language, font readability, and regional settings</p>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-6">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-6">
                 <div className="space-y-1.5 max-w-sm">
-                  <label className="text-xs font-bold text-[#1A1816]">Interface Language</label>
+                  <label className="text-xs font-bold text-[#191C22]">Interface Language</label>
                   <select
                     value={prefs.profile.preferredLanguage}
                     onChange={(e) => {
@@ -1645,7 +1645,7 @@ export default function CustomerSettingsPage() {
                       setPrefs(updated);
                       saveCustomerPreferences(updated);
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E0D8CD] bg-white text-xs font-medium text-[#1A1816] focus:outline-none focus:border-[#FF6E00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7EAEE] bg-white text-xs font-medium text-[#191C22] focus:outline-none focus:border-[#14B8A6]"
                   >
                     <option value="English">English (India)</option>
                     <option value="Hindi">हिन्दी (Hindi)</option>
@@ -1657,10 +1657,10 @@ export default function CustomerSettingsPage() {
                   </select>
                 </div>
 
-                <div className="pt-4 border-t border-[#F0EAE1] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E7EAEE] flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1A1816]">High Contrast Typography Mode</h4>
-                    <p className="text-[11px] text-[#8C847A] mt-0.5">Enhance visual text boundaries and borders</p>
+                    <h4 className="text-xs font-bold text-[#191C22]">High Contrast Typography Mode</h4>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">Enhance visual text boundaries and borders</p>
                   </div>
                   <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                     WCAG AAA Active
@@ -1674,31 +1674,31 @@ export default function CustomerSettingsPage() {
           {activeTab === 'support' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Help & Support</h1>
-                <p className="text-xs text-[#665E55] mt-1">Get 24/7 client concierge support, shoot dispute assistance, and FAQs</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Help & Support</h1>
+                <p className="text-xs text-[#64748B] mt-1">Get 24/7 client concierge support, shoot dispute assistance, and FAQs</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-5 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-2">
-                  <h4 className="text-xs font-bold text-[#1A1816]">Platform Support Helpline</h4>
-                  <p className="text-xs text-[#5A544D]">
-                    Email: <span className="font-semibold text-[#1A1816]">support@snapshoot.in</span>
+                <div className="p-5 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-2">
+                  <h4 className="text-xs font-bold text-[#191C22]">Platform Support Helpline</h4>
+                  <p className="text-xs text-[#64748B]">
+                    Email: <span className="font-semibold text-[#191C22]">support@snapshoot.in</span>
                   </p>
-                  <p className="text-xs text-[#5A544D]">
-                    Phone: <span className="font-semibold text-[#1A1816]">+91 1800 200 4829</span> (Toll-Free)
+                  <p className="text-xs text-[#64748B]">
+                    Phone: <span className="font-semibold text-[#191C22]">+91 1800 200 4829</span> (Toll-Free)
                   </p>
-                  <p className="text-[11px] text-[#8C847A] pt-1">Mon - Sun: 7:00 AM - 11:00 PM IST</p>
+                  <p className="text-[11px] text-[#94A3B8] pt-1">Mon - Sun: 7:00 AM - 11:00 PM IST</p>
                 </div>
 
-                <div className="p-5 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-2">
-                  <h4 className="text-xs font-bold text-[#1A1816]">Frequently Asked Questions</h4>
-                  <ul className="text-xs text-[#5A544D] space-y-1.5 list-disc pl-4">
+                <div className="p-5 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-2">
+                  <h4 className="text-xs font-bold text-[#191C22]">Frequently Asked Questions</h4>
+                  <ul className="text-xs text-[#64748B] space-y-1.5 list-disc pl-4">
                     <li>How does the OTP shoot handshake work?</li>
                     <li>What is the platform cancellation policy?</li>
                     <li>When are edited photo galleries delivered?</li>
                   </ul>
                   <div className="pt-2">
-                    <Link href="/how-it-works" className="text-xs font-bold text-[#FF6E00] hover:underline">
+                    <Link href="/how-it-works" className="text-xs font-bold text-[#14B8A6] hover:underline">
                       Read Complete FAQ Guide →
                     </Link>
                   </div>
@@ -1711,20 +1711,20 @@ export default function CustomerSettingsPage() {
           {activeTab === 'account' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1A1816]">Account Management</h1>
-                <p className="text-xs text-[#665E55] mt-1">Manage platform account ownership and data controls</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[#191C22]">Account Management</h1>
+                <p className="text-xs text-[#64748B] mt-1">Manage platform account ownership and data controls</p>
               </div>
 
               {/* DEDICATED ACCOUNT ACTIONS CARD */}
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-4">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <span className="text-[10px] font-bold tracking-wider text-[#8C847A] uppercase">
+                    <span className="text-[10px] font-bold tracking-wider text-[#94A3B8] uppercase">
                       Account Actions
                     </span>
-                    <h3 className="text-sm font-bold text-[#1A1816] mt-0.5">Session Log Out</h3>
-                    <p className="text-xs text-[#8C847A] mt-0.5">
-                      Safely sign out of your SnapShoot account on this browser.
+                    <h3 className="text-sm font-bold text-[#191C22] mt-0.5">Session Log Out</h3>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                      Safely sign out of your REEPY account on this browser.
                     </p>
                   </div>
                   <button
@@ -1738,11 +1738,11 @@ export default function CustomerSettingsPage() {
                 </div>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border border-[#E8E1D6] shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#F0EAE1]">
+              <div className="p-6 bg-white rounded-2xl border border-[#E7EAEE] shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#E7EAEE]">
                   <div>
-                    <h3 className="text-sm font-bold text-[#1A1816]">Sign Out from All Devices</h3>
-                    <p className="text-xs text-[#8C847A] mt-0.5">
+                    <h3 className="text-sm font-bold text-[#191C22]">Sign Out from All Devices</h3>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
                       Immediately invalidate active login sessions across all browsers and phones.
                     </p>
                   </div>
@@ -1752,7 +1752,7 @@ export default function CustomerSettingsPage() {
                       logout();
                       setStatusMessage('Signed out of all devices.');
                     }}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#1A1816] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E0D8CD] transition-all"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#191C22] bg-[#F7F4EF] hover:bg-[#EAE4D9] border border-[#E7EAEE] transition-all"
                   >
                     Sign Out Everywhere
                   </button>
@@ -1762,7 +1762,7 @@ export default function CustomerSettingsPage() {
                   <div>
                     <h4 className="text-xs font-bold text-red-900">Danger Zone: Delete Account</h4>
                     <p className="text-[11px] text-red-700 mt-0.5">
-                      Permanently delete your SnapShoot profile, shoot history, and saved locations.
+                      Permanently delete your REEPY profile, shoot history, and saved locations.
                     </p>
                   </div>
                   <button
@@ -1800,40 +1800,40 @@ export default function CustomerSettingsPage() {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Current Password (Optional if signed in with Google/OTP)</label>
+            <label className="text-xs font-bold text-[#191C22]">Current Password (Optional if signed in with Google/OTP)</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
               placeholder="Leave blank if using Google or OTP"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">New Password</label>
+            <label className="text-xs font-bold text-[#191C22]">New Password</label>
             <input
               type="password"
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
               placeholder="At least 8 characters"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Confirm New Password</label>
+            <label className="text-xs font-bold text-[#191C22]">Confirm New Password</label>
             <input
               type="password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0EAE1]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E7EAEE]">
             <Button variant="secondary" size="sm" onClick={() => setIsPasswordModalOpen(false)}>
               Cancel
             </Button>
@@ -1860,51 +1860,51 @@ export default function CustomerSettingsPage() {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Venue Label *</label>
+            <label className="text-xs font-bold text-[#191C22]">Venue Label *</label>
             <input
               type="text"
               required
               value={locationLabel}
               onChange={(e) => setLocationLabel(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
               placeholder="e.g. Bandra Bandstand / Home Studio"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Complete Street Address *</label>
+            <label className="text-xs font-bold text-[#191C22]">Complete Street Address *</label>
             <textarea
               required
               rows={2}
               value={locationAddress}
               onChange={(e) => setLocationAddress(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
               placeholder="Flat 402, Sea Green Apartments, Bandra West, Mumbai 400050"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">City Hub</label>
+            <label className="text-xs font-bold text-[#191C22]">City Hub</label>
             <input
               type="text"
               value={locationCity}
               onChange={(e) => setLocationCity(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#1A1816]">Special Access Instructions (Optional)</label>
+            <label className="text-xs font-bold text-[#191C22]">Special Access Instructions (Optional)</label>
             <input
               type="text"
               value={locationInstructions}
               onChange={(e) => setLocationInstructions(e.target.value)}
-              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#FF6E00]"
+              className="w-full p-2.5 bg-white border border-[#D5CEC4] rounded-xl text-xs outline-none focus:border-[#14B8A6]"
               placeholder="e.g. Intercom 402, visitor parking available"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0EAE1]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E7EAEE]">
             <Button variant="secondary" size="sm" onClick={() => setIsLocationModalOpen(false)}>
               Cancel
             </Button>
@@ -1924,7 +1924,7 @@ export default function CustomerSettingsPage() {
         title="Confirm Account Deletion"
       >
         <div className="space-y-4">
-          <p className="text-xs text-[#5A544D] leading-relaxed">
+          <p className="text-xs text-[#64748B] leading-relaxed">
             This action is permanent and cannot be undone. To confirm, type{' '}
             <strong className="text-red-600">DELETE MY ACCOUNT</strong> below:
           </p>
@@ -1943,7 +1943,7 @@ export default function CustomerSettingsPage() {
             placeholder="DELETE MY ACCOUNT"
           />
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0EAE1]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E7EAEE]">
             <Button variant="secondary" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
@@ -1968,11 +1968,11 @@ export default function CustomerSettingsPage() {
         title="Confirm Log Out"
       >
         <div className="space-y-4">
-          <p className="text-xs text-[#665E55] leading-relaxed">
-            Are you sure you want to log out of your SnapShoot account? You will be returned to the public homepage and will need to sign in again to manage your bookings and settings.
+          <p className="text-xs text-[#64748B] leading-relaxed">
+            Are you sure you want to log out of your REEPY account? You will be returned to the public homepage and will need to sign in again to manage your bookings and settings.
           </p>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0EAE1]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E7EAEE]">
             <Button
               variant="secondary"
               size="sm"

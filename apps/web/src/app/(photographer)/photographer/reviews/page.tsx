@@ -78,7 +78,7 @@ export default function PhotographerReviewsPage() {
           Client Feedback & Verified Reviews
         </h1>
         <p className="text-sm text-ink-secondary mt-1">
-          Reviews submitted by verified clients upon photo delivery approval on SnapShoot.
+          Reviews submitted by verified clients upon photo delivery approval on REEPY.
         </p>
       </div>
 

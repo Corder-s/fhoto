@@ -183,7 +183,7 @@ export const AdminDashboardView: React.FC = () => {
           value: stats.totalUsers.toLocaleString('en-IN'),
           subtext: `${stats.customers.toLocaleString('en-IN')} customers • ${stats.photographers.toLocaleString('en-IN')} photographers`,
           icon: Users,
-          iconColor: 'bg-[#FFF2E8] text-[#FF6E00] border-[#FFDFC6]',
+          iconColor: 'bg-[#EFFCF8] text-[#14B8A6] border-[#99F6E4]',
         },
         {
           id: 'kpi-bookings',
@@ -225,7 +225,7 @@ export const AdminDashboardView: React.FC = () => {
         <div
           role="status"
           className={`fixed top-20 right-8 z-50 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 ${
-            actionToast.tone === 'error' ? 'bg-red-600' : 'bg-[#1A1816]'
+            actionToast.tone === 'error' ? 'bg-red-600' : 'bg-[#191C22]'
           }`}
         >
           {actionToast.tone === 'ok' && <Check className="w-4 h-4 text-emerald-400" />}
@@ -235,7 +235,7 @@ export const AdminDashboardView: React.FC = () => {
 
       {/* ROW 1: WELCOME & QUICK ACTIONS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-8 relative rounded-3xl bg-[#FFF8F2] border border-[#FFDFC6] p-6 sm:p-8 overflow-hidden flex flex-col justify-between shadow-2xs">
+        <div className="lg:col-span-8 relative rounded-3xl bg-[#EFFCF8] border border-[#99F6E4] p-6 sm:p-8 overflow-hidden flex flex-col justify-between shadow-2xs">
           <div
             className="absolute right-0 top-0 bottom-0 w-1/2 sm:w-5/12 bg-cover bg-center pointer-events-none opacity-90 hidden sm:block"
             style={{
@@ -245,26 +245,26 @@ export const AdminDashboardView: React.FC = () => {
             }}
           />
           <div className="relative z-10 max-w-md space-y-2">
-            <span className="text-sm font-semibold text-[#8C847A]">Welcome back,</span>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A1816] tracking-tight">Admin!</h1>
-            <p className="text-xs sm:text-sm text-[#736B63] font-medium">
+            <span className="text-sm font-semibold text-[#94A3B8]">Welcome back,</span>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#191C22] tracking-tight">Admin!</h1>
+            <p className="text-xs sm:text-sm text-[#64748B] font-medium">
               Review photographer applications, manage accounts and monitor bookings.
             </p>
           </div>
-          <div className="relative z-10 pt-4 mt-6 border-t border-[#F3E7DC] flex items-center gap-4 text-xs font-semibold text-[#736B63]">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#E8E2D8] text-[11px] font-bold text-[#1A1816]">
+          <div className="relative z-10 pt-4 mt-6 border-t border-[#F3E7DC] flex items-center gap-4 text-xs font-semibold text-[#64748B]">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#E7EAEE] text-[11px] font-bold text-[#191C22]">
               <span className={`w-2 h-2 rounded-full ${loadError ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
               <span>{loadError ? 'Data unavailable' : 'Live data'}</span>
             </span>
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#E7EAEE] p-5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-lg bg-[#FFF2E8] text-[#FF6E00] flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
               <Activity className="w-3.5 h-3.5" />
             </div>
-            <h3 className="text-sm font-black text-[#1A1816]">Quick Actions</h3>
+            <h3 className="text-sm font-black text-[#191C22]">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-2 gap-2 flex-1">
             {quickActions.map((act) => {
@@ -299,22 +299,22 @@ export const AdminDashboardView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading && !stats &&
           [0, 1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#E8E2D8] p-5 h-32 animate-pulse" />
+            <div key={i} className="bg-white rounded-2xl border border-[#E7EAEE] p-5 h-32 animate-pulse" />
           ))}
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           return (
             <div
               key={kpi.id}
-              className="bg-white rounded-2xl border border-[#E8E2D8] p-5 shadow-2xs hover:border-[#FF6E00] transition-all space-y-3"
+              className="bg-white rounded-2xl border border-[#E7EAEE] p-5 shadow-2xs hover:border-[#14B8A6] transition-all space-y-3"
             >
               <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${kpi.iconColor}`}>
                 <Icon className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-[#736B63] font-medium">{kpi.title}</p>
-                <p className="text-2xl font-black text-[#1A1816] tracking-tight mt-0.5">{kpi.value}</p>
-                <p className="text-[11px] text-[#8C847A] font-medium mt-1 truncate">{kpi.subtext}</p>
+                <p className="text-xs text-[#64748B] font-medium">{kpi.title}</p>
+                <p className="text-2xl font-black text-[#191C22] tracking-tight mt-0.5">{kpi.value}</p>
+                <p className="text-[11px] text-[#94A3B8] font-medium mt-1 truncate">{kpi.subtext}</p>
               </div>
             </div>
           );
@@ -325,18 +325,18 @@ export const AdminDashboardView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div
           id="pending-photographers"
-          className="lg:col-span-12 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs scroll-mt-24"
+          className="lg:col-span-12 bg-white rounded-3xl border border-[#E7EAEE] p-5 shadow-2xs scroll-mt-24"
         >
           <VerificationQueue canReview={canReview} />
         </div>
 
         {/* RECENT USERS */}
-        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E7EAEE] p-5 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#FF6E00]" />
-                <h3 className="text-sm font-black text-[#1A1816]">Users</h3>
+                <Users className="w-4 h-4 text-[#14B8A6]" />
+                <h3 className="text-sm font-black text-[#191C22]">Users</h3>
               </div>
               <div className="flex items-center gap-1">
                 {(['all', 'customers', 'photographers', 'administrators'] as const).map((t) => (
@@ -345,7 +345,7 @@ export const AdminDashboardView: React.FC = () => {
                     type="button"
                     onClick={() => setUserFilter(t)}
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize cursor-pointer ${
-                      userFilter === t ? 'bg-[#FF6E00] text-white shadow-2xs' : 'text-[#736B63] hover:text-[#1A1816]'
+                      userFilter === t ? 'bg-[#14B8A6] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#191C22]'
                     }`}
                   >
                     {t === 'all'
@@ -360,14 +360,14 @@ export const AdminDashboardView: React.FC = () => {
               </div>
             </div>
             {users.length === 0 ? (
-              <p className="text-xs text-[#8C847A] py-6 text-center">No users match this filter.</p>
+              <p className="text-xs text-[#94A3B8] py-6 text-center">No users match this filter.</p>
             ) : (
-              <div className="divide-y divide-[#F2ECE3]">
+              <div className="divide-y divide-[#F1F3F5]">
                 {users.slice(0, 8).map((u) => (
                   <div key={u.id} className="py-2.5 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#1A1816] truncate">{u.fullName || 'Unnamed user'}</p>
-                      <p className="text-[10px] text-[#8C847A] truncate">
+                      <p className="text-xs font-bold text-[#191C22] truncate">{u.fullName || 'Unnamed user'}</p>
+                      <p className="text-[10px] text-[#94A3B8] truncate">
                         {u.isPhotographer ? 'Photographer' : 'Customer'} • {u.email}
                       </p>
                     </div>
@@ -434,33 +434,33 @@ export const AdminDashboardView: React.FC = () => {
         </div>
 
         {/* RECENT BOOKINGS */}
-        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-6 bg-white rounded-3xl border border-[#E7EAEE] p-5 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#FF6E00]" />
-                <h3 className="text-sm font-black text-[#1A1816]">Recent Bookings</h3>
+                <Calendar className="w-4 h-4 text-[#14B8A6]" />
+                <h3 className="text-sm font-black text-[#191C22]">Recent Bookings</h3>
               </div>
-              <Link href="/admin/bookings" className="text-xs font-bold text-[#FF6E00] hover:underline inline-flex items-center gap-1">
+              <Link href="/admin/bookings" className="text-xs font-bold text-[#14B8A6] hover:underline inline-flex items-center gap-1">
                 <span>View All</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {bookings.length === 0 ? (
-              <p className="text-xs text-[#8C847A] py-6 text-center">No bookings yet.</p>
+              <p className="text-xs text-[#94A3B8] py-6 text-center">No bookings yet.</p>
             ) : (
-              <div className="divide-y divide-[#F2ECE3]">
+              <div className="divide-y divide-[#F1F3F5]">
                 {bookings.map((b) => (
                   <div key={b.id} className="py-2.5 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#1A1816] truncate">{b.event_title || b.booking_reference || 'Booking'}</p>
-                      <p className="text-[10px] text-[#8C847A] truncate">
+                      <p className="text-xs font-bold text-[#191C22] truncate">{b.event_title || b.booking_reference || 'Booking'}</p>
+                      <p className="text-[10px] text-[#94A3B8] truncate">
                         {b.customer?.full_name || 'Customer'} → {b.creator?.professional_name || 'Photographer'}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-black text-[#1A1816]">{inr(Number(b.total_amount) || 0)}</p>
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#736B63] capitalize">
+                      <p className="text-xs font-black text-[#191C22]">{inr(Number(b.total_amount) || 0)}</p>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#64748B] capitalize">
                         <Clock className="w-2.5 h-2.5" />
                         {b.booking_status.replace('_', ' ')}
                       </span>
@@ -474,9 +474,9 @@ export const AdminDashboardView: React.FC = () => {
       </div>
 
       {/* ROW 4: WHO ELSE CAN DO WHAT */}
-      <div className="bg-white rounded-3xl border border-[#E8E2D8] p-5 shadow-2xs space-y-2">
-        <div className="flex items-start gap-2 text-[11px] font-semibold text-[#736B63]">
-          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6E00]" />
+      <div className="bg-white rounded-3xl border border-[#E7EAEE] p-5 shadow-2xs space-y-2">
+        <div className="flex items-start gap-2 text-[11px] font-semibold text-[#64748B]">
+          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-[#14B8A6]" />
           <p>
             {`Signed in as ${sessionCapabilities?.roles?.join(' / ') || 'administrator'}. Your capabilities: ${
               isOwner

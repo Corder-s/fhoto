@@ -2,7 +2,7 @@ import React from 'react';
 import { CustomerLayoutClient } from '../../../components/customer/CustomerLayoutClient';
 
 export const metadata = {
-  title: 'Client Portal | SnapShoot',
+  title: 'Client Portal | REEPY',
   description: 'Manage photographer bookings, track shoot arrivals, verify OTPs, and access delivered photo galleries.',
 };
 

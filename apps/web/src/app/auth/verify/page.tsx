@@ -68,11 +68,11 @@ function AuthVerifyForm() {
       {/* Top Header */}
       <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-card-sm bg-brand flex items-center justify-center text-white shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm shadow-brand/20">
             <Camera className="w-4 h-4" />
           </div>
           <span className="text-xl font-bold tracking-tight text-ink-primary">
-            Snap<span className="text-brand">Shoot</span>
+            REEPY
           </span>
         </Link>
 
@@ -159,7 +159,7 @@ function AuthVerifyForm() {
       </div>
 
       <div className="text-center text-xs text-ink-muted">
-        <p>© {new Date().getFullYear()} SnapShoot Technologies Pvt. Ltd. Authenticated Session Guard.</p>
+        <p>© {new Date().getFullYear()} REEPY Marketplace Technologies. Authenticated Session Guard.</p>
       </div>
     </div>
   );

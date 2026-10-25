@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { resolveSlugSearchTerm, getPhotographerSlug } from '@/lib/photographerSlug';
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const creatorId = searchParams.get('id');
 
     const admin = getSupabaseAdminClient();
-    const client = admin || getSupabaseBrowserClient();
+    const client = admin || getSupabaseServerClient();
 
     if (!client) {
       return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });

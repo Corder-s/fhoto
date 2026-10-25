@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -103,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl border border-contour-subtle p-8 text-center space-y-4 shadow-elevated">
-          <div className="w-14 h-14 rounded-2xl bg-[#FF6E00] text-white flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 rounded-2xl bg-[#14B8A6] text-white flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-black text-ink-primary">Admin Authentication Required</h1>
@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </p>
           <button
             onClick={() => openAuthModal({ returnUrl: pathname, initialTab: 'login' })}
-            className="w-full py-3 px-6 rounded-2xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer"
+            className="w-full py-3 px-6 rounded-2xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer"
           >
             Log In as Administrator
           </button>
@@ -127,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (serverSession.status === 'loading') {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -135,8 +135,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-[#5A544D]">
+          <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-[#64748B]">
             {isCreator ? 'Redirecting to Creator Studio Dashboard...' : 'Redirecting to Customer Dashboard...'}
           </p>
         </div>
@@ -145,22 +145,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#1A1816] flex flex-col">
+    <div className="min-h-screen bg-[#F5F7F9] text-[#191C22] flex flex-col">
       {/* ======================================================== */}
       {/* TOP HEADER: EXACT REFERENCE IMAGE B                      */}
       {/* ======================================================== */}
-      <header className="sticky top-0 z-40 bg-white border-b border-[#E8E2D8] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 bg-white border-b border-[#E7EAEE] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         {/* Left Branding */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="SnapShoot Brand">
-            <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-2xs">
+          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="REEPY Brand">
+            <div className="w-9 h-9 rounded-xl bg-[#14B8A6] flex items-center justify-center text-white shadow-2xs">
               <Camera className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
-              <span className="text-base font-black tracking-tight text-[#1A1816] uppercase">
-                Snap<span className="text-[#FF6E00]">Shoot</span>
+              <span className="text-base font-black tracking-tight text-[#191C22] uppercase">
+                REEPY
               </span>
-              <p className="text-[9px] font-medium text-[#8C847A] leading-none">
+              <p className="text-[9px] font-medium text-[#94A3B8] leading-none">
                 Moments. People. Stories.
               </p>
             </div>
@@ -170,15 +170,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Center Search Input with Ctrl + K */}
         <div className="flex-1 max-w-xl hidden md:block">
           <div className="relative">
-            <Search className="w-4 h-4 text-[#8C847A] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users, photographers, bookings, payments, reports..."
-              className="w-full pl-9 pr-16 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] text-xs text-[#1A1816] placeholder:text-[#8C847A] focus:outline-none focus:border-[#FF6E00] focus:bg-white transition-all"
+              className="w-full pl-9 pr-16 py-2 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs text-[#191C22] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-white border border-[#E8E2D8] text-[9px] font-bold text-[#8C847A]">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-white border border-[#E7EAEE] text-[9px] font-bold text-[#94A3B8]">
               Ctrl + K
             </span>
           </div>
@@ -187,10 +187,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Right Controls: Date Range, Notifications, Messages, Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Date Range Selector Pill */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] text-xs font-bold text-[#1A1816] cursor-pointer hover:bg-white transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-[#8C847A]" />
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs font-bold text-[#191C22] cursor-pointer hover:bg-white transition-colors">
+            <Calendar className="w-3.5 h-3.5 text-[#94A3B8]" />
             <span>{dateRange}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
           </div>
 
           {/* Notifications with Live Badge */}
@@ -200,7 +200,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 setShowNotifs(!showNotifs);
                 setShowProfileMenu(false);
               }}
-              className="relative p-2 text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-xl transition-colors cursor-pointer"
+              className="relative p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors cursor-pointer"
               title="Notifications"
             >
               <Bell className="w-5 h-5 stroke-[1.8]" />
@@ -212,26 +212,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
 
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E8E2D8] shadow-elevated p-3 z-50 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-[#F2ECE3]">
-                  <span className="font-black text-[#1A1816]">Admin Notifications</span>
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated p-3 z-50 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-[#F1F3F5]">
+                  <span className="font-black text-[#191C22]">Admin Notifications</span>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
                       <button
                         onClick={() => markAsRead()}
-                        className="text-[10px] font-semibold text-[#FF6E00] hover:underline cursor-pointer"
+                        className="text-[10px] font-semibold text-[#14B8A6] hover:underline cursor-pointer"
                       >
                         Mark all read
                       </button>
                     )}
-                    <span className="text-[10px] bg-[#FFE8D6] text-[#FF6E00] px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] bg-[#FFE8D6] text-[#14B8A6] px-2 py-0.5 rounded-full font-bold">
                       {unreadCount} New
                     </span>
                   </div>
                 </div>
-                <div className="divide-y divide-[#F2ECE3] max-h-72 overflow-y-auto py-1">
+                <div className="divide-y divide-[#F1F3F5] max-h-72 overflow-y-auto py-1">
                   {notifications.length === 0 ? (
-                    <div className="py-4 text-center text-[#8C847A]">No administrative alerts</div>
+                    <div className="py-4 text-center text-[#94A3B8]">No administrative alerts</div>
                   ) : (
                     notifications.map((item) => (
                       <Link
@@ -241,14 +241,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           markAsRead(item.id);
                           setShowNotifs(false);
                         }}
-                        className={`block py-2.5 px-2 rounded-lg hover:bg-[#FAF7F2] transition-colors ${
+                        className={`block py-2.5 px-2 rounded-lg hover:bg-[#F5F7F9] transition-colors ${
                           !item.readAt ? 'bg-[#FFF9F5]' : ''
                         }`}
                       >
-                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#1A1816]' : 'font-medium text-[#5A544D]'}`}>
+                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#191C22]' : 'font-medium text-[#64748B]'}`}>
                           {item.title}
                         </p>
-                        <p className="text-[11px] text-[#736B63] mt-0.5 line-clamp-2">{item.body}</p>
+                        <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-2">{item.body}</p>
                       </Link>
                     ))
                   )}
@@ -260,7 +260,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Message Bubble with Badge 3 */}
           <div className="relative">
             <button
-              className="p-2 text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-xl transition-colors relative cursor-pointer"
+              className="p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors relative cursor-pointer"
               title="Support & Messages"
             >
               <MessageSquare className="w-5 h-5 stroke-[1.8]" />
@@ -277,51 +277,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 setShowProfileMenu(!showProfileMenu);
                 setShowNotifs(false);
               }}
-              className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+              className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#F5F7F9] transition-colors cursor-pointer"
             >
               <img
                 src="/reference-assets/seller_profile_aman.jpg"
                 alt="System Administrator"
-                className="w-8 h-8 rounded-full object-cover border border-[#E8E2D8]"
+                className="w-8 h-8 rounded-full object-cover border border-[#E7EAEE]"
               />
               <div className="text-left hidden sm:block">
-                <p className="text-xs font-black text-[#1A1816] leading-tight">
+                <p className="text-xs font-black text-[#191C22] leading-tight">
                   Admin Panel
                 </p>
-                <p className="text-[10px] text-[#8C847A] font-medium leading-tight">
+                <p className="text-[10px] text-[#94A3B8] font-medium leading-tight">
                   System Administrator
                 </p>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-[#8C847A]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-[#E8E2D8] shadow-elevated p-2 z-50 text-xs">
-                <div className="p-2 border-b border-[#F2ECE3]">
-                  <p className="font-bold text-[#1A1816]">{user.email}</p>
-                  <p className="text-[10px] text-[#8C847A] uppercase font-bold">Role: {user.role}</p>
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated p-2 z-50 text-xs">
+                <div className="p-2 border-b border-[#F1F3F5]">
+                  <p className="font-bold text-[#191C22]">{user.email}</p>
+                  <p className="text-[10px] text-[#94A3B8] uppercase font-bold">Role: {user.role}</p>
                 </div>
                 <div className="py-1">
                   <Link
                     href="/"
-                    className="block px-3 py-2 text-xs font-semibold text-[#5A544D] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Public Website
                   </Link>
                   <Link
                     href="/photographer/dashboard"
-                    className="block px-3 py-2 text-xs font-semibold text-[#5A544D] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Photographer Studio
                   </Link>
                   <Link
                     href="/customer/dashboard"
-                    className="block px-3 py-2 text-xs font-semibold text-[#5A544D] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Customer Account
                   </Link>
                 </div>
-                <div className="pt-1 border-t border-[#F2ECE3]">
+                <div className="pt-1 border-t border-[#F1F3F5]">
                   <button
                     onClick={() => logout()}
                     className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
@@ -340,7 +340,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ======================================================== */}
       <div className="flex-1 flex min-h-[calc(100vh-4rem)]">
         {/* SIDEBAR: EXACT REFERENCE IMAGE B */}
-        <aside className="w-64 bg-white border-r border-[#E8E2D8] flex flex-col justify-between shrink-0 hidden md:flex">
+        <aside className="w-64 bg-white border-r border-[#E7EAEE] flex flex-col justify-between shrink-0 hidden md:flex">
           {(() => {
             const isDashboard = pathname === '/admin/dashboard' || pathname === '/admin';
             const isBookings = pathname.startsWith('/admin/bookings');
@@ -354,11 +354,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href="/admin/dashboard"
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
                     isDashboard
-                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
                   }`}
                 >
-                  <LayoutDashboard className={`w-4 h-4 ${isDashboard ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                  <LayoutDashboard className={`w-4 h-4 ${isDashboard ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
                   <span>Dashboard</span>
                 </Link>
 
@@ -366,14 +366,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div>
                   <button
                     onClick={() => setUserMgmtOpen(!userMgmtOpen)}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-[#8C847A]" />
+                      <Users className="w-4 h-4 text-[#94A3B8]" />
                       <span>User Management</span>
                     </div>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-[#8C847A] transition-transform ${
+                      className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
                         userMgmtOpen ? 'rotate-180' : ''
                       }`}
                     />
@@ -383,7 +383,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="pl-9 pr-2 py-1 space-y-1">
                       <Link
                         href="/admin/dashboard"
-                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                        className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                       >
                         Customers
                       </Link>
@@ -391,8 +391,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         href="/admin/photographers"
                         className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                           isPhotographers
-                            ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                            : 'text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2]'
+                            ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                            : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9]'
                         }`}
                       >
                         <span>Photographers</span>
@@ -404,7 +404,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       </Link>
                       <Link
                         href="/admin/dashboard"
-                        className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                        className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                       >
                         Admins &amp; Roles
                       </Link>
@@ -417,32 +417,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href="/admin/bookings"
                   className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
                     isBookings
-                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Calendar className={`w-4 h-4 ${isBookings ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                    <Calendar className={`w-4 h-4 ${isBookings ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
                     <span>Bookings</span>
                   </div>
-                  <ChevronRight className={`w-3.5 h-3.5 ${isBookings ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 ${isBookings ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
                 </Link>
 
             {/* Payments & Transactions */}
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
             >
-              <CreditCard className="w-4 h-4 text-[#8C847A]" />
+              <CreditCard className="w-4 h-4 text-[#94A3B8]" />
               <span>Payments &amp; Transactions</span>
             </Link>
 
             {/* Subscriptions */}
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
             >
-              <Layers className="w-4 h-4 text-[#8C847A]" />
+              <Layers className="w-4 h-4 text-[#94A3B8]" />
               <span>Subscriptions</span>
             </Link>
 
@@ -450,14 +450,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div>
               <button
                 onClick={() => setContentMgmtOpen(!contentMgmtOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-[#8C847A]" />
+                  <FileText className="w-4 h-4 text-[#94A3B8]" />
                   <span>Content Management</span>
                 </div>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#8C847A] transition-transform ${
+                  className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
                     contentMgmtOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -467,19 +467,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="pl-9 pr-2 py-1 space-y-1">
                   <Link
                     href="/categories"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Categories
                   </Link>
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Packages
                   </Link>
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Gallery Review
                   </Link>
@@ -490,18 +490,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {/* Reviews & Ratings */}
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
             >
-              <Star className="w-4 h-4 text-[#8C847A]" />
+              <Star className="w-4 h-4 text-[#94A3B8]" />
               <span>Reviews &amp; Ratings</span>
             </Link>
 
             {/* Reports & Analytics */}
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors"
             >
-              <BarChart2 className="w-4 h-4 text-[#8C847A]" />
+              <BarChart2 className="w-4 h-4 text-[#94A3B8]" />
               <span>Reports &amp; Analytics</span>
             </Link>
 
@@ -509,14 +509,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div>
               <button
                 onClick={() => setSettingsOpen(!settingsOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <Settings className="w-4 h-4 text-[#8C847A]" />
+                  <Settings className="w-4 h-4 text-[#94A3B8]" />
                   <span>Platform Settings</span>
                 </div>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#8C847A] transition-transform ${
+                  className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform ${
                     settingsOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -526,25 +526,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="pl-9 pr-2 py-1 space-y-1">
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     General Settings
                   </Link>
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Email &amp; Notifications
                   </Link>
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     Payment Settings
                   </Link>
                   <Link
                     href="/admin/dashboard"
-                    className="block px-3 py-1.5 text-xs font-semibold text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2] rounded-lg"
+                    className="block px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-lg"
                   >
                     AI &amp; Integrations
                   </Link>
@@ -557,11 +557,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href="/admin/logs"
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
                     isLogs
-                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
                   }`}
                 >
-                  <FileText className={`w-4 h-4 ${isLogs ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                  <FileText className={`w-4 h-4 ${isLogs ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
                   <span>System Logs</span>
                 </Link>
 
@@ -570,12 +570,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href="/admin/disputes"
                   className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors ${
                     isDisputes
-                      ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                      : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] font-bold'
+                      ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                      : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] font-bold'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <MessageSquare className={`w-4 h-4 ${isDisputes ? 'text-[#FF6E00]' : 'text-[#8C847A]'}`} />
+                    <MessageSquare className={`w-4 h-4 ${isDisputes ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}`} />
                     <span>Support &amp; Disputes</span>
                   </div>
                   {liveDisputeCount > 0 ? (
@@ -583,7 +583,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       {liveDisputeCount}
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#FAF7F2] border border-[#E8E2D8] text-[#736B63]">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#F5F7F9] border border-[#E7EAEE] text-[#64748B]">
                       0
                     </span>
                   )}

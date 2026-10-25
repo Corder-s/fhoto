@@ -32,13 +32,13 @@ export default function CustomerNotificationsPage() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'transit':
-        return <Navigation className="w-4 h-4 text-[#FF6E00]" />;
+        return <Navigation className="w-4 h-4 text-[#14B8A6]" />;
       case 'delivery':
         return <Download className="w-4 h-4 text-green-600" />;
       case 'payment':
         return <CreditCard className="w-4 h-4 text-blue-600" />;
       default:
-        return <Bell className="w-4 h-4 text-[#8C847A]" />;
+        return <Bell className="w-4 h-4 text-[#94A3B8]" />;
     }
   };
 
@@ -47,12 +47,12 @@ export default function CustomerNotificationsPage() {
       <CustomerNoticeBanner moduleName="Client Notification Center" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E8E1D6]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E7EAEE]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#191C22] tracking-tight">
             Client Notifications & Alerts
           </h1>
-          <p className="text-xs sm:text-sm text-[#665E55] mt-1">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
             Real-time transit updates, shoot OTP reminders, and photo delivery alerts.
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function CustomerNotificationsPage() {
         <button
           type="button"
           onClick={handleMarkAllRead}
-          className="text-xs font-bold text-[#FF6E00] hover:underline"
+          className="text-xs font-bold text-[#14B8A6] hover:underline"
         >
           Mark all as read
         </button>
@@ -74,8 +74,8 @@ export default function CustomerNotificationsPage() {
             onClick={() => setActiveFilter(tab)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
               activeFilter === tab
-                ? 'bg-[#1A1816] text-white shadow-sm'
-                : 'bg-white text-[#5A544D] hover:text-[#1A1816] border border-[#E8E1D6]'
+                ? 'bg-[#191C22] text-white shadow-sm'
+                : 'bg-white text-[#64748B] hover:text-[#191C22] border border-[#E7EAEE]'
             }`}
           >
             {tab}
@@ -86,10 +86,10 @@ export default function CustomerNotificationsPage() {
       {/* NOTIFICATIONS LIST */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-3xl border border-[#E8E1D6] space-y-2">
-            <Bell className="w-8 h-8 text-[#8C847A] mx-auto opacity-40" />
-            <p className="text-sm font-bold text-[#1A1816]">No notifications in this category</p>
-            <p className="text-xs text-[#8C847A]">You will receive updates here whenever a booking is placed or confirmed.</p>
+          <div className="p-8 text-center bg-white rounded-3xl border border-[#E7EAEE] space-y-2">
+            <Bell className="w-8 h-8 text-[#94A3B8] mx-auto opacity-40" />
+            <p className="text-sm font-bold text-[#191C22]">No notifications in this category</p>
+            <p className="text-xs text-[#94A3B8]">You will receive updates here whenever a booking is placed or confirmed.</p>
           </div>
         ) : (
           filtered.map((item) => (
@@ -97,29 +97,29 @@ export default function CustomerNotificationsPage() {
               key={item.id}
               className={`p-5 rounded-3xl border transition-all flex items-start gap-4 ${
                 !item.readAt
-                  ? 'bg-white border-[#FF6E00]/40 shadow-sm'
+                  ? 'bg-white border-[#14B8A6]/40 shadow-sm'
                   : 'bg-white/80 border-[#EBE4DA]'
               }`}
             >
-              <div className="w-10 h-10 rounded-2xl bg-[#FAF7F2] border border-[#E8E1D6] flex items-center justify-center shrink-0">
-                <Bell className="w-4 h-4 text-[#FF6E00]" />
+              <div className="w-10 h-10 rounded-2xl bg-[#F5F7F9] border border-[#E7EAEE] flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-[#14B8A6]" />
               </div>
 
               <div className="flex-1 space-y-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-bold text-[#1A1816]">{item.title}</h4>
-                  <span className="text-[10px] text-[#8C847A] shrink-0">
+                  <h4 className="text-sm font-bold text-[#191C22]">{item.title}</h4>
+                  <span className="text-[10px] text-[#94A3B8] shrink-0">
                     {new Date(item.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                   </span>
                 </div>
-                <p className="text-xs text-[#665E55] leading-relaxed">{item.body}</p>
+                <p className="text-xs text-[#64748B] leading-relaxed">{item.body}</p>
 
                 {item.actionUrl && (
                   <div className="pt-2">
                     <Link
                       href={item.actionUrl}
                       onClick={() => markAsRead(item.id)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6E00] hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#14B8A6] hover:underline"
                     >
                       <span>View details</span>
                       <ArrowRight className="w-3.5 h-3.5" />

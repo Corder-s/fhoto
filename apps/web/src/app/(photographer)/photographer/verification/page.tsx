@@ -421,7 +421,7 @@ export default function PhotographerVerificationPage() {
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-xl border border-[#E8E2D8] text-[11px] font-bold text-ink-secondary hover:text-ink-primary cursor-pointer"
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-xl border border-[#E7EAEE] text-[11px] font-bold text-ink-secondary hover:text-ink-primary cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Check for a decision</span>
@@ -592,8 +592,8 @@ export default function PhotographerVerificationPage() {
                       }
                       className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
                         active
-                          ? 'bg-[#1A1816] text-white border-[#1A1816]'
-                          : 'bg-white text-ink-secondary border-[#E8E2D8] hover:text-ink-primary'
+                          ? 'bg-[#191C22] text-white border-[#191C22]'
+                          : 'bg-white text-ink-secondary border-[#E7EAEE] hover:text-ink-primary'
                       }`}
                     >
                       {category.name}
@@ -702,7 +702,7 @@ export default function PhotographerVerificationPage() {
           {notice && (
             <div
               role="status"
-              className={`rounded-xl px-3 py-2 text-[11px] font-bold text-white ${notice.tone === 'error' ? 'bg-red-600' : 'bg-[#1A1816]'}`}
+              className={`rounded-xl px-3 py-2 text-[11px] font-bold text-white ${notice.tone === 'error' ? 'bg-red-600' : 'bg-[#191C22]'}`}
             >
               {notice.text}
             </div>
@@ -765,7 +765,7 @@ export default function PhotographerVerificationPage() {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-[#E8E2D8] bg-white px-3 py-2 text-[12px] text-ink-primary outline-none focus:border-brand';
+  'w-full rounded-xl border border-[#E7EAEE] bg-white px-3 py-2 text-[12px] text-ink-primary outline-none focus:border-brand';
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <label className="block space-y-1">

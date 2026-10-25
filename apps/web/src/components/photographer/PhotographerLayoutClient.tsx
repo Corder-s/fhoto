@@ -66,7 +66,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -76,7 +76,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-semibold text-ink-secondary">Redirecting to login...</p>
         </div>
       </div>
@@ -86,7 +86,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   if (serverSession.status === 'loading') {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -95,7 +95,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-semibold text-ink-secondary">
             {isOwner
               ? 'Redirecting to Owner Executive Dashboard...'

@@ -45,13 +45,13 @@ export default function CustomerFavoritesPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#FF6E00]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#14B8A6]">
             Saved Creators
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#191C22] tracking-tight">
             My Favorite Photographers
           </h1>
-          <p className="text-xs sm:text-sm text-[#5A544D] mt-1">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
             Visual artists and cinematographers you&apos;ve bookmarked for upcoming shoots.
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function CustomerFavoritesPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-3xl border border-[#E8E1D6] p-6 h-64 animate-pulse" />
+            <div key={i} className="bg-white rounded-3xl border border-[#E7EAEE] p-6 h-64 animate-pulse" />
           ))}
         </div>
       ) : favorites.length > 0 ? (
@@ -74,7 +74,7 @@ export default function CustomerFavoritesPage() {
           {favorites.map((creator) => (
             <div
               key={creator.id}
-              className="bg-white rounded-3xl border border-[#E8E1D6] p-5 flex flex-col justify-between shadow-subtle hover:shadow-card transition-all"
+              className="bg-white rounded-3xl border border-[#E7EAEE] p-5 flex flex-col justify-between shadow-subtle hover:shadow-card transition-all"
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
@@ -83,18 +83,18 @@ export default function CustomerFavoritesPage() {
                     <img
                       src={creator.avatarUrl || '/reference-assets/avatar_aman.jpg'}
                       alt={creator.name}
-                      className="w-12 h-12 rounded-full object-cover border border-[#E8E1D6]"
+                      className="w-12 h-12 rounded-full object-cover border border-[#E7EAEE]"
                     />
                     <div>
-                      <h3 className="font-extrabold text-[#1A1816] text-sm sm:text-base">{creator.name}</h3>
-                      <p className="text-xs text-[#8C847A] flex items-center gap-1">
+                      <h3 className="font-extrabold text-[#191C22] text-sm sm:text-base">{creator.name}</h3>
+                      <p className="text-xs text-[#94A3B8] flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         <span>{creator.city}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs font-bold bg-[#FAF7F2] px-2.5 py-1 rounded-full border border-[#E8E1D6]">
+                  <div className="flex items-center gap-1 text-xs font-bold bg-[#F5F7F9] px-2.5 py-1 rounded-full border border-[#E7EAEE]">
                     <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                     <span>{creator.rating}</span>
                   </div>
@@ -104,7 +104,7 @@ export default function CustomerFavoritesPage() {
                   {(creator.specialties || ['Portraits', 'Weddings']).map((s) => (
                     <span
                       key={s}
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF7F2] text-[#5A544D]"
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F5F7F9] text-[#64748B]"
                     >
                       {s}
                     </span>
@@ -112,17 +112,17 @@ export default function CustomerFavoritesPage() {
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-[#E8E1D6] flex items-center justify-between">
+              <div className="pt-4 mt-4 border-t border-[#E7EAEE] flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#8C847A]">From</span>
-                  <p className="text-base font-extrabold text-[#1A1816]">
+                  <span className="text-[10px] uppercase font-bold text-[#94A3B8]">From</span>
+                  <p className="text-base font-extrabold text-[#191C22]">
                     ₹{creator.startingPriceInr?.toLocaleString('en-IN') || '2,499'}
                   </p>
                 </div>
 
                 <Link
                   href={`/photographers/${creator.slug || creator.id}`}
-                  className="px-4 py-2 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
                 >
                   <span>Book Now</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -132,12 +132,12 @@ export default function CustomerFavoritesPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-[#E8E1D6] p-12 text-center max-w-md mx-auto space-y-4">
-          <div className="w-14 h-14 rounded-full bg-[#FFF3E5] text-[#FF6E00] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-3xl border border-[#E7EAEE] p-12 text-center max-w-md mx-auto space-y-4">
+          <div className="w-14 h-14 rounded-full bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center mx-auto">
             <Heart className="w-7 h-7" />
           </div>
-          <h3 className="text-lg font-bold text-[#1A1816]">No favorites saved yet</h3>
-          <p className="text-xs text-[#5A544D] leading-relaxed">
+          <h3 className="text-lg font-bold text-[#191C22]">No favorites saved yet</h3>
+          <p className="text-xs text-[#64748B] leading-relaxed">
             Browse our curated roster of verified visual artists and tap the heart icon to save them for quick access.
           </p>
           <Link href="/explore">

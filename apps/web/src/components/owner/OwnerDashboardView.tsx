@@ -64,7 +64,7 @@ const VERIFICATION_TONE: Record<string, string> = {
   approved: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   rejected: 'bg-red-50 border-red-200 text-red-800',
   suspended: 'bg-stone-100 border-stone-200 text-stone-700',
-  unsubmitted: 'bg-white border-[#E8E2D8] text-[#736B63]',
+  unsubmitted: 'bg-white border-[#E7EAEE] text-[#64748B]',
 };
 
 export const OwnerDashboardView: React.FC = () => {
@@ -169,7 +169,7 @@ export const OwnerDashboardView: React.FC = () => {
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E8E2D8] text-[11px] font-bold text-ink-secondary hover:text-ink-primary cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E7EAEE] text-[11px] font-bold text-ink-secondary hover:text-ink-primary cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -184,9 +184,9 @@ export const OwnerDashboardView: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading && !stats && [0, 1, 2, 3, 4, 5, 6, 7].map((index) => <div key={index} className="h-28 rounded-2xl bg-white border border-[#E8E2D8] animate-pulse" />)}
+        {loading && !stats && [0, 1, 2, 3, 4, 5, 6, 7].map((index) => <div key={index} className="h-28 rounded-2xl bg-white border border-[#E7EAEE] animate-pulse" />)}
         {kpis.map((kpi) => (
-          <div key={kpi.id} id={kpi.id} className="bg-white rounded-2xl border border-[#E8E2D8] p-4 space-y-1.5">
+          <div key={kpi.id} id={kpi.id} className="bg-white rounded-2xl border border-[#E7EAEE] p-4 space-y-1.5">
             <p className="text-[10px] font-black uppercase tracking-wider text-ink-muted">{kpi.label}</p>
             <p className="text-2xl font-black text-ink-primary tracking-tight">{kpi.value}</p>
             <p className="text-[10px] text-ink-secondary">{kpi.hint}</p>
@@ -258,7 +258,7 @@ export const OwnerDashboardView: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {stats.cities.map((entry) => (
-              <div key={entry.city} className="rounded-xl border border-[#E8E2D8] p-2.5">
+              <div key={entry.city} className="rounded-xl border border-[#E7EAEE] p-2.5">
                 <p className="text-[11px] font-black text-ink-primary truncate" title={entry.city}>
                   {entry.city}
                 </p>
@@ -283,7 +283,7 @@ export const OwnerDashboardView: React.FC = () => {
 };
 
 const LedgerRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-2 border-b border-dashed border-[#F0EAE1] pb-1">
+  <div className="flex items-center justify-between gap-2 border-b border-dashed border-[#E7EAEE] pb-1">
     <dt className="text-ink-secondary">{label}</dt>
     <dd className="font-black text-ink-primary">{value}</dd>
   </div>

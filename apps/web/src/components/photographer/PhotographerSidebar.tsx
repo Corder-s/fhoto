@@ -99,12 +99,12 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       >
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-contour-subtle shrink-0">
-          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="SnapShoot Brand">
+          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="REEPY Brand">
             <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white shadow-sm">
               <Camera className="w-4 h-4" />
             </div>
             <span className="text-xl font-black tracking-tight text-ink-primary">
-              Snap<span className="text-brand">Shoot</span>
+              REEPY
             </span>
           </div>
 
@@ -120,7 +120,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         {/* Profile Card Snippet */}
         <div className="p-4 border-b border-contour-subtle bg-canvas-primary/60 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden bg-[#FF6E00] text-white flex items-center justify-center text-sm font-black border-2 border-white shadow-sm shrink-0 relative">
+            <div className="w-11 h-11 rounded-full overflow-hidden bg-[#14B8A6] text-white flex items-center justify-center text-sm font-black border-2 border-white shadow-sm shrink-0 relative">
               <span className="select-none">{initials}</span>
               {displayAvatar && (
                 <img
@@ -168,14 +168,14 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
                 onClick={() => onClose()}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? 'bg-[#FFF2E8] text-[#FF6E00] font-black'
-                    : 'text-[#5A544D] hover:text-[#1A1816] hover:bg-[#F7F3ED]'
+                    ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
+                    : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F1F3F5]'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Icon
                     className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-[#FF6E00]' : 'text-[#8C847A]'
+                      isActive ? 'text-[#14B8A6]' : 'text-[#94A3B8]'
                     }`}
                   />
                   <span className="truncate">{item.label}</span>
@@ -195,17 +195,17 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         </nav>
 
         {/* Upgrade to Pro Card */}
-        <div className="p-3.5 m-3 rounded-2xl bg-[#FFF8F2] border border-[#FFDFC6] space-y-2 shrink-0">
+        <div className="p-3.5 m-3 rounded-2xl bg-[#EFFCF8] border border-[#99F6E4] space-y-2 shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-base">👑</span>
-            <span className="text-xs font-black text-[#1A1816]">Upgrade to Pro</span>
+            <span className="text-xs font-black text-[#191C22]">Upgrade to Pro</span>
           </div>
-          <p className="text-[11px] text-[#736B63] leading-relaxed">
+          <p className="text-[11px] text-[#64748B] leading-relaxed">
             Get more bookings, better visibility and premium features.
           </p>
           <Link
             href="/photographer/subscription"
-            className="block w-full py-2 px-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs font-bold text-center transition-colors shadow-2xs"
+            className="block w-full py-2 px-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold text-center transition-colors shadow-2xs"
           >
             View Plans →
           </Link>

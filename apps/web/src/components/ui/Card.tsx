@@ -13,9 +13,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         className={twMerge(
           clsx(
-            'bg-white rounded-2xl border border-[#E8E2D8] shadow-[0_2px_10px_-2px_rgba(26,24,22,0.04)] p-5 sm:p-6 transition-all duration-300',
+            'bg-white rounded-2xl border border-[#E7EAEE] shadow-[0_2px_10px_-2px_rgba(25,28,34,0.03)] p-5 sm:p-6 transition-all duration-300',
             hoverEffect &&
-              'hover:border-[#D5CEC4] hover:shadow-[0_12px_28px_-6px_rgba(26,24,22,0.09)] hover:-translate-y-1 cursor-pointer',
+              'hover:border-[#CBD5E1] hover:shadow-[0_12px_28px_-6px_rgba(25,28,34,0.08)] hover:-translate-y-1 cursor-pointer',
             className
           )
         )}

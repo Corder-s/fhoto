@@ -98,14 +98,14 @@ export default function PhotographerEarningsPage() {
           <p className="text-[11px] text-ink-secondary">Covering insurance &amp; marketing</p>
         </Card>
 
-        <Card className="p-5 space-y-2 border-brand/50 bg-[#FFF8F2]">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#FF6E00]">
+        <Card className="p-5 space-y-2 border-brand/50 bg-[#EFFCF8]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#14B8A6]">
             Net Creator Earnings
           </span>
-          <p className="text-2xl font-black text-[#FF6E00]">
+          <p className="text-2xl font-black text-[#14B8A6]">
             ₹{netCreatorEarnings.toLocaleString('en-IN')}
           </p>
-          <p className="text-[11px] text-[#FF6E00]/80">80% creator compensation</p>
+          <p className="text-[11px] text-[#14B8A6]/80">80% creator compensation</p>
         </Card>
 
         <Card className="p-5 space-y-2 border-contour-subtle bg-white">
@@ -144,10 +144,10 @@ export default function PhotographerEarningsPage() {
       <Card className="p-6 space-y-4 bg-white border-contour-subtle">
         <h3 className="text-base font-bold text-ink-primary">Completed Shoot Settlements</h3>
         {completedBookings.length === 0 ? (
-          <div className="py-12 text-center border-2 border-dashed border-[#E8E2D8] rounded-2xl bg-[#FAF7F2]/40 space-y-2">
-            <DollarSign className="w-10 h-10 text-[#FF6E00] mx-auto opacity-60" />
-            <h4 className="text-sm font-bold text-[#1A1816]">No completed earnings settlements yet</h4>
-            <p className="text-xs text-[#736B63] max-w-md mx-auto">
+          <div className="py-12 text-center border-2 border-dashed border-[#E7EAEE] rounded-2xl bg-[#F5F7F9]/40 space-y-2">
+            <DollarSign className="w-10 h-10 text-[#14B8A6] mx-auto opacity-60" />
+            <h4 className="text-sm font-bold text-[#191C22]">No completed earnings settlements yet</h4>
+            <p className="text-xs text-[#64748B] max-w-md mx-auto">
               As you accept booking assignments and complete sessions with clients, detailed financial statements and weekly payouts will be recorded here.
             </p>
             <div className="pt-2">
@@ -167,7 +167,7 @@ export default function PhotographerEarningsPage() {
                   <p className="text-[11px] text-ink-muted">{b.event_date} • {b.customer?.full_name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-[#FF6E00]">
+                  <p className="text-sm font-bold text-[#14B8A6]">
                     +₹{Math.round((Number(b.agreed_service_price) || 0) * 0.8).toLocaleString('en-IN')}
                   </p>
                   <span className="text-[10px] text-emerald-600 font-semibold">Settled</span>

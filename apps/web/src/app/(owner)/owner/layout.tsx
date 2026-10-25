@@ -110,8 +110,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-[#5A544D]">
+          <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-[#64748B]">
             {isAdmin
               ? 'Redirecting to Admin Operations Desk...'
               : isCreator
@@ -129,12 +129,12 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       <aside className="w-full md:w-64 bg-ink-primary text-white flex flex-col justify-between shrink-0">
         <div>
           <div className="p-6 border-b border-ink-secondary/30 flex items-center justify-between">
-            <div className="flex items-center gap-2 select-none cursor-default" aria-label="SnapShoot Brand">
+            <div className="flex items-center gap-2 select-none cursor-default" aria-label="REEPY Brand">
               <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white">
                 <Camera className="w-4 h-4" />
               </div>
               <span className="text-xl font-bold tracking-tight text-white">
-                Snap<span className="text-brand">Shoot</span>
+                REEPY
               </span>
             </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand text-white">

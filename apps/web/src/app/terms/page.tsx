@@ -17,7 +17,7 @@ export default function TermsPage() {
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink-primary">1. Platform Service Scope</h2>
               <p>
-                SnapShoot operates as a technology marketplace connecting customers with independent professional visual creators. Photographers are independent professionals, not platform employees.
+                REEPY operates as a technology marketplace connecting customers with independent professional visual creators. Photographers are independent professionals, not platform employees.
               </p>
             </section>
 

@@ -58,12 +58,12 @@ export default function CustomerGalleryPage() {
       <CustomerNoticeBanner moduleName="Client Delivered Photos & Proofing Gallery" />
 
       {/* Header & Batch Download */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E8E1D6]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E7EAEE]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#191C22] tracking-tight">
             Delivered Photo & Video Galleries
           </h1>
-          <p className="text-xs sm:text-sm text-[#665E55] mt-1">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
             Access, view in full resolution, and download high-res files from your completed shoots.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function CustomerGalleryPage() {
               href={externalDriveDeliverable.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#1A1816] bg-white border border-[#E8E1D6] hover:bg-canvas-secondary active:scale-95 shadow-2xs transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#191C22] bg-white border border-[#E7EAEE] hover:bg-canvas-secondary active:scale-95 shadow-2xs transition-all shrink-0"
             >
               <ExternalLink className="w-3.5 h-3.5 text-brand" />
               <span>Open Google Drive Assets</span>
@@ -85,7 +85,7 @@ export default function CustomerGalleryPage() {
             type="button"
             onClick={handleDownloadZip}
             disabled={isDownloadingZip}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] active:scale-95 shadow-sm transition-all shrink-0"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] active:scale-95 shadow-sm transition-all shrink-0"
           >
             <ArrowDownToLine className="w-4 h-4 stroke-[2.5]" />
             <span>{isDownloadingZip ? 'Packaging ZIP (380 MB)...' : 'Download Full Gallery ZIP'}</span>
@@ -102,15 +102,15 @@ export default function CustomerGalleryPage() {
 
       {/* SHOOT FILTER TABS */}
       <div className="flex flex-wrap items-center gap-2 pb-2">
-        <Filter className="w-3.5 h-3.5 text-[#8C847A] mr-1" />
+        <Filter className="w-3.5 h-3.5 text-[#94A3B8] mr-1" />
         {filterOptions.map((opt) => (
           <button
             key={opt.bookingId}
             onClick={() => setSelectedBookingFilter(opt.bookingId)}
             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
               selectedBookingFilter === opt.bookingId
-                ? 'bg-[#1A1816] text-white shadow-sm'
-                : 'bg-white text-[#5A544D] hover:text-[#1A1816] border border-[#E8E1D6]'
+                ? 'bg-[#191C22] text-white shadow-sm'
+                : 'bg-white text-[#64748B] hover:text-[#191C22] border border-[#E7EAEE]'
             }`}
           >
             {opt.label}
@@ -121,9 +121,9 @@ export default function CustomerGalleryPage() {
       {/* MASONRY / RESPONSIVE PHOTO GRID */}
       {filteredPhotos.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-3xl border border-[#EBE4DA] space-y-3">
-          <Camera className="w-12 h-12 text-[#8C847A] mx-auto" />
-          <h3 className="text-base font-bold text-[#1A1816]">No Delivered Photos in this Gallery</h3>
-          <p className="text-xs text-[#665E55]">
+          <Camera className="w-12 h-12 text-[#94A3B8] mx-auto" />
+          <h3 className="text-base font-bold text-[#191C22]">No Delivered Photos in this Gallery</h3>
+          <p className="text-xs text-[#64748B]">
             Photos will appear here as soon as your photographer uploads and finalizes editing.
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function CustomerGalleryPage() {
             >
               {/* Photo Box */}
               <div
-                className="relative aspect-[4/3] bg-[#FAF7F2] overflow-hidden cursor-pointer"
+                className="relative aspect-[4/3] bg-[#F5F7F9] overflow-hidden cursor-pointer"
                 onClick={() => setLightboxPhoto(photo)}
               >
                 <img
@@ -145,7 +145,7 @@ export default function CustomerGalleryPage() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#1A1816]/75 backdrop-blur-sm text-white">
+                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#191C22]/75 backdrop-blur-sm text-white">
                   {photo.category}
                 </span>
 
@@ -157,7 +157,7 @@ export default function CustomerGalleryPage() {
                       e.stopPropagation();
                       setLightboxPhoto(photo);
                     }}
-                    className="p-2.5 rounded-full bg-white text-[#1A1816] hover:scale-110 transition-transform shadow-md"
+                    className="p-2.5 rounded-full bg-white text-[#191C22] hover:scale-110 transition-transform shadow-md"
                     title="Fullscreen Lightbox"
                   >
                     <Eye className="w-4 h-4" />
@@ -168,7 +168,7 @@ export default function CustomerGalleryPage() {
                       e.stopPropagation();
                       handleDownloadSingle(photo);
                     }}
-                    className="p-2.5 rounded-full bg-[#FF6E00] text-white hover:scale-110 transition-transform shadow-md"
+                    className="p-2.5 rounded-full bg-[#14B8A6] text-white hover:scale-110 transition-transform shadow-md"
                     title="Download Photo"
                   >
                     <Download className="w-4 h-4" />
@@ -179,15 +179,15 @@ export default function CustomerGalleryPage() {
               {/* Photo Metadata */}
               <div className="p-4 space-y-2">
                 <div>
-                  <h4 className="text-xs font-bold text-[#1A1816] truncate">
+                  <h4 className="text-xs font-bold text-[#191C22] truncate">
                     {photo.title}
                   </h4>
-                  <p className="text-[11px] text-[#8C847A] mt-0.5">
+                  <p className="text-[11px] text-[#94A3B8] mt-0.5">
                     Photographer: {photo.photographerName}
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-[#F0EAE1] flex items-center justify-between text-[11px] text-[#8C847A]">
+                <div className="pt-2 border-t border-[#E7EAEE] flex items-center justify-between text-[11px] text-[#94A3B8]">
                   <span>Delivered: {photo.deliveredAt}</span>
                   <span className="font-mono">{photo.sizeMb} MB RAW JPEG</span>
                 </div>
@@ -200,7 +200,7 @@ export default function CustomerGalleryPage() {
       {/* LIGHTBOX MODAL */}
       {lightboxPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative max-w-4xl w-full bg-[#1A1816] rounded-3xl overflow-hidden p-4 sm:p-6 space-y-4 border border-white/10 shadow-elevated">
+          <div className="relative max-w-4xl w-full bg-[#191C22] rounded-3xl overflow-hidden p-4 sm:p-6 space-y-4 border border-white/10 shadow-elevated">
             {/* Top Close & Meta */}
             <div className="flex items-center justify-between text-white pb-2 border-b border-white/10">
               <div>
@@ -235,7 +235,7 @@ export default function CustomerGalleryPage() {
               <button
                 type="button"
                 onClick={() => handleDownloadSingle(lightboxPhoto)}
-                className="px-4 py-2 rounded-full text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#E86300] flex items-center gap-1.5"
+                className="px-4 py-2 rounded-full text-xs font-bold text-white bg-[#14B8A6] hover:bg-[#0D9488] flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Master JPEG</span>

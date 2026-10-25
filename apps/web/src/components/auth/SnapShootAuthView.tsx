@@ -544,209 +544,138 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-5xl my-auto bg-[#FAF7F2] rounded-[28px] sm:rounded-[34px] border border-[#E8E2D8] shadow-[0_25px_60px_-15px_rgba(26,24,22,0.35)] z-10 text-left flex flex-col lg:flex-row overflow-hidden p-2 sm:p-2.5 max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
+    <div className="relative w-full max-w-5xl my-auto bg-[#F5F7F9] rounded-[28px] sm:rounded-[34px] border border-[#E7EAEE] shadow-[0_25px_60px_-15px_rgba(15,23,42,0.18)] z-10 text-left flex flex-col lg:flex-row overflow-hidden p-2 sm:p-2.5 max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
       {/* ========================================================= */}
-      {/* LEFT PANEL: BRANDING & EDITORIAL PHOTOGRAPHY EXPERIENCE   */}
+      {/* LEFT PANEL: REEPY DARK MARKETING & PHOTOGRAPHY EXPERIENCE */}
       {/* ========================================================= */}
-      <div className="hidden lg:flex lg:w-[52%] min-w-0 relative flex-col justify-between p-7 sm:p-8 rounded-[20px] sm:rounded-[26px] bg-[#FBF7F0] overflow-hidden select-none">
-        {/* Background Photographer Image with Golden-Hour Atmosphere */}
+      <div className="hidden lg:flex lg:w-[50%] min-w-0 relative flex-col justify-between p-7 sm:p-8 rounded-[20px] sm:rounded-[26px] bg-[#0D0F12] border border-[#262B33] overflow-hidden select-none text-white">
+        {/* Background Photographer Image */}
         <div
-          className="absolute inset-0 bg-cover bg-right-top transition-transform duration-700 hover:scale-[1.02]"
+          className="absolute inset-0 bg-cover bg-right-top opacity-35 transition-transform duration-700 hover:scale-[1.02]"
           style={{
             backgroundImage: 'url(/reference-assets/auth_photographer_bg.jpg)',
           }}
         />
 
-        {/* Warm Gradient Scrim for crisp text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#FAF7F2]/95 via-[#FAF7F2]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#FAF7F2] via-transparent to-transparent opacity-90" />
+        {/* Gradient Scrim for crisp text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0D0F12] via-[#0D0F12]/85 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F12] via-transparent to-transparent opacity-95" />
 
-        {/* Layer 1: Top Brand Header & Script Note */}
+        {/* Layer 1: Top Brand Header */}
         <div className="relative z-10 flex items-start justify-between">
-          {/* SnapShoot Branding */}
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-[#14B8A6] flex items-center justify-center text-white shadow-sm shadow-[#14B8A6]/30">
                 <Camera className="w-5 h-5 fill-white/20 stroke-[2.2]" />
               </div>
-              <span className="text-xl font-black tracking-tight text-[#1A1816]">
-                SNAP<span className="text-[#FF6E00]">SHOOT</span>
+              <span className="text-xl font-black tracking-tight text-white">
+                REEPY
               </span>
             </div>
-            <p className="text-[11px] font-medium text-[#736B63] tracking-wide mt-0.5 ml-11">
-              Moments. People. Stories.
+            <p className="text-[11px] font-medium text-[#94A3B8] tracking-wide mt-1 ml-11">
+              Find local pros who create content that gets noticed
             </p>
           </div>
 
-          {/* Handwritten Script Note in Golden Sunlight */}
-          <div className="font-script text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] text-2xl font-bold leading-[1.05] rotate-[-5deg] pr-2 text-right">
-            Capture
-            <br />
-            What
-            <br />
-            Matters
-            <br />
-            Most
-            <br />
-            <span className="text-xl">♡</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171A1F] border border-[#262B33] text-xs font-semibold text-[#14B8A6]">
+            <span>✨</span> Pro Network
           </div>
         </div>
 
         {/* Layer 2: Main Headline & Feature Rows */}
         <div className="relative z-10 my-auto py-4 space-y-5 max-w-sm">
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-[34px] font-black text-[#1A1816] tracking-tight leading-[1.15]">
-            Find the
+          <h1 className="text-3xl sm:text-[34px] font-black text-white tracking-tight leading-[1.15]">
+            Find the right
             <br />
-            perfect photographer
+            <span className="text-[#14B8A6]">photographer</span>
             <br />
-            for{' '}
-            <span className="font-script text-[#FF6E00] text-4xl sm:text-[42px] font-bold italic tracking-normal inline-block ml-1">
-              every moment
-            </span>
+            near you
           </h1>
 
           {/* 4 Feature Rows */}
           <div className="space-y-3 pt-1">
             {/* Feature 1 */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFEAD9] border border-[#FFD2B3] flex items-center justify-center text-[#FF6E00] shrink-0 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/15 border border-[#14B8A6]/30 flex items-center justify-center text-[#14B8A6] shrink-0 shadow-2xs">
                 <Camera className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1A1816] leading-tight">
+                <h4 className="text-xs font-bold text-white leading-tight">
                   Verified & Talented Photographers
                 </h4>
-                <p className="text-[11px] text-[#736B63] leading-tight">Real creators, real work</p>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">Real creators, verified portfolios</p>
               </div>
             </div>
 
             {/* Feature 2 */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFEAD9] border border-[#FFD2B3] flex items-center justify-center text-[#FF6E00] shrink-0 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/15 border border-[#14B8A6]/30 flex items-center justify-center text-[#14B8A6] shrink-0 shadow-2xs">
                 <Calendar className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1A1816] leading-tight">Easy Booking</h4>
-                <p className="text-[11px] text-[#736B63] leading-tight">
-                  Plan your shoot in minutes
+                <h4 className="text-xs font-bold text-white leading-tight">Easy Shoot Booking</h4>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">
+                  From search to shoot in 4 simple steps
                 </p>
               </div>
             </div>
 
             {/* Feature 3 */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFEAD9] border border-[#FFD2B3] flex items-center justify-center text-[#FF6E00] shrink-0 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/15 border border-[#14B8A6]/30 flex items-center justify-center text-[#14B8A6] shrink-0 shadow-2xs">
                 <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1A1816] leading-tight">Secure Payments</h4>
-                <p className="text-[11px] text-[#736B63] leading-tight">
-                  Safe and reliable transactions
+                <h4 className="text-xs font-bold text-white leading-tight">Secure Platform Escrow</h4>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">
+                  Safe and reliable milestone payments
                 </p>
               </div>
             </div>
 
             {/* Feature 4 */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFEAD9] border border-[#FFD2B3] flex items-center justify-center text-[#FF6E00] shrink-0 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/15 border border-[#14B8A6]/30 flex items-center justify-center text-[#14B8A6] shrink-0 shadow-2xs">
                 <Heart className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1A1816] leading-tight">
-                  Memories for a Lifetime
+                <h4 className="text-xs font-bold text-white leading-tight">
+                  Loved by Creators & Brands
                 </h4>
-                <p className="text-[11px] text-[#736B63] leading-tight">
-                  From portraits to special events
+                <p className="text-[11px] text-[#94A3B8] leading-tight">
+                  Reels, weddings, portraits, food & fashion
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Layer 3: Photography Collage & Social Proof */}
+        {/* Layer 3: Social Proof */}
         <div className="relative z-10 pt-2 space-y-4">
-          {/* Overlapping Polaroid Collage Cards */}
-          <div className="flex items-end gap-2 relative">
-            {/* Card 1: Couple / Wedding */}
-            <div className="relative -rotate-4 transition-transform hover:rotate-0 hover:z-20 duration-200">
-              <div className="p-1.5 pb-2.5 bg-white rounded-xl shadow-md border border-[#E8E2D8]">
-                <img
-                  src="/reference-assets/auth_polaroid_couple.jpg"
-                  alt="Couple Photography"
-                  className="w-19 h-19 sm:w-21 sm:h-21 object-cover rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Card 2: Child Laughing */}
-            <div className="relative rotate-2 -ml-3 transition-transform hover:rotate-0 hover:z-20 duration-200">
-              <div className="p-1.5 pb-2.5 bg-white rounded-xl shadow-md border border-[#E8E2D8]">
-                <img
-                  src="/reference-assets/auth_polaroid_child.jpg"
-                  alt="Kids and Family Photography"
-                  className="w-19 h-19 sm:w-21 sm:h-21 object-cover rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Card 3: Indian Portrait */}
-            <div className="relative -rotate-2 -ml-3 transition-transform hover:rotate-0 hover:z-20 duration-200">
-              <div className="p-1.5 pb-2.5 bg-white rounded-xl shadow-md border border-[#E8E2D8]">
-                <img
-                  src="/reference-assets/auth_polaroid_portrait.jpg"
-                  alt="Traditional Indian Portraits"
-                  className="w-19 h-19 sm:w-21 sm:h-21 object-cover rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Card 4: Mountain Scenery */}
-            <div className="relative rotate-4 -ml-3 transition-transform hover:rotate-0 hover:z-20 duration-200">
-              <div className="p-1.5 pb-2.5 bg-white rounded-xl shadow-md border border-[#E8E2D8]">
-                <img
-                  src="/reference-assets/auth_polaroid_mountain.jpg"
-                  alt="Travel and Outdoor Photography"
-                  className="w-19 h-19 sm:w-21 sm:h-21 object-cover rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Handwritten "Real People Real Stories" */}
-            <div className="ml-2 mb-1.5 font-script text-[#2A231C] leading-[1.05]">
-              <span className="text-[#FF6E00] text-lg block">♡</span>
-              <span className="text-sm sm:text-base font-bold whitespace-nowrap">
-                Real People
-                <br />
-                Real Stories
-              </span>
-            </div>
-          </div>
-
-          {/* Social Proof Avatars & Customer Count */}
-          <div className="flex items-center gap-3 pt-1 border-t border-[#E8E2D8]/60">
+          <div className="flex items-center gap-3 pt-3 border-t border-[#262B33]">
             <div className="flex -space-x-2 shrink-0">
               <img
                 src="/reference-assets/avatar_aman.jpg"
                 alt="Customer"
-                className="w-7 h-7 rounded-full border-2 border-white object-cover"
+                className="w-7 h-7 rounded-full border-2 border-[#0D0F12] object-cover"
               />
               <img
                 src="/reference-assets/avatar_riya.jpg"
                 alt="Customer"
-                className="w-7 h-7 rounded-full border-2 border-white object-cover"
+                className="w-7 h-7 rounded-full border-2 border-[#0D0F12] object-cover"
               />
               <img
                 src="/reference-assets/avatar_karan.jpg"
                 alt="Customer"
-                className="w-7 h-7 rounded-full border-2 border-white object-cover"
+                className="w-7 h-7 rounded-full border-2 border-[#0D0F12] object-cover"
               />
-              <div className="w-7 h-7 rounded-full bg-[#1A1816] border-2 border-white flex items-center justify-center text-white text-[9px] font-bold">
+              <div className="w-7 h-7 rounded-full bg-[#14B8A6] border-2 border-[#0D0F12] flex items-center justify-center text-white text-[9px] font-bold">
                 10K+
               </div>
             </div>
-            <p className="text-[11px] font-medium text-[#5A544D] leading-tight">
-              Join thousands of happy customers discovering amazing photographers.
+            <p className="text-[11px] font-medium text-[#94A3B8] leading-tight">
+              Join thousands of creators and clients finding top-tier photography talent.
             </p>
           </div>
         </div>
@@ -757,7 +686,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
       {/* ========================================================= */}
       <div
         ref={rightScrollRef}
-        className="w-full lg:w-[48%] min-w-0 bg-white rounded-[20px] sm:rounded-[26px] p-5 sm:p-7 md:p-8 flex flex-col justify-between overflow-y-auto overscroll-contain shadow-xs [scrollbar-width:thin] [scrollbar-color:#E0D8CB_transparent]"
+        className="w-full lg:w-[48%] min-w-0 bg-white rounded-[20px] sm:rounded-[26px] p-5 sm:p-7 md:p-8 flex flex-col justify-between overflow-y-auto overscroll-contain shadow-xs [scrollbar-width:thin] [scrollbar-color:#E7EAEE_transparent]"
       >
         {/* Header Row: Title & Close Button */}
         <div>
@@ -765,14 +694,14 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             <div>
               <h2
                 id="auth-modal-title"
-                className="text-2xl sm:text-[28px] font-black text-[#1A1816] tracking-tight leading-tight"
+                className="text-2xl sm:text-[28px] font-black text-[#191C22] tracking-tight leading-tight"
               >
-                Welcome to SnapShoot
+                Welcome to REEPY
               </h2>
-              <p className="text-xs sm:text-[13px] text-[#736B63] mt-1 leading-normal">
+              <p className="text-xs sm:text-[13px] text-[#64748B] mt-1 leading-normal">
                 {message ||
                   (tab === 'register'
-                    ? 'Join SnapShoot to discover and book the perfect photographer.'
+                    ? 'Join REEPY to discover and book the perfect photographer.'
                     : 'Log in to manage shoots, message creators, and view your galleries.')}
               </p>
             </div>
@@ -783,7 +712,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Close authentication window"
-                className="p-1.5 rounded-full text-[#8C847A] hover:text-[#1A1816] hover:bg-[#F2ECE3] transition-colors cursor-pointer shrink-0"
+                className="p-1.5 rounded-full text-[#94A3B8] hover:text-[#191C22] hover:bg-[#F1F3F5] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -791,7 +720,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           </div>
 
           {/* Tab Switcher: Log In vs Create Account */}
-          <div className="grid grid-cols-2 p-1 bg-[#F2ECE3] rounded-full mb-4">
+          <div className="grid grid-cols-2 p-1 bg-[#F1F3F5] rounded-full mb-4">
             <button
               type="button"
               onClick={() => {
@@ -802,8 +731,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               }}
               className={`py-2 px-4 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 tab === 'login'
-                  ? 'bg-white text-[#FF6E00] shadow-xs'
-                  : 'text-[#736B63] hover:text-[#1A1816]'
+                  ? 'bg-white text-[#14B8A6] shadow-xs'
+                  : 'text-[#64748B] hover:text-[#191C22]'
               }`}
             >
               Log In
@@ -818,8 +747,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               }}
               className={`py-2 px-4 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 tab === 'register'
-                  ? 'bg-white text-[#FF6E00] shadow-xs'
-                  : 'text-[#736B63] hover:text-[#1A1816]'
+                  ? 'bg-white text-[#14B8A6] shadow-xs'
+                  : 'text-[#64748B] hover:text-[#191C22]'
               }`}
             >
               Create Account
@@ -866,7 +795,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               {/* Account Type Selection */}
               <div>
-                <span className="block text-xs font-bold text-[#1A1816] mb-1.5">
+                <span className="block text-xs font-bold text-[#191C22] mb-1.5">
                   I want to join as:
                 </span>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -876,13 +805,13 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                     onClick={() => setRegRole('customer')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
                       regRole === 'customer'
-                        ? 'border-2 border-[#FF6E00] bg-[#FFF8F2] shadow-xs'
-                        : 'border-[#E8E2D8] bg-white hover:border-[#D5CDBD]'
+                        ? 'border-2 border-[#14B8A6] bg-[#EFFCF8] shadow-xs'
+                        : 'border-[#E7EAEE] bg-white hover:border-[#CBD5E1]'
                     }`}
                   >
-                    <User className="w-4 h-4 text-[#FF6E00]" />
-                    <span className="text-xs font-bold text-[#1A1816]">Customer</span>
-                    <span className="text-[10px] text-[#736B63] leading-tight">
+                    <User className="w-4 h-4 text-[#14B8A6]" />
+                    <span className="text-xs font-bold text-[#191C22]">Customer</span>
+                    <span className="text-[10px] text-[#64748B] leading-tight">
                       Book verified creators
                     </span>
                   </button>
@@ -893,13 +822,13 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                     onClick={() => setRegRole('creator')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
                       regRole === 'creator'
-                        ? 'border-2 border-[#FF6E00] bg-[#FFF8F2] shadow-xs'
-                        : 'border-[#E8E2D8] bg-white hover:border-[#D5CDBD]'
+                        ? 'border-2 border-[#14B8A6] bg-[#EFFCF8] shadow-xs'
+                        : 'border-[#E7EAEE] bg-white hover:border-[#CBD5E1]'
                     }`}
                   >
-                    <Camera className="w-4 h-4 text-[#FF6E00]" />
-                    <span className="text-xs font-bold text-[#1A1816]">Photographer</span>
-                    <span className="text-[10px] text-[#736B63] leading-tight">
+                    <Camera className="w-4 h-4 text-[#14B8A6]" />
+                    <span className="text-xs font-bold text-[#191C22]">Photographer</span>
+                    <span className="text-[10px] text-[#64748B] leading-tight">
                       Get bookings & payouts
                     </span>
                   </button>
@@ -908,15 +837,15 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
 
               {/* Field 1: Full Name */}
               <div>
-                <label className="block text-xs font-bold text-[#1A1816] mb-1">Full Name</label>
+                <label className="block text-xs font-bold text-[#191C22] mb-1">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Aman Sharma"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                   />
                 </div>
               </div>
@@ -924,30 +853,30 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               {/* Field 2 & 3: Mobile Number & City / Hub (2 Columns) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-[#1A1816] mb-1">
+                  <label className="block text-xs font-bold text-[#191C22] mb-1">
                     Mobile Number
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                     <input
                       type="tel"
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value)}
                       placeholder="98112 34567"
                       maxLength={10}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#1A1816] mb-1">City / Hub</label>
+                  <label className="block text-xs font-bold text-[#191C22] mb-1">City / Hub</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                     <select
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium appearance-none cursor-pointer"
+                      className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium appearance-none cursor-pointer"
                     >
                       <option value="Greater Noida">Greater Noida</option>
                       <option value="Delhi NCR">Delhi NCR</option>
@@ -956,42 +885,42 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                       <option value="Jaipur">Jaipur</option>
                       <option value="Goa">Goa</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A] pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8] pointer-events-none" />
                   </div>
                 </div>
               </div>
 
               {/* Field 4: Email Address */}
               <div>
-                <label className="block text-xs font-bold text-[#1A1816] mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-[#191C22] mb-1">Email Address</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                   <input
                     type="email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                   />
                 </div>
               </div>
 
               {/* Field 5: Password */}
               <div>
-                <label className="block text-xs font-bold text-[#1A1816] mb-1">Password</label>
+                <label className="block text-xs font-bold text-[#191C22] mb-1">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                   <input
                     type={showRegPassword ? 'text' : 'password'}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="Create a strong password"
-                    className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C847A] hover:text-[#1A1816] cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#191C22] cursor-pointer"
                   >
                     {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1004,14 +933,14 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded text-[#FF6E00] focus:ring-[#FF6E00] border-[#E8E2D8] cursor-pointer accent-[#FF6E00]"
+                  className="mt-0.5 w-4 h-4 rounded text-[#14B8A6] focus:ring-[#14B8A6] border-[#E7EAEE] cursor-pointer accent-[#14B8A6]"
                 />
-                <span className="text-[11px] text-[#736B63] leading-tight">
+                <span className="text-[11px] text-[#64748B] leading-tight">
                   I agree to the SnapShoot{' '}
                   <Link
                     href="/terms"
                     onClick={onClose}
-                    className="underline text-[#FF6E00] hover:text-[#E86300]"
+                    className="underline text-[#14B8A6] hover:text-[#0D9488]"
                   >
                     Terms of Service
                   </Link>{' '}
@@ -1019,7 +948,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   <Link
                     href="/privacy"
                     onClick={onClose}
-                    className="underline text-[#FF6E00] hover:text-[#E86300]"
+                    className="underline text-[#14B8A6] hover:text-[#0D9488]"
                   >
                     Privacy Policy
                   </Link>
@@ -1031,7 +960,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isLoading ? 'Creating Account...' : 'Create Account & Continue'}
                 <ArrowRight className="w-4 h-4" />
@@ -1045,7 +974,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           {tab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
               {/* Login Method Pills */}
-              <div className="grid grid-cols-3 p-1 bg-[#F2ECE3] rounded-xl text-xs font-bold mb-2">
+              <div className="grid grid-cols-3 p-1 bg-[#F1F3F5] rounded-xl text-xs font-bold mb-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -1056,8 +985,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   }}
                   className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
                     loginMethod === 'email_otp'
-                      ? 'bg-white text-[#FF6E00] shadow-xs'
-                      : 'text-[#736B63] hover:text-[#1A1816]'
+                      ? 'bg-white text-[#14B8A6] shadow-xs'
+                      : 'text-[#64748B] hover:text-[#191C22]'
                   }`}
                 >
                   Email OTP
@@ -1072,8 +1001,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   }}
                   className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
                     loginMethod === 'password'
-                      ? 'bg-white text-[#FF6E00] shadow-xs'
-                      : 'text-[#736B63] hover:text-[#1A1816]'
+                      ? 'bg-white text-[#14B8A6] shadow-xs'
+                      : 'text-[#64748B] hover:text-[#191C22]'
                   }`}
                 >
                   Password
@@ -1088,8 +1017,8 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   }}
                   className={`py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
                     loginMethod === 'phone'
-                      ? 'bg-white text-[#FF6E00] shadow-xs'
-                      : 'text-[#736B63] hover:text-[#1A1816]'
+                      ? 'bg-white text-[#14B8A6] shadow-xs'
+                      : 'text-[#64748B] hover:text-[#191C22]'
                   }`}
                 >
                   Phone SMS
@@ -1101,7 +1030,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                 <>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-[#1A1816]">
+                      <label className="block text-xs font-bold text-[#191C22]">
                         Email Address
                       </label>
                       {isOtpSent && (
@@ -1113,21 +1042,21 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                             setErrorMessage('');
                             setSuccessMessage('');
                           }}
-                          className="text-[11px] font-bold text-[#FF6E00] hover:underline cursor-pointer"
+                          className="text-[11px] font-bold text-[#14B8A6] hover:underline cursor-pointer"
                         >
                           Change Email
                         </button>
                       )}
                     </div>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                       <input
                         type="email"
                         disabled={isOtpSent || isLoading}
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         placeholder="name@example.com"
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium disabled:bg-gray-100 disabled:text-gray-600"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium disabled:bg-gray-100 disabled:text-gray-600"
                       />
                     </div>
                   </div>
@@ -1135,14 +1064,14 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   {isOtpSent && (
                     <div className="space-y-2 pt-1 animate-in fade-in duration-200">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-[#1A1816]">
+                        <label className="block text-xs font-bold text-[#191C22]">
                           6-Digit Email Verification Code
                         </label>
                         <button
                           type="button"
                           onClick={handleResendOtp}
                           disabled={resendCountdown > 0 || isLoading}
-                          className="text-[11px] font-bold text-[#FF6E00] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+                          className="text-[11px] font-bold text-[#14B8A6] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
                         >
                           {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
                         </button>
@@ -1158,11 +1087,11 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                             autoComplete="one-time-code"
                             value={digit}
                             onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
-                            className="w-10 h-11 text-center font-black text-lg rounded-xl border border-[#E8E2D8] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none"
+                            className="w-10 h-11 text-center font-black text-lg rounded-xl border border-[#E7EAEE] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none"
                           />
                         ))}
                       </div>
-                      <p className="text-[11px] text-[#736B63] leading-relaxed">
+                      <p className="text-[11px] text-[#64748B] leading-relaxed">
                         Enter the 6-digit verification code sent to your email. Check your <strong>Inbox</strong> and <strong>Spam / Junk</strong> folder.
                       </p>
                     </div>
@@ -1171,7 +1100,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? (
                       <>
@@ -1197,45 +1126,45 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               {loginMethod === 'password' && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1816] mb-1">
+                    <label className="block text-xs font-bold text-[#191C22] mb-1">
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                       <input
                         type="email"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         placeholder="name@example.com"
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                       />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-[#1A1816]">Password</label>
+                      <label className="block text-xs font-bold text-[#191C22]">Password</label>
                       <Link
                         href="/forgot-password"
                         onClick={onClose}
-                        className="text-[11px] font-bold text-[#FF6E00] hover:underline"
+                        className="text-[11px] font-bold text-[#14B8A6] hover:underline"
                       >
                         Forgot password?
                       </Link>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                       <input
                         type={showLoginPassword ? 'text' : 'password'}
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         placeholder="Enter your password"
-                        className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium"
+                        className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium"
                       />
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C847A] hover:text-[#1A1816] cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#191C22] cursor-pointer"
                       >
                         {showLoginPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -1249,7 +1178,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? 'Signing In...' : 'Log In & Continue'}
                     <ArrowRight className="w-4 h-4" />
@@ -1261,11 +1190,11 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               {loginMethod === 'phone' && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1816] mb-1">
+                    <label className="block text-xs font-bold text-[#191C22] mb-1">
                       Mobile Number
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C847A]" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                       <input
                         type="tel"
                         disabled={isOtpSent}
@@ -1273,7 +1202,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                         onChange={(e) => setLoginPhone(e.target.value)}
                         placeholder="98112 34567"
                         maxLength={10}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E8E2D8] text-xs sm:text-sm text-[#1A1816] placeholder:text-[#8C847A] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none font-medium disabled:bg-gray-100"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm text-[#191C22] placeholder:text-[#94A3B8] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none font-medium disabled:bg-gray-100"
                       />
                     </div>
                   </div>
@@ -1281,14 +1210,14 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   {isOtpSent && (
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold text-[#1A1816]">
+                        <label className="block text-xs font-bold text-[#191C22]">
                           6-Digit SMS Code
                         </label>
                         <button
                           type="button"
                           onClick={handleResendOtp}
                           disabled={resendCountdown > 0 || isLoading}
-                          className="text-[11px] font-bold text-[#FF6E00] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+                          className="text-[11px] font-bold text-[#14B8A6] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
                         >
                           {resendCountdown > 0 ? `Resend SMS in ${resendCountdown}s` : 'Resend SMS'}
                         </button>
@@ -1302,7 +1231,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                             maxLength={1}
                             value={digit}
                             onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
-                            className="w-10 h-11 text-center font-bold text-base rounded-xl border border-[#E8E2D8] focus:border-[#FF6E00] focus:ring-2 focus:ring-[#FF6E00]/20 outline-none"
+                            className="w-10 h-11 text-center font-bold text-base rounded-xl border border-[#E7EAEE] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none"
                           />
                         ))}
                       </div>
@@ -1312,7 +1241,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isLoading
                       ? 'Signing In...'
@@ -1329,9 +1258,9 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
           {/* Divider: or continue with */}
           <div className="relative my-4 text-center">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#E8E2D8]" />
+              <div className="w-full border-t border-[#E7EAEE]" />
             </div>
-            <span className="relative px-3 bg-white text-[11px] font-medium text-[#8C847A]">
+            <span className="relative px-3 bg-white text-[11px] font-medium text-[#94A3B8]">
               or continue with
             </span>
           </div>
@@ -1342,7 +1271,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             <button
               type="button"
               onClick={() => handleSocialClick('google')}
-              className="py-2.5 px-2 rounded-xl border border-[#E8E2D8] hover:border-[#D5CDBD] hover:bg-[#FAF7F2] text-xs font-bold text-[#1A1816] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="py-2.5 px-2 rounded-xl border border-[#E7EAEE] hover:border-[#CBD5E1] hover:bg-[#F5F7F9] text-xs font-bold text-[#191C22] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                 <path
@@ -1369,7 +1298,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
             <button
               type="button"
               onClick={() => handleSocialClick('apple')}
-              className="py-2.5 px-2 rounded-xl border border-[#E8E2D8] hover:border-[#D5CDBD] hover:bg-[#FAF7F2] text-xs font-bold text-[#1A1816] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="py-2.5 px-2 rounded-xl border border-[#E7EAEE] hover:border-[#CBD5E1] hover:bg-[#F5F7F9] text-xs font-bold text-[#191C22] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 170 170">
                 <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.32-6.53-9.98-11.66-21.2-15.38-33.68-3.72-12.47-5.58-24.16-5.58-35.08 0-14.53 3.51-26.68 10.53-36.46 7.02-9.78 16.14-14.81 27.35-15.08 4.7 0 9.94 1.25 15.73 3.76 5.79 2.5 9.77 3.82 11.96 3.94 1.79-.24 5.92-1.63 12.38-4.17 6.46-2.54 11.89-3.69 16.29-3.46 12.18.67 22.08 5.14 29.7 13.41-10.74 6.53-15.99 15.53-15.76 27 .36 9.07 3.83 16.71 10.42 22.92 6.58 6.21 14.57 9.87 23.96 10.98-2.12 6.53-4.7 13.06-7.75 19.59zM119.22 31.84c0-7.39 2.68-14.39 8.04-20.98 5.36-6.59 12-10.86 19.92-12.82.95 8.16-1.52 15.65-7.41 22.48-5.89 6.83-12.75 11.05-20.55 11.32z" />
@@ -1387,20 +1316,20 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
               }}
               className={`py-2.5 px-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 tab === 'login' && loginMethod === 'phone'
-                  ? 'border-[#FF6E00] bg-[#FFF8F2] text-[#FF6E00]'
-                  : 'border-[#E8E2D8] hover:border-[#D5CDBD] hover:bg-[#FAF7F2] text-[#1A1816]'
+                  ? 'border-[#14B8A6] bg-[#EFFCF8] text-[#14B8A6]'
+                  : 'border-[#E7EAEE] hover:border-[#CBD5E1] hover:bg-[#F5F7F9] text-[#191C22]'
               }`}
             >
-              <Phone className="w-3.5 h-3.5 text-[#FF6E00]" />
+              <Phone className="w-3.5 h-3.5 text-[#14B8A6]" />
               <span>Phone OTP</span>
             </button>
           </div>
         </div>
 
         {/* Footer Navigation Link */}
-        <div className="pt-4 mt-3 border-t border-[#E8E2D8] text-center">
+        <div className="pt-4 mt-3 border-t border-[#E7EAEE] text-center">
           {tab === 'register' ? (
-            <p className="text-xs text-[#736B63]">
+            <p className="text-xs text-[#64748B]">
               Already have an account?{' '}
               <button
                 type="button"
@@ -1410,13 +1339,13 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   setSocialNotice(null);
                   if (rightScrollRef.current) rightScrollRef.current.scrollTop = 0;
                 }}
-                className="font-bold text-[#FF6E00] hover:underline cursor-pointer ml-1"
+                className="font-bold text-[#14B8A6] hover:underline cursor-pointer ml-1"
               >
                 Log In
               </button>
             </p>
           ) : (
-            <p className="text-xs text-[#736B63]">
+            <p className="text-xs text-[#64748B]">
               Don&apos;t have an account?{' '}
               <button
                 type="button"
@@ -1426,7 +1355,7 @@ export const SnapShootAuthView: React.FC<SnapShootAuthViewProps> = ({
                   setSocialNotice(null);
                   if (rightScrollRef.current) rightScrollRef.current.scrollTop = 0;
                 }}
-                className="font-bold text-[#FF6E00] hover:underline cursor-pointer ml-1"
+                className="font-bold text-[#14B8A6] hover:underline cursor-pointer ml-1"
               >
                 Create Account
               </button>

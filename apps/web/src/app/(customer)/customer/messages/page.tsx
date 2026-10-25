@@ -68,26 +68,26 @@ export default function CustomerMessagesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-[#FF6E00]">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#14B8A6]">
           Communications
         </span>
-        <h1 className="text-2xl sm:text-3xl font-black text-[#1A1816] tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#191C22] tracking-tight">
           Messages with Photographers
         </h1>
-        <p className="text-xs sm:text-sm text-[#5A544D] mt-1">
+        <p className="text-xs sm:text-sm text-[#64748B] mt-1">
           Coordinate shoot logistics, share mood boards, and clarify details directly with your booked creatives.
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl border border-[#E8E1D6] overflow-hidden shadow-subtle grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
+      <div className="bg-white rounded-3xl border border-[#E7EAEE] overflow-hidden shadow-subtle grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
         {/* Left: Chat list */}
-        <div className="md:col-span-4 border-r border-[#E8E1D6] p-4 space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#8C847A] px-2">Active Conversations</h2>
+        <div className="md:col-span-4 border-r border-[#E7EAEE] p-4 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] px-2">Active Conversations</h2>
 
           <button
             onClick={() => setActiveChat('vikram')}
             className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 cursor-pointer ${
-              activeChat === 'vikram' ? 'bg-[#FFF3E5] border border-[#FFD4A8]' : 'hover:bg-[#FAF7F2]'
+              activeChat === 'vikram' ? 'bg-[#EFFCF8] border border-[#99F6E4]' : 'hover:bg-[#F5F7F9]'
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,10 +98,10 @@ export default function CustomerMessagesPage() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-[#1A1816] truncate">Vikramaditya Rathore</span>
-                <span className="text-[10px] text-[#8C847A]">10:40 AM</span>
+                <span className="text-xs font-extrabold text-[#191C22] truncate">Vikramaditya Rathore</span>
+                <span className="text-[10px] text-[#94A3B8]">10:40 AM</span>
               </div>
-              <p className="text-[11px] text-[#5A544D] truncate mt-0.5">
+              <p className="text-[11px] text-[#64748B] truncate mt-0.5">
                 Perfect! I will carry the Hasselblad...
               </p>
             </div>
@@ -110,7 +110,7 @@ export default function CustomerMessagesPage() {
           <button
             onClick={() => setActiveChat('aman')}
             className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 cursor-pointer ${
-              activeChat === 'aman' ? 'bg-[#FFF3E5] border border-[#FFD4A8]' : 'hover:bg-[#FAF7F2]'
+              activeChat === 'aman' ? 'bg-[#EFFCF8] border border-[#99F6E4]' : 'hover:bg-[#F5F7F9]'
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -121,10 +121,10 @@ export default function CustomerMessagesPage() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-[#1A1816] truncate">Aman Verma</span>
-                <span className="text-[10px] text-[#8C847A]">Yesterday</span>
+                <span className="text-xs font-extrabold text-[#191C22] truncate">Aman Verma</span>
+                <span className="text-[10px] text-[#94A3B8]">Yesterday</span>
               </div>
-              <p className="text-[11px] text-[#5A544D] truncate mt-0.5">
+              <p className="text-[11px] text-[#64748B] truncate mt-0.5">
                 Hello! Your photo gallery color grading...
               </p>
             </div>
@@ -132,9 +132,9 @@ export default function CustomerMessagesPage() {
         </div>
 
         {/* Right: Message Window */}
-        <div className="md:col-span-8 flex flex-col justify-between p-6 bg-[#FAF7F2]/40">
+        <div className="md:col-span-8 flex flex-col justify-between p-6 bg-[#F5F7F9]/40">
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-[#E8E1D6]">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E7EAEE]">
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -144,10 +144,10 @@ export default function CustomerMessagesPage() {
                     : '/reference-assets/avatar_aman.jpg'
                 }
                 alt="Avatar"
-                className="w-10 h-10 rounded-full object-cover border border-[#E8E1D6]"
+                className="w-10 h-10 rounded-full object-cover border border-[#E7EAEE]"
               />
               <div>
-                <h3 className="text-sm font-black text-[#1A1816]">
+                <h3 className="text-sm font-black text-[#191C22]">
                   {activeChat === 'vikram' ? 'Vikramaditya Rathore' : 'Aman Verma'}
                 </h3>
                 <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
@@ -159,7 +159,7 @@ export default function CustomerMessagesPage() {
 
             <Link
               href={activeChat === 'vikram' ? '/photographers/pro-vikram' : '/photographers/pro-aman'}
-              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#E8E1D6] text-xs font-bold text-[#1A1816] transition-all flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#F5F7F9] border border-[#E7EAEE] text-xs font-bold text-[#191C22] transition-all flex items-center gap-1"
             >
               <span>View Profile</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -175,12 +175,12 @@ export default function CustomerMessagesPage() {
                   <div
                     className={`max-w-[75%] p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                       isMe
-                        ? 'bg-[#FF6E00] text-white rounded-br-none shadow-sm'
-                        : 'bg-white text-[#1A1816] border border-[#E8E1D6] rounded-bl-none shadow-2xs'
+                        ? 'bg-[#14B8A6] text-white rounded-br-none shadow-sm'
+                        : 'bg-white text-[#191C22] border border-[#E7EAEE] rounded-bl-none shadow-2xs'
                     }`}
                   >
                     <p>{m.text}</p>
-                    <span className={`block text-[10px] mt-1 ${isMe ? 'text-white/80 text-right' : 'text-[#8C847A]'}`}>
+                    <span className={`block text-[10px] mt-1 ${isMe ? 'text-white/80 text-right' : 'text-[#94A3B8]'}`}>
                       {m.time}
                     </span>
                   </div>
@@ -190,17 +190,17 @@ export default function CustomerMessagesPage() {
           </div>
 
           {/* Input Box */}
-          <form onSubmit={handleSendMessage} className="pt-4 border-t border-[#E8E1D6] flex gap-2">
+          <form onSubmit={handleSendMessage} className="pt-4 border-t border-[#E7EAEE] flex gap-2">
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type your message about shoot logistics..."
-              className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#E8E1D6] text-xs sm:text-sm focus:outline-none focus:border-[#FF6E00]"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#E7EAEE] text-xs sm:text-sm focus:outline-none focus:border-[#14B8A6]"
             />
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-[#FF6E00] hover:bg-[#E86300] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <span>Send</span>
               <Send className="w-3.5 h-3.5" />

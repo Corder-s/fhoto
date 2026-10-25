@@ -223,16 +223,16 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
     <section id="administrators" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#FF6E00]" />
-          <h3 className="text-sm font-black text-[#1A1816]">Administrators &amp; permissions</h3>
-          <span className="text-[10px] font-bold text-[#8C847A]">
+          <ShieldCheck className="w-4 h-4 text-[#14B8A6]" />
+          <h3 className="text-sm font-black text-[#191C22]">Administrators &amp; permissions</h3>
+          <span className="text-[10px] font-bold text-[#94A3B8]">
             {loading ? 'loading…' : `${accounts.length} accounts • ${ownerCount} owner${ownerCount === 1 ? '' : 's'}`}
           </span>
         </div>
         <button
           type="button"
           onClick={() => load()}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#736B63] hover:text-[#1A1816] cursor-pointer"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#64748B] hover:text-[#191C22] cursor-pointer"
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
           <span>Reload</span>
@@ -254,15 +254,15 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
       {notice && (
         <div
           role="status"
-          className={`rounded-xl px-3 py-2 text-[11px] font-bold text-white ${notice.tone === 'error' ? 'bg-red-600' : 'bg-[#1A1816]'}`}
+          className={`rounded-xl px-3 py-2 text-[11px] font-bold text-white ${notice.tone === 'error' ? 'bg-red-600' : 'bg-[#191C22]'}`}
         >
           {notice.text}
         </div>
       )}
 
       {canManage && (
-        <div className="rounded-2xl border border-[#E8E2D8] bg-[#FFF8F2] p-3 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#8C847A]">Promote an existing account</p>
+        <div className="rounded-2xl border border-[#E7EAEE] bg-[#EFFCF8] p-3 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#94A3B8]">Promote an existing account</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#A69F96]" />
@@ -276,23 +276,23 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
                   }
                 }}
                 placeholder="Registered e-mail, e.g. priya@example.com"
-                className="w-full rounded-xl border border-[#E8E2D8] bg-white pl-8 pr-2 py-2 text-[11px] text-[#1A1816]"
+                className="w-full rounded-xl border border-[#E7EAEE] bg-white pl-8 pr-2 py-2 text-[11px] text-[#191C22]"
               />
             </div>
             <button
               type="button"
               onClick={searchCandidates}
               disabled={searching}
-              className="px-3 py-2 rounded-xl bg-[#1A1816] text-white text-[11px] font-bold disabled:opacity-60 cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-[#191C22] text-white text-[11px] font-bold disabled:opacity-60 cursor-pointer"
             >
               {searching ? 'Searching…' : 'Find account'}
             </button>
           </div>
 
           <div className="flex flex-wrap gap-x-3 gap-y-1">
-            <span className="text-[10px] font-bold text-[#736B63]">Initial permissions (none selected = full default set):</span>
+            <span className="text-[10px] font-bold text-[#64748B]">Initial permissions (none selected = full default set):</span>
             {knownPermissions.map((permission) => (
-              <label key={permission} className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#5A544D] cursor-pointer">
+              <label key={permission} className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#64748B] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={promotePermissions.includes(permission)}
@@ -311,9 +311,9 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
             <ul className="space-y-1 pt-1 border-t border-[#F3E7DC]">
               {candidates.map((candidate) => (
                 <li key={candidate.id} className="flex items-center justify-between gap-2 text-[11px]">
-                  <span className="min-w-0 truncate font-semibold text-[#1A1816]">
+                  <span className="min-w-0 truncate font-semibold text-[#191C22]">
                     {candidate.fullName || 'Unnamed'} • {candidate.email || 'no e-mail'}
-                    <span className="ml-1 text-[10px] font-bold text-[#8C847A]">[{candidate.roles.join(', ') || 'customer'}]</span>
+                    <span className="ml-1 text-[10px] font-bold text-[#94A3B8]">[{candidate.roles.join(', ') || 'customer'}]</span>
                   </span>
                   <button
                     type="button"
@@ -331,9 +331,9 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
         </div>
       )}
 
-      <div className="rounded-2xl border border-[#E8E2D8] divide-y divide-[#F2ECE3]">
+      <div className="rounded-2xl border border-[#E7EAEE] divide-y divide-[#F1F3F5]">
         {accounts.length === 0 && !loading && (
-          <p className="text-xs text-[#8C847A] py-6 text-center">No administrators yet.</p>
+          <p className="text-xs text-[#94A3B8] py-6 text-center">No administrators yet.</p>
         )}
         {accounts.map((account) => {
           const selected = drafts[account.id] || [];
@@ -342,17 +342,17 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
             <div key={account.id} className="p-3 space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#1A1816] truncate inline-flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-[#191C22] truncate inline-flex items-center gap-1.5">
                     {account.fullName || 'Unnamed account'}
                     {account.isOwner && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#FFF2E8] border border-[#FFDFC6] text-[9px] font-black text-[#B24E00]">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#EFFCF8] border border-[#99F6E4] text-[9px] font-black text-[#B24E00]">
                         <Crown className="w-2.5 h-2.5" />
                         OWNER
                       </span>
                     )}
-                    {account.isSelf && <span className="text-[9px] font-bold text-[#8C847A]">(you)</span>}
+                    {account.isSelf && <span className="text-[9px] font-bold text-[#94A3B8]">(you)</span>}
                   </p>
-                  <p className="text-[10px] text-[#8C847A] truncate">
+                  <p className="text-[10px] text-[#94A3B8] truncate">
                     {account.email || '—'} • {account.roles.join(' / ') || 'no role'}
                     {account.isPhotographer ? ` • photographer: ${account.photographerStatus}` : ''}
                     {account.accountStatus && account.accountStatus !== 'active' ? ` • ${account.accountStatus}` : ''}
@@ -383,7 +383,7 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
                         disabled={busyId === account.id}
                         onClick={() => savePermissions(account)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer ${
-                          dirty ? 'bg-[#FF6E00] text-white' : 'bg-white border border-[#E8E2D8] text-[#A69F96]'
+                          dirty ? 'bg-[#14B8A6] text-white' : 'bg-white border border-[#E7EAEE] text-[#A69F96]'
                         } disabled:opacity-50`}
                       >
                         Save permissions
@@ -400,7 +400,7 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
                     </>
                   )}
                   {canManage && !account.isAdministrator && (
-                    <span className="text-[10px] font-bold text-[#8C847A] inline-flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-[#94A3B8] inline-flex items-center gap-1">
                       <Eye className="w-3 h-3" /> not an admin
                     </span>
                   )}
@@ -408,7 +408,7 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
               </div>
 
               {account.isOwner ? (
-                <p className="text-[10px] font-semibold text-[#736B63]">
+                <p className="text-[10px] font-semibold text-[#64748B]">
                   Owners hold every permission and may change ownership. Use “Promote an existing account” to add
                   another owner before removing one.
                 </p>
@@ -419,7 +419,7 @@ export const AdministratorPanel: React.FC<{ canManage: boolean }> = ({ canManage
                       <label
                         key={permission}
                         title={PERMISSION_HINTS[permission] || permission}
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#5A544D] cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#64748B] cursor-pointer"
                       >
                         <input
                           type="checkbox"

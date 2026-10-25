@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
 
-const SnapShootAiChatWidget = dynamic(
-  () => import('./SnapShootAiChatWidget').then((m) => m.SnapShootAiChatWidget),
+const REEPYAiChatWidget = dynamic<{ variant: 'customer' | 'photographer' }>(
+  () => import('./SnapShootAiChatWidget').then((m) => m.REEPYAiChatWidget),
   { ssr: false }
 );
 
@@ -39,7 +39,7 @@ export const AiChatWidgetRoot: React.FC = () => {
       return null;
     }
 
-    return <SnapShootAiChatWidget variant="photographer" />;
+    return <REEPYAiChatWidget variant="photographer" />;
   }
 
   // 4. Authenticated Customer Experience: Restricted to customers/admins/owners
@@ -52,5 +52,5 @@ export const AiChatWidgetRoot: React.FC = () => {
     return null;
   }
 
-  return <SnapShootAiChatWidget variant="customer" />;
+  return <REEPYAiChatWidget variant="customer" />;
 };

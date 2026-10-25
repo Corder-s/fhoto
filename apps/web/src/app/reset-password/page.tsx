@@ -69,20 +69,20 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+    <div className="min-h-screen flex flex-col bg-[#F5F7F9]">
       <Navbar />
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-white rounded-3xl border border-[#E8E1D6] p-6 sm:p-8 shadow-sm space-y-5">
-          <h1 className="text-2xl font-black text-[#1A1816]">Set a new password</h1>
+        <div className="w-full max-w-md bg-white rounded-3xl border border-[#E7EAEE] p-6 sm:p-8 shadow-sm space-y-5">
+          <h1 className="text-2xl font-black text-[#191C22]">Set a new password</h1>
 
-          {status === 'checking' && <p className="text-sm text-[#5A544D]">Verifying your reset link…</p>}
+          {status === 'checking' && <p className="text-sm text-[#64748B]">Verifying your reset link…</p>}
 
           {status === 'invalid' && (
             <div className="space-y-4">
-              <p className="text-sm text-[#5A544D]">
+              <p className="text-sm text-[#64748B]">
                 This password reset link is invalid or has expired. Request a new link to continue.
               </p>
-              <Link href="/forgot-password" className="inline-block text-sm font-bold text-[#FF6E00]">
+              <Link href="/forgot-password" className="inline-block text-sm font-bold text-[#14B8A6] hover:underline">
                 Request a new reset link
               </Link>
             </div>
@@ -91,24 +91,24 @@ export default function ResetPasswordPage() {
           {status === 'ready' && !done && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block space-y-1">
-                <span className="text-xs font-bold text-[#5A544D]">New password</span>
+                <span className="text-xs font-bold text-[#64748B]">New password</span>
                 <input
                   type="password"
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-[#E8E1D6] px-4 py-3 text-sm"
+                  className="w-full rounded-xl border border-[#E7EAEE] px-4 py-3 text-sm text-[#191C22] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none"
                   required
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-xs font-bold text-[#5A544D]">Confirm new password</span>
+                <span className="text-xs font-bold text-[#64748B]">Confirm new password</span>
                 <input
                   type="password"
                   autoComplete="new-password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full rounded-xl border border-[#E8E1D6] px-4 py-3 text-sm"
+                  className="w-full rounded-xl border border-[#E7EAEE] px-4 py-3 text-sm text-[#191C22] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 outline-none"
                   required
                 />
               </label>
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-2xl bg-[#FF6E00] py-3 text-sm font-bold text-white disabled:opacity-60"
+                className="w-full rounded-2xl bg-[#14B8A6] hover:bg-[#0D9488] active:bg-[#0F766E] py-3 text-sm font-black text-[#0D0F12] hover:text-white transition-all disabled:opacity-60 cursor-pointer shadow-md"
               >
                 {saving ? 'Saving…' : 'Update password'}
               </button>
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
           )}
 
           {done && (
-            <p className="text-sm font-semibold text-green-700">
+            <p className="text-sm font-semibold text-emerald-700">
               Your password has been updated. Redirecting you to sign in…
             </p>
           )}

@@ -150,8 +150,8 @@ function SelectRoleContent() {
   if (isCheckingAccount) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4 text-center">
-        <div className="w-12 h-12 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-bold text-[#5A544D]">Checking account profile...</p>
+        <div className="w-12 h-12 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-bold text-[#64748B]">Checking account profile...</p>
       </div>
     );
   }
@@ -160,16 +160,16 @@ function SelectRoleContent() {
     <div className="w-full max-w-4xl mx-auto space-y-8">
       {/* Brand Header & Headline */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFF2E8] border border-[#FFD9BE] text-[#FF6E00] text-xs font-black tracking-wide uppercase shadow-xs">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EFFCF8] border border-[#99F6E4] text-[#0F766E] text-xs font-black tracking-wide uppercase shadow-xs">
+          <Sparkles className="w-3.5 h-3.5 text-[#14B8A6]" />
           <span>Step 2 of 2: Choose Your Account Type</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#1A1816] tracking-tight">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#191C22] tracking-tight">
           How would you like to join us?
         </h1>
-        <p className="text-sm sm:text-base text-[#665E55] max-w-xl mx-auto leading-relaxed">
-          Welcome to SnapShoot, {displayName}! Please choose your account type to proceed.
+        <p className="text-sm sm:text-base text-[#64748B] max-w-xl mx-auto leading-relaxed">
+          Welcome to REEPY, {displayName}! Please choose your account type to proceed.
         </p>
       </div>
 
@@ -188,50 +188,50 @@ function SelectRoleContent() {
           onClick={() => !isSubmitting && handleSelectRole('customer')}
           className={`relative flex flex-col justify-between p-6 sm:p-8 rounded-[28px] border-2 transition-all duration-300 cursor-pointer text-left bg-white shadow-card hover:shadow-elevated hover:-translate-y-1 group ${
             selectedRole === 'customer'
-              ? 'border-[#FF6E00] ring-4 ring-[#FF6E00]/15'
-              : 'border-[#E8E1D6] hover:border-[#FFB780]'
+              ? 'border-[#14B8A6] ring-4 ring-[#14B8A6]/15'
+              : 'border-[#E7EAEE] hover:border-[#14B8A6]/50'
           }`}
         >
           {/* Top Badge */}
           <div className="flex items-center justify-between gap-2 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#FFF6EE] border border-[#FFDECA] flex items-center justify-center text-[#FF6E00] shadow-2xs group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-[#EFFCF8] border border-[#99F6E4] flex items-center justify-center text-[#0F766E] shadow-2xs group-hover:scale-110 transition-transform">
               <User className="w-6 h-6 stroke-[2.2]" />
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#FAF7F2] border border-[#E8E1D6] text-[#665E55]">
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#F1F3F5] border border-[#E7EAEE] text-[#64748B]">
               Option A
             </span>
           </div>
 
           <div className="space-y-3">
             <div>
-              <h2 className="text-2xl font-black text-[#1A1816] group-hover:text-[#FF6E00] transition-colors">
+              <h2 className="text-2xl font-black text-[#191C22] group-hover:text-[#14B8A6] transition-colors">
                 CUSTOMER
               </h2>
-              <p className="text-xs sm:text-sm text-[#8C847A] font-semibold mt-0.5">
+              <p className="text-xs sm:text-sm text-[#94A3B8] font-semibold mt-0.5">
                 Client Account
               </p>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#665E55] leading-relaxed font-medium">
+            <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed font-medium">
               Discover photographers, explore portfolios, compare packages, and book photography services.
             </p>
 
             {/* Feature Checklist */}
-            <div className="pt-4 border-t border-[#F2ECE3] space-y-2.5">
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+            <div className="pt-4 border-t border-[#F1F3F5] space-y-2.5">
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Explore photographers by category and city</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>View photographer profiles, verified portfolios & client reviews</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Book photography services with distance-based travel pricing</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Manage bookings, in-app chat, and delivery notifications</span>
               </div>
             </div>
@@ -242,7 +242,7 @@ function SelectRoleContent() {
             <Button
               type="button"
               variant="secondary"
-              className="w-full justify-center gap-2 py-3.5 rounded-full font-bold text-xs sm:text-sm group-hover:bg-[#FF6E00] group-hover:text-white group-hover:border-[#FF6E00] transition-colors"
+              className="w-full justify-center gap-2 py-3.5 rounded-full font-bold text-xs sm:text-sm group-hover:bg-[#14B8A6] group-hover:text-[#0D0F12] group-hover:border-[#14B8A6] transition-colors"
               disabled={isSubmitting}
             >
               {isSubmitting && selectedRole === 'customer' ? (
@@ -265,54 +265,54 @@ function SelectRoleContent() {
           onClick={() => !isSubmitting && handleSelectRole('creator')}
           className={`relative flex flex-col justify-between p-6 sm:p-8 rounded-[28px] border-2 transition-all duration-300 cursor-pointer text-left bg-white shadow-card hover:shadow-elevated hover:-translate-y-1 group ${
             selectedRole === 'creator'
-              ? 'border-[#FF6E00] ring-4 ring-[#FF6E00]/15'
-              : 'border-[#E8E1D6] hover:border-[#FFB780]'
+              ? 'border-[#14B8A6] ring-4 ring-[#14B8A6]/15'
+              : 'border-[#E7EAEE] hover:border-[#14B8A6]/50'
           }`}
         >
           {/* Top Badge */}
           <div className="flex items-center justify-between gap-2 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#FF6E00] flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-[#14B8A6] flex items-center justify-center text-[#0D0F12] shadow-md group-hover:scale-110 transition-transform">
               <Camera className="w-6 h-6 stroke-[2.2]" />
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#FFF2E8] border border-[#FFD9BE] text-[#FF6E00]">
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#EFFCF8] border border-[#99F6E4] text-[#0F766E]">
               Option B • Pro Studio
             </span>
           </div>
 
           <div className="space-y-3">
             <div>
-              <h2 className="text-2xl font-black text-[#1A1816] group-hover:text-[#FF6E00] transition-colors">
+              <h2 className="text-2xl font-black text-[#191C22] group-hover:text-[#14B8A6] transition-colors">
                 PHOTOGRAPHER / CREATOR
               </h2>
-              <p className="text-xs sm:text-sm text-[#8C847A] font-semibold mt-0.5">
+              <p className="text-xs sm:text-sm text-[#94A3B8] font-semibold mt-0.5">
                 Creator Account
               </p>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#665E55] leading-relaxed font-medium">
+            <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed font-medium">
               Showcase your work, create your photography portfolio, offer professional services, and manage bookings.
             </p>
 
             {/* Feature Checklist */}
-            <div className="pt-4 border-t border-[#F2ECE3] space-y-2.5">
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+            <div className="pt-4 border-t border-[#F1F3F5] space-y-2.5">
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Create a professional photographer profile & bio</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Upload a profile picture and high-impact cover banner</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Upload high-resolution portfolio photographs</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Configure photography packages, deliverables & travel pricing</span>
               </div>
-              <div className="flex items-start gap-2.5 text-xs text-[#1A1816] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#FF6E00] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-xs text-[#191C22] font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
                 <span>Submit profile for admin approval & access creator dashboard</span>
               </div>
             </div>
@@ -323,7 +323,7 @@ function SelectRoleContent() {
             <Button
               type="button"
               variant="primary"
-              className="w-full justify-center gap-2 py-3.5 rounded-full font-bold text-xs sm:text-sm shadow-sm"
+              className="w-full justify-center gap-2 py-3.5 rounded-full font-bold text-xs sm:text-sm shadow-sm bg-[#14B8A6] hover:bg-[#0D9488] active:bg-[#0F766E] text-[#0D0F12] hover:text-white"
               disabled={isSubmitting}
             >
               {isSubmitting && selectedRole === 'creator' ? (
@@ -344,10 +344,10 @@ function SelectRoleContent() {
 
       {/* Safety Notice & Footer Guarantee */}
       <div className="pt-4 text-center">
-        <p className="text-xs text-[#8C847A] flex items-center justify-center gap-1.5">
+        <p className="text-xs text-[#64748B] flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>
-            You are securely authenticated with your Google account. Clients can also apply to become photographers at any time.
+            You are securely authenticated. Clients can also apply to become photographers at any time.
           </span>
         </p>
       </div>
@@ -357,12 +357,12 @@ function SelectRoleContent() {
 
 export default function SelectRolePage() {
   return (
-    <div className="min-h-screen bg-[#FAF7F2] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#F5F7F9] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
       <Suspense
         fallback={
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="w-10 h-10 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-bold text-[#8C847A]">Loading account options...</p>
+            <div className="w-10 h-10 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-bold text-[#94A3B8]">Loading account options...</p>
           </div>
         }
       >

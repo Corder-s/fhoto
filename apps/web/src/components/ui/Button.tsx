@@ -34,19 +34,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const baseStyles =
-      'inline-flex items-center justify-center font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FF6E00] focus:ring-offset-2 focus:ring-offset-[#FAF7F2] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer select-none';
+      'inline-flex items-center justify-center font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 focus:ring-offset-[#F5F7F9] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer select-none';
 
     const variants = {
       primary:
-        'bg-[#FF6E00] hover:bg-[#E86300] active:bg-[#D65B00] text-white shadow-sm hover:shadow-md border border-transparent',
+        'bg-[#14B8A6] hover:bg-[#0D9488] active:bg-[#0F766E] text-white shadow-sm hover:shadow-md border border-transparent',
       secondary:
-        'bg-[#F2ECE3] hover:bg-[#EAE2D7] active:bg-[#DFD6C9] text-[#1A1816] border border-[#E8E2D8] hover:border-[#D5CEC4]',
+        'bg-[#F1F3F5] hover:bg-[#E2E8F0] active:bg-[#CBD5E1] text-[#191C22] border border-[#E7EAEE] hover:border-[#CBD5E1]',
       outline:
-        'bg-white/90 hover:bg-white active:bg-[#FAF7F2] text-[#1A1816] border border-[#E8E2D8] hover:border-[#D5CEC4] shadow-xs',
+        'bg-white/90 hover:bg-white active:bg-[#F5F7F9] text-[#191C22] border border-[#E7EAEE] hover:border-[#CBD5E1] shadow-xs',
       ghost:
-        'bg-transparent hover:bg-[#F2ECE3] active:bg-[#EAE2D7] text-[#5A544D] hover:text-[#1A1816]',
+        'bg-transparent hover:bg-[#F1F3F5] active:bg-[#E2E8F0] text-[#64748B] hover:text-[#191C22]',
       dark:
-        'bg-[#1A1816] hover:bg-black active:bg-[#2A2622] text-white shadow-sm border border-transparent',
+        'bg-[#171A1F] hover:bg-black active:bg-[#262B33] text-white shadow-sm border border-transparent',
       danger:
         'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white shadow-sm border border-transparent',
     };

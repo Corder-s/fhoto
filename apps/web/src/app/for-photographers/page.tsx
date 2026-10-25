@@ -48,7 +48,7 @@ export default function ForPhotographersPage() {
             <div className="max-w-2xl space-y-6">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-subtle text-brand text-xs font-bold border border-brand-border">
                 <Camera className="w-4 h-4" />
-                <span>SnapShoot Creator Partner Network</span>
+                <span>REEPY Creator Partner Network</span>
               </span>
 
               <h1 className="text-3xl sm:text-5xl font-extrabold text-ink-primary tracking-tight leading-tight">

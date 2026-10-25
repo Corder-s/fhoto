@@ -27,8 +27,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'SnapShoot — On-Demand Photography & Videography Marketplace',
-  description: 'Book verified professional photographers and videographers near you for events, portraits, weddings, and commercial shoots.',
+  title: 'REEPY — On-Demand Photography & Content Creator Marketplace',
+  description: 'Book verified professional photographers and content creators near you for reels, portraits, weddings, and commercial shoots.',
 };
 
 export default function RootLayout({
@@ -38,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${plusJakartaSans.variable} ${caveat.variable} ${inter.variable}`}>
-      <body className="min-h-screen flex flex-col bg-canvas-primary text-ink-primary selection:bg-brand-subtle selection:text-brand font-sans">
+      <body className="min-h-screen flex flex-col bg-[#F5F7F9] text-[#191C22] selection:bg-[#EFFCF8] selection:text-[#0F766E] font-sans">
         <AuthModalProvider>
           <UserProfileProvider>
             {children}

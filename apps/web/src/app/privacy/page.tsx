@@ -17,14 +17,14 @@ export default function PrivacyPage() {
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink-primary">1. Information We Collect</h2>
               <p>
-                SnapShoot collects personal information including phone numbers for OTP authentication, shoot venue addresses, and photographer KYC documents (government identity cards). All photographer KYC documents are stored in encrypted, private cloud buckets and never exposed to the public.
+                REEPY collects personal information including phone numbers for OTP authentication, shoot venue addresses, and photographer KYC documents (government identity cards). All photographer KYC documents are stored in encrypted, private cloud buckets and never exposed to the public.
               </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink-primary">2. Shoot Photography & Delivered Media</h2>
               <p>
-                Photographs and videos delivered through SnapShoot are strictly accessible only by the booking client and the assigned photographer via time-limited, cryptographically signed URLs. SnapShoot does not sell or license your personal images to third parties.
+                Photographs and videos delivered through REEPY are strictly accessible only by the booking client and the assigned photographer via time-limited, cryptographically signed URLs. REEPY does not sell or license your personal images to third parties.
               </p>
             </section>
 

@@ -224,7 +224,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
       <div className="bg-white rounded-2xl border border-contour-subtle p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Badge variant="brand" size="sm">
-            SnapShoot Unified Creator Hub
+            REEPY Unified Creator Hub
           </Badge>
           <span className="text-xs text-ink-muted hidden md:inline">
             {(professionalName || accountName || 'Photographer')}&apos;s Profile &amp; Studio Dashboard
@@ -263,7 +263,7 @@ export const UnifiedPhotographerPage: React.FC<UnifiedPhotographerPageProps> = (
       {/* ========================================================= */}
       <div className="bg-white rounded-2xl border border-contour-subtle shadow-sm overflow-hidden">
         {/* Cover Hero Banner */}
-        <div className="relative h-44 sm:h-56 md:h-64 w-full bg-gradient-to-r from-[#1A1816] via-[#2D2824] to-[#1A1816] overflow-hidden">
+        <div className="relative h-44 sm:h-56 md:h-64 w-full bg-gradient-to-r from-[#191C22] via-[#2D2824] to-[#191C22] overflow-hidden">
           <img
             src={sampleCreator.coverImageUrl}
             alt={`${profile.name} cover`}

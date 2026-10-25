@@ -34,11 +34,11 @@ interface ChatMessage {
   timestamp: string;
 }
 
-interface SnapShootAiChatWidgetProps {
+interface REEPYAiChatWidgetProps {
   variant: 'customer' | 'photographer';
 }
 
-export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ variant }) => {
+export const REEPYAiChatWidget: React.FC<REEPYAiChatWidgetProps> = ({ variant }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -124,8 +124,8 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
           id: 'welcome-msg',
           role: 'assistant',
           content: isPhotographer
-            ? 'Hello Creator! I am your SnapShoot Business Copilot. I analyze your studio bookings, package pricing, client CRM, and SaaS subscription to help grow your photography revenue.'
-            : 'Hi there! I am your SnapShoot Concierge. I can help you discover verified photographers, check shoot status, explain arrival OTPs, and find delivered photo galleries.',
+            ? 'Hello Creator! I am your REEPY Business Copilot. I analyze your studio bookings, package pricing, client CRM, and SaaS subscription to help grow your photography revenue.'
+            : 'Hi there! I am your REEPY Concierge. I can help you discover verified photographers, check shoot status, explain arrival OTPs, and find delivered photo galleries.',
           suggestions: defaultSuggestions,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
@@ -232,7 +232,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
         <button
           ref={launcherRef}
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#FF6E00] hover:bg-[#E05D00] text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 group border border-white/20"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#14B8A6] hover:bg-[#E05D00] text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 group border border-white/20"
           aria-label="Open AI Assistant"
         >
           <div className="relative">
@@ -255,17 +255,17 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
           className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[420px] h-[580px] max-h-[85vh] bg-[#FFFFFF] rounded-2xl shadow-2xl flex flex-col border border-[#E8E2D9] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
         >
           {/* Header */}
-          <div className="px-5 py-4 bg-[#FAF7F2] border-b border-[#E8E2D9] flex items-center justify-between">
+          <div className="px-5 py-4 bg-[#F5F7F9] border-b border-[#E8E2D9] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#FF6E00]/10 border border-[#FF6E00]/20 flex items-center justify-center text-[#FF6E00]">
+              <div className="w-9 h-9 rounded-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center text-[#14B8A6]">
                 {isPhotographer ? <TrendingUp className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-[#1A1816]">
-                    {isPhotographer ? 'Studio Business Copilot' : 'SnapShoot AI Concierge'}
+                  <h3 className="text-sm font-bold text-[#191C22]">
+                    {isPhotographer ? 'Studio Business Copilot' : 'REEPY AI Concierge'}
                   </h3>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FF6E00]/10 text-[#FF6E00]">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#14B8A6]/10 text-[#14B8A6]">
                     Real AI
                   </span>
                 </div>
@@ -277,7 +277,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
 
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-[#706B65] hover:text-[#1A1816] hover:bg-[#EFE9DF] transition-colors"
+              className="p-1.5 rounded-lg text-[#706B65] hover:text-[#191C22] hover:bg-[#EFE9DF] transition-colors"
               aria-label="Close Chat"
             >
               <X className="w-5 h-5" />
@@ -294,8 +294,8 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
-                      ? 'bg-[#FF6E00] text-white rounded-br-none shadow-sm'
-                      : 'bg-[#FAF7F2] text-[#1A1816] border border-[#E8E2D9] rounded-bl-none shadow-sm'
+                      ? 'bg-[#14B8A6] text-white rounded-br-none shadow-sm'
+                      : 'bg-[#F5F7F9] text-[#191C22] border border-[#E8E2D9] rounded-bl-none shadow-sm'
                   }`}
                 >
                   {/* Tool Call Badge if executed */}
@@ -304,7 +304,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                       {msg.toolsUsed.map((tool) => (
                         <span
                           key={tool}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#1A1816]/5 text-[#1A1816] border border-[#1A1816]/10"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#191C22]/5 text-[#191C22] border border-[#191C22]/10"
                         >
                           <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
                           <span>Tool: {tool}</span>
@@ -338,7 +338,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                       <p className="text-orange-800 mb-2.5">{msg.confirmationRequired.description}</p>
                       <button
                         onClick={() => handleSendMessage(`CONFIRM ${msg.confirmationRequired?.action}`)}
-                        className="w-full py-1.5 px-3 rounded-lg bg-[#FF6E00] hover:bg-[#E05D00] text-white font-semibold text-xs transition-colors"
+                        className="w-full py-1.5 px-3 rounded-lg bg-[#14B8A6] hover:bg-[#E05D00] text-white font-semibold text-xs transition-colors"
                       >
                         Confirm Action
                       </button>
@@ -355,7 +355,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(suggestion)}
-                        className="text-[11px] px-2.5 py-1 rounded-full bg-[#FAF7F2] hover:bg-[#FF6E00] hover:text-white text-[#706B65] border border-[#E8E2D9] transition-all text-left"
+                        className="text-[11px] px-2.5 py-1 rounded-full bg-[#F5F7F9] hover:bg-[#14B8A6] hover:text-white text-[#706B65] border border-[#E8E2D9] transition-all text-left"
                       >
                         {suggestion}
                       </button>
@@ -367,9 +367,9 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
 
             {/* Loading Indicator */}
             {isLoading && (
-              <div className="flex items-center gap-2 text-xs text-[#706B65] p-3 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D9] w-fit">
-                <Sparkles className="w-3.5 h-3.5 text-[#FF6E00] animate-spin" />
-                <span>AI is consulting SnapShoot tools & generating response...</span>
+              <div className="flex items-center gap-2 text-xs text-[#706B65] p-3 rounded-2xl bg-[#F5F7F9] border border-[#E8E2D9] w-fit">
+                <Sparkles className="w-3.5 h-3.5 text-[#14B8A6] animate-spin" />
+                <span>AI is consulting REEPY tools & generating response...</span>
               </div>
             )}
 
@@ -378,7 +378,7 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
 
           {/* Input Bar */}
           <div className="p-3 bg-[#FFFFFF] border-t border-[#E8E2D9]">
-            <div className="flex items-center gap-2 bg-[#FAF7F2] rounded-xl px-3 py-2 border border-[#E8E2D9] focus-within:border-[#FF6E00] focus-within:ring-1 focus-within:ring-[#FF6E00] transition-all">
+            <div className="flex items-center gap-2 bg-[#F5F7F9] rounded-xl px-3 py-2 border border-[#E8E2D9] focus-within:border-[#14B8A6] focus-within:ring-1 focus-within:ring-[#14B8A6] transition-all">
               <input
                 type="text"
                 value={inputMessage}
@@ -389,20 +389,20 @@ export const SnapShootAiChatWidget: React.FC<SnapShootAiChatWidgetProps> = ({ va
                     ? 'Ask about packages, bookings, revenue...'
                     : 'Ask about photographers, shoot OTP, status...'
                 }
-                className="flex-1 bg-transparent text-xs sm:text-sm text-[#1A1816] placeholder-[#A39E96] outline-none"
+                className="flex-1 bg-transparent text-xs sm:text-sm text-[#191C22] placeholder-[#A39E96] outline-none"
                 disabled={isLoading}
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputMessage.trim() || isLoading}
-                className="p-1.5 rounded-lg bg-[#FF6E00] hover:bg-[#E05D00] disabled:bg-[#E8E2D9] text-white disabled:text-[#A39E96] transition-colors"
+                className="p-1.5 rounded-lg bg-[#14B8A6] hover:bg-[#E05D00] disabled:bg-[#E8E2D9] text-white disabled:text-[#A39E96] transition-colors"
                 aria-label="Send Message"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#A39E96] px-1">
-              <span>Powered by Google Gemini & SnapShoot Tools</span>
+              <span>Powered by Google Gemini & REEPY Tools</span>
               <span>Enter to send</span>
             </div>
           </div>

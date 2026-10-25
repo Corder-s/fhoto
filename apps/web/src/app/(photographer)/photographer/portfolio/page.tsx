@@ -385,7 +385,7 @@ export default function PhotographerPortfolioPage() {
       )}
 
       {/* Studio Profile Cover Banner (Distinct from Portfolio Items) */}
-      <div className="bg-white rounded-3xl border border-[#E8E2D8] p-5 sm:p-6 shadow-2xs space-y-4">
+      <div className="bg-white rounded-3xl border border-[#E7EAEE] p-5 sm:p-6 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -440,7 +440,7 @@ export default function PhotographerPortfolioPage() {
           </div>
         )}
 
-        <div className="relative h-44 sm:h-56 w-full rounded-2xl overflow-hidden bg-[#FAF7F2] border border-[#E8E2D8]">
+        <div className="relative h-44 sm:h-56 w-full rounded-2xl overflow-hidden bg-[#F5F7F9] border border-[#E7EAEE]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={currentBanner || '/reference-assets/seller_banner_photographer.jpg'}
@@ -463,7 +463,7 @@ export default function PhotographerPortfolioPage() {
             onClick={() => setSelectedCategory(cat)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
               selectedCategory === cat
-                ? 'bg-[#FF6E00] text-white shadow-xs'
+                ? 'bg-[#14B8A6] text-white shadow-xs'
                 : 'bg-canvas-secondary text-ink-secondary hover:bg-canvas-tertiary'
             }`}
           >
@@ -475,12 +475,12 @@ export default function PhotographerPortfolioPage() {
       {/* Grid or Empty State */}
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
-          <Loader2 className="w-8 h-8 text-[#FF6E00] animate-spin mx-auto" />
+          <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin mx-auto" />
           <p className="text-xs text-ink-muted">Loading portfolio...</p>
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed border-[#E8E2D8] rounded-3xl bg-[#FAF7F2]/50 p-8 space-y-3">
-          <ImageIcon className="w-12 h-12 text-[#FF6E00] mx-auto opacity-70" />
+        <div className="py-16 text-center border-2 border-dashed border-[#E7EAEE] rounded-3xl bg-[#F5F7F9]/50 p-8 space-y-3">
+          <ImageIcon className="w-12 h-12 text-[#14B8A6] mx-auto opacity-70" />
           <div className="space-y-1">
             <h3 className="text-base font-bold text-ink-primary">No portfolio photographs added yet</h3>
             <p className="text-xs text-ink-secondary max-w-md mx-auto">
@@ -566,7 +566,7 @@ export default function PhotographerPortfolioPage() {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Sunset Golden Hour Portrait"
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
 
@@ -577,7 +577,7 @@ export default function PhotographerPortfolioPage() {
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00] bg-white"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6] bg-white"
                 >
                   <option value="Portrait">Portrait</option>
                   <option value="Reels & Creator">Reels & Creator</option>
@@ -596,7 +596,7 @@ export default function PhotographerPortfolioPage() {
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
                   placeholder="https://images.unsplash.com/... or /reference-assets/..."
-                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#FF6E00]"
+                  className="w-full p-2.5 text-xs font-medium border rounded-xl outline-none focus:ring-2 focus:ring-[#14B8A6]"
                 />
               </div>
             </div>
@@ -628,7 +628,7 @@ export default function PhotographerPortfolioPage() {
           <div className="max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl space-y-3 p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-2 border-b">
               <h3 className="text-sm font-bold text-ink-primary">{previewItem.title}</h3>
-              <button onClick={() => setPreviewItem(null)} className="p-1 hover:text-[#FF6E00]">
+              <button onClick={() => setPreviewItem(null)} className="p-1 hover:text-[#14B8A6]">
                 <X className="w-4 h-4" />
               </button>
             </div>

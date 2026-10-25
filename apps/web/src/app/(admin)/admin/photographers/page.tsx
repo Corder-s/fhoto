@@ -216,7 +216,7 @@ export default function AdminPhotographersPage() {
         <div
           role="status"
           className={`fixed top-20 right-8 z-50 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 ${
-            toast.tone === 'error' ? 'bg-red-600' : 'bg-[#1A1816]'
+            toast.tone === 'error' ? 'bg-red-600' : 'bg-[#191C22]'
           }`}
         >
           {toast.tone === 'ok' ? <Check className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4" />}
@@ -228,14 +228,14 @@ export default function AdminPhotographersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#FF6E00] flex items-center justify-center shadow-2xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#14B8A6] flex items-center justify-center shadow-2xs">
               <Camera className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#1A1816] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-[#191C22] tracking-tight">
                 Photographers &amp; Verification
               </h1>
-              <p className="text-xs text-[#736B63] font-medium">
+              <p className="text-xs text-[#64748B] font-medium">
                 Approve pending creator applications, manage platform verification, and publish profiles to the directory.
               </p>
             </div>
@@ -247,7 +247,7 @@ export default function AdminPhotographersPage() {
             type="button"
             onClick={() => loadCreators()}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E8E2D8] text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-[#FAF7F2] shadow-2xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E7EAEE] text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] shadow-2xs transition-all cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -260,17 +260,17 @@ export default function AdminPhotographersPage() {
         <div
           onClick={() => setActiveTab('all')}
           className={`bg-white rounded-2xl border p-4 shadow-2xs cursor-pointer transition-all ${
-            activeTab === 'all' ? 'border-[#FF6E00] ring-2 ring-[#FF6E00]/10' : 'border-[#E8E2D8] hover:border-[#FF6E00]'
+            activeTab === 'all' ? 'border-[#14B8A6] ring-2 ring-[#14B8A6]/10' : 'border-[#E7EAEE] hover:border-[#14B8A6]'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#736B63]">Total Registered</span>
-            <div className="w-8 h-8 rounded-xl bg-[#FFF2E8] text-[#FF6E00] flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#64748B]">Total Registered</span>
+            <div className="w-8 h-8 rounded-xl bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
               <Camera className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-[#1A1816] mt-2">{totalCount}</p>
-          <p className="text-[11px] text-[#8C847A] font-medium mt-0.5">Platform photographers</p>
+          <p className="text-2xl font-black text-[#191C22] mt-2">{totalCount}</p>
+          <p className="text-[11px] text-[#94A3B8] font-medium mt-0.5">Platform photographers</p>
         </div>
 
         <div
@@ -278,7 +278,7 @@ export default function AdminPhotographersPage() {
           className={`bg-white rounded-2xl border p-4 shadow-2xs cursor-pointer transition-all ${
             activeTab === 'pending'
               ? 'border-amber-500 ring-2 ring-amber-500/10'
-              : 'border-[#E8E2D8] hover:border-amber-500'
+              : 'border-[#E7EAEE] hover:border-amber-500'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -303,7 +303,7 @@ export default function AdminPhotographersPage() {
           className={`bg-white rounded-2xl border p-4 shadow-2xs cursor-pointer transition-all ${
             activeTab === 'approved'
               ? 'border-emerald-500 ring-2 ring-emerald-500/10'
-              : 'border-[#E8E2D8] hover:border-emerald-500'
+              : 'border-[#E7EAEE] hover:border-emerald-500'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -321,7 +321,7 @@ export default function AdminPhotographersPage() {
           className={`bg-white rounded-2xl border p-4 shadow-2xs cursor-pointer transition-all ${
             activeTab === 'suspended'
               ? 'border-red-500 ring-2 ring-red-500/10'
-              : 'border-[#E8E2D8] hover:border-red-500'
+              : 'border-[#E7EAEE] hover:border-red-500'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -336,7 +336,7 @@ export default function AdminPhotographersPage() {
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="bg-white rounded-3xl border border-[#E8E2D8] p-4 sm:p-5 shadow-2xs space-y-4">
+      <div className="bg-white rounded-3xl border border-[#E7EAEE] p-4 sm:p-5 shadow-2xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
             {(
@@ -353,8 +353,8 @@ export default function AdminPhotographersPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'bg-[#FF6E00] text-white shadow-2xs'
-                    : 'text-[#736B63] hover:text-[#1A1816] hover:bg-[#FAF7F2]'
+                    ? 'bg-[#14B8A6] text-white shadow-2xs'
+                    : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9]'
                 }`}
               >
                 {tab.label}
@@ -363,13 +363,13 @@ export default function AdminPhotographersPage() {
           </div>
 
           <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-[#8C847A] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, email, city..."
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] text-xs text-[#1A1816] placeholder:text-[#8C847A] focus:outline-none focus:border-[#FF6E00] focus:bg-white transition-all"
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs text-[#191C22] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
             />
           </div>
         </div>
@@ -384,21 +384,21 @@ export default function AdminPhotographersPage() {
         {/* Photographers List */}
         {loading ? (
           <div className="py-16 text-center space-y-3">
-            <div className="w-8 h-8 border-3 border-[#FF6E00] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-[#8C847A] font-semibold">Loading photographer roster…</p>
+            <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-[#94A3B8] font-semibold">Loading photographer roster…</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#FAF7F2] text-[#8C847A] flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-[#F5F7F9] text-[#94A3B8] flex items-center justify-center mx-auto">
               <Camera className="w-6 h-6 stroke-[1.5]" />
             </div>
-            <p className="text-sm font-bold text-[#1A1816]">No photographers found</p>
-            <p className="text-xs text-[#8C847A]">
+            <p className="text-sm font-bold text-[#191C22]">No photographers found</p>
+            <p className="text-xs text-[#94A3B8]">
               {searchQuery ? 'Try adjusting your search criteria.' : 'No profiles match the selected status tab.'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[#F2ECE3]">
+          <div className="divide-y divide-[#F1F3F5]">
             {filtered.map((creator) => {
               const isApproved = creator.verification_status === 'approved';
               const isPending =
@@ -410,16 +410,16 @@ export default function AdminPhotographersPage() {
               return (
                 <div
                   key={creator.id}
-                  className="py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 hover:bg-[#FAF7F2]/50 px-2 rounded-2xl transition-colors"
+                  className="py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 hover:bg-[#F5F7F9]/50 px-2 rounded-2xl transition-colors"
                 >
                   {/* Left: Info */}
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-[#FFE8D6] text-[#FF6E00] font-black text-sm flex items-center justify-center shrink-0 border border-[#FFDFC6]">
+                    <div className="w-11 h-11 rounded-2xl bg-[#FFE8D6] text-[#14B8A6] font-black text-sm flex items-center justify-center shrink-0 border border-[#99F6E4]">
                       {(creator.professional_name || creator.user?.full_name || 'P')[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-black text-[#1A1816] truncate">
+                        <h3 className="text-sm font-black text-[#191C22] truncate">
                           {creator.professional_name || creator.user?.full_name || 'Unnamed Photographer'}
                         </h3>
                         <span
@@ -448,28 +448,28 @@ export default function AdminPhotographersPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-[11px] text-[#736B63] flex-wrap">
+                      <div className="flex items-center gap-3 text-[11px] text-[#64748B] flex-wrap">
                         {creator.user?.email && (
                           <span className="inline-flex items-center gap-1">
-                            <Mail className="w-3 h-3 text-[#8C847A]" />
+                            <Mail className="w-3 h-3 text-[#94A3B8]" />
                             {creator.user.email}
                           </span>
                         )}
                         {creator.user?.phone_number && (
                           <span className="inline-flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-[#8C847A]" />
+                            <Phone className="w-3 h-3 text-[#94A3B8]" />
                             {creator.user.phone_number}
                           </span>
                         )}
                         {(creator.city || creator.state) && (
                           <span className="inline-flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#8C847A]" />
+                            <MapPin className="w-3 h-3 text-[#94A3B8]" />
                             {[creator.city, creator.state].filter(Boolean).join(', ')}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-[10px] text-[#8C847A] font-medium pt-0.5">
+                      <div className="flex items-center gap-3 text-[10px] text-[#94A3B8] font-medium pt-0.5">
                         {creator.experience_years != null && (
                           <span>{creator.experience_years} years experience</span>
                         )}
@@ -543,7 +543,7 @@ export default function AdminPhotographersPage() {
                     <Link
                       href={`/photographers/${creator.id}`}
                       target="_blank"
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8E2D8] text-xs font-bold text-[#5A544D] hover:text-[#1A1816] hover:bg-white transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs font-bold text-[#64748B] hover:text-[#191C22] hover:bg-white transition-colors"
                       title="View public profile"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -560,24 +560,24 @@ export default function AdminPhotographersPage() {
       {/* Reject Reason Modal */}
       {rejectingCreator && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-[#E8E2D8] max-w-md w-full p-6 space-y-4 shadow-elevated">
+          <div className="bg-white rounded-3xl border border-[#E7EAEE] max-w-md w-full p-6 space-y-4 shadow-elevated">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
                   <XCircle className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-black text-[#1A1816]">Reject Photographer</h3>
+                <h3 className="text-base font-black text-[#191C22]">Reject Photographer</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setRejectingCreator(null)}
-                className="p-1 rounded-lg text-[#8C847A] hover:text-[#1A1816]"
+                className="p-1 rounded-lg text-[#94A3B8] hover:text-[#191C22]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-[#736B63]">
+            <p className="text-xs text-[#64748B]">
               Explain to{' '}
               <strong>{rejectingCreator.professional_name || rejectingCreator.user?.full_name}</strong> why
               their profile is being turned down. They will see this reason in their notification.
@@ -588,14 +588,14 @@ export default function AdminPhotographersPage() {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g., Incomplete portfolio link or identity verification documents required. Please re-submit."
               rows={3}
-              className="w-full rounded-2xl border border-[#E8E2D8] bg-[#FAF7F2] p-3 text-xs text-[#1A1816] focus:outline-none focus:border-red-500 focus:bg-white transition-all"
+              className="w-full rounded-2xl border border-[#E7EAEE] bg-[#F5F7F9] p-3 text-xs text-[#191C22] focus:outline-none focus:border-red-500 focus:bg-white transition-all"
             />
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setRejectingCreator(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#736B63] hover:text-[#1A1816] cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#64748B] hover:text-[#191C22] cursor-pointer"
               >
                 Cancel
               </button>

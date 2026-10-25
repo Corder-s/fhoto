@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ZomatoPublicLanding } from '../components/home/ZomatoPublicLanding';
+import { ReepyLanding } from '../components/home/ReepyLanding';
 import { useAuth } from '../lib/auth';
 import { getRoleDashboard } from '../lib/safeRedirect';
 
@@ -20,13 +20,13 @@ export default function HomePage() {
   // If user is verified authenticated on client after mounting, show smooth redirect transition
   if (isMounted && isAuthenticated && user) {
     return (
-      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#FF6E00] border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs font-semibold text-[#736B63]">Directing to your dashboard...</p>
+      <div className="min-h-screen bg-[#F5F7F9] flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-semibold text-[#64748B]">Directing to your dashboard...</p>
       </div>
     );
   }
 
-  // Logged-out visitor or server initial render: display public SnapShoot landing page
-  return <ZomatoPublicLanding />;
+  // Logged-out visitor or server initial render: display public REEPY landing page
+  return <ReepyLanding />;
 }

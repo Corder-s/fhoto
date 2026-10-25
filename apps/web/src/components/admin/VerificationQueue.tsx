@@ -230,9 +230,9 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
     <section id="verification-queue" className="scroll-mt-24 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#FF6E00]" />
-          <h3 className="text-sm font-black text-[#1A1816]">Photographer verification</h3>
-          <span className="text-[10px] font-bold text-[#8C847A]">
+          <ShieldCheck className="w-4 h-4 text-[#14B8A6]" />
+          <h3 className="text-sm font-black text-[#191C22]">Photographer verification</h3>
+          <span className="text-[10px] font-bold text-[#94A3B8]">
             {loading ? 'loading…' : `${rows.length} in “${FILTERS.find((f) => f.id === status)?.label || status}”`}
           </span>
         </div>
@@ -243,7 +243,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
               type="button"
               onClick={() => setStatus(filter.id)}
               className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer ${
-                status === filter.id ? 'bg-[#FF6E00] text-white shadow-2xs' : 'text-[#736B63] hover:text-[#1A1816]'
+                status === filter.id ? 'bg-[#14B8A6] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#191C22]'
               }`}
             >
               {filter.label}
@@ -253,7 +253,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
             type="button"
             onClick={() => load()}
             title="Re-read from the database"
-            className="p-1 rounded-md text-[#736B63] hover:text-[#1A1816] cursor-pointer"
+            className="p-1 rounded-md text-[#64748B] hover:text-[#191C22] cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -280,7 +280,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
         <div
           role="status"
           className={`rounded-xl px-3 py-2 text-[11px] font-bold text-white ${
-            notice.tone === 'error' ? 'bg-red-600' : 'bg-[#1A1816]'
+            notice.tone === 'error' ? 'bg-red-600' : 'bg-[#191C22]'
           }`}
         >
           {notice.text}
@@ -288,10 +288,10 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
       )}
 
       {!loading && rows.length === 0 && (
-        <p className="text-xs text-[#8C847A] py-6 text-center">No applications in this view.</p>
+        <p className="text-xs text-[#94A3B8] py-6 text-center">No applications in this view.</p>
       )}
 
-      <div className="divide-y divide-[#F2ECE3]">
+      <div className="divide-y divide-[#F1F3F5]">
         {rows.map((row) => {
           const expanded = openId === row.id;
           const busy = busyId === row.id;
@@ -299,10 +299,10 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
             <article key={row.id} className="py-3 space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#1A1816] truncate">
+                  <p className="text-xs font-bold text-[#191C22] truncate">
                     {row.businessName || row.professionalName || row.legalName || 'Unnamed applicant'}
                   </p>
-                  <p className="text-[10px] text-[#8C847A] truncate">
+                  <p className="text-[10px] text-[#94A3B8] truncate">
                     {row.applicant?.fullName || row.legalName || '—'} • {row.applicant?.email || 'no e-mail'}
                   </p>
                   <p className="text-[10px] text-[#A69F96] truncate">
@@ -318,14 +318,14 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                   >
                     {row.status.replace('_', ' ')}
                   </span>
-                  <span className="text-[9px] font-bold text-[#8C847A]">
+                  <span className="text-[9px] font-bold text-[#94A3B8]">
                     profile: {row.profileVerificationStatus || 'unknown'}
                   </span>
                 </div>
               </div>
 
               {!compact && row.reviewReason && (
-                <p className="text-[10px] font-semibold text-[#736B63]">
+                <p className="text-[10px] font-semibold text-[#64748B]">
                   Reviewer note ({row.reviewer?.full_name || 'platform'}): {row.reviewReason}
                 </p>
               )}
@@ -333,14 +333,14 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
               <button
                 type="button"
                 onClick={() => setOpenId(expanded ? null : row.id)}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF6E00] cursor-pointer"
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#14B8A6] cursor-pointer"
               >
                 <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 {expanded ? 'Hide application' : 'Open application'}
               </button>
 
               {expanded && (
-                <div className="rounded-2xl border border-[#E8E2D8] bg-[#FCFAF7] p-3 space-y-3">
+                <div className="rounded-2xl border border-[#E7EAEE] bg-[#FCFAF7] p-3 space-y-3">
                   <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
                     <Detail label="Legal name" value={row.legalName} />
                     <Detail label="Government ID" value={[row.governmentIdType, row.governmentIdMasked].filter(Boolean).join(' ')} />
@@ -354,17 +354,17 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                   </dl>
 
                   {(row.coverImageUrl || row.avatarUrl || row.portfolioUrl) && (
-                    <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white rounded-xl border border-[#E8E2D8]">
+                    <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white rounded-xl border border-[#E7EAEE]">
                       {row.avatarUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={row.avatarUrl}
                           alt="Avatar"
-                          className="w-12 h-12 rounded-full object-cover border border-[#E8E2D8] shrink-0"
+                          className="w-12 h-12 rounded-full object-cover border border-[#E7EAEE] shrink-0"
                         />
                       )}
                       {row.coverImageUrl && (
-                        <div className="h-12 w-28 rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#FAF7F2] shrink-0">
+                        <div className="h-12 w-28 rounded-lg overflow-hidden border border-[#E7EAEE] bg-[#F5F7F9] shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={row.coverImageUrl}
@@ -373,8 +373,8 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                           />
                         </div>
                       )}
-                      <div className="text-[11px] text-[#736B63] min-w-0">
-                        <p className="font-bold text-[#1A1816]">Studio Visual Identity</p>
+                      <div className="text-[11px] text-[#64748B] min-w-0">
+                        <p className="font-bold text-[#191C22]">Studio Visual Identity</p>
                         <p className="text-[10px]">
                           {row.coverImageUrl ? 'Custom banner uploaded' : 'Default banner'}
                           {row.portfolioUrl ? ` • Portfolio: ${row.portfolioUrl}` : ''}
@@ -384,15 +384,15 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                   )}
 
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-[#8C847A]">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-[#94A3B8]">
                       Documents ({row.documents.length})
                     </p>
                     {row.documents.length === 0 && <p className="text-[10px] text-[#A69F96]">No files attached.</p>}
                     <ul className="space-y-1">
                       {row.documents.map((doc, index) => (
                         <li key={`${doc.id}-${index}`} className="flex items-center justify-between gap-2 text-[10px]">
-                          <span className="inline-flex items-center gap-1.5 min-w-0 text-[#1A1816] font-semibold">
-                            <FileText className="w-3 h-3 shrink-0 text-[#8C847A]" />
+                          <span className="inline-flex items-center gap-1.5 min-w-0 text-[#191C22] font-semibold">
+                            <FileText className="w-3 h-3 shrink-0 text-[#94A3B8]" />
                             <span className="truncate">
                               {doc.type.replace('_', ' ')} — {doc.fileName || 'unnamed file'}
                               {doc.sizeBytes ? ` (${Math.round(doc.sizeBytes / 1024)} KB)` : ''}
@@ -402,7 +402,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                             href={`/api/admin/verification/document?submissionId=${encodeURIComponent(row.id)}&index=${index}&view=1`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#FF6E00]/30 font-bold text-[#FF6E00] cursor-pointer shrink-0 transition-all text-[11px]"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FFF4EB] hover:bg-[#FFE8D6] border border-[#14B8A6]/30 font-bold text-[#14B8A6] cursor-pointer shrink-0 transition-all text-[11px]"
                           >
                             <ExternalLink className="w-3 h-3" />
                             <span>View Document</span>
@@ -419,7 +419,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                       placeholder="Reason shown to the photographer (required for rejection or for asking for more information)"
                       rows={2}
                       disabled={!canReview || busy}
-                      className="w-full rounded-xl border border-[#E8E2D8] bg-white p-2 text-[11px] text-[#1A1816] disabled:opacity-60"
+                      className="w-full rounded-xl border border-[#E7EAEE] bg-white p-2 text-[11px] text-[#191C22] disabled:opacity-60"
                     />
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -449,7 +449,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
                         <X className="w-3.5 h-3.5" />
                         <span>Reject</span>
                       </button>
-                      {busy && <span className="text-[10px] font-bold text-[#8C847A]">saving…</span>}
+                      {busy && <span className="text-[10px] font-bold text-[#94A3B8]">saving…</span>}
                     </div>
                   </div>
                 </div>
@@ -465,7 +465,7 @@ export const VerificationQueue: React.FC<{ canReview: boolean; compact?: boolean
 const Detail: React.FC<{ label: string; value: string | number | null }> = ({ label, value }) => (
   <div className="min-w-0">
     <dt className="text-[9px] font-black uppercase tracking-wider text-[#A69F96]">{label}</dt>
-    <dd className="text-[10px] font-semibold text-[#1A1816] break-words">{value || '—'}</dd>
+    <dd className="text-[10px] font-semibold text-[#191C22] break-words">{value || '—'}</dd>
   </div>
 );
 

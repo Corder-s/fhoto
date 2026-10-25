@@ -372,7 +372,7 @@ export default function PhotographerSettingsPage() {
                         onError={() => setAvatarImgError(true)}
                       />
                     ) : (
-                      <div className="w-full h-full bg-[#FF6E00] text-white flex items-center justify-center text-2xl sm:text-3xl font-black select-none">
+                      <div className="w-full h-full bg-[#14B8A6] text-white flex items-center justify-center text-2xl sm:text-3xl font-black select-none">
                         {initials}
                       </div>
                     )}
@@ -397,7 +397,7 @@ export default function PhotographerSettingsPage() {
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={isUploadingAvatar}
-                    className="absolute bottom-0 right-0 p-2 bg-[#FF6E00] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                    className="absolute bottom-0 right-0 p-2 bg-[#14B8A6] hover:bg-[#e06100] text-white rounded-full shadow-md border-2 border-white transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Upload / Change profile photo"
                   >
                     <Camera className="w-3.5 h-3.5" />
@@ -1106,7 +1106,7 @@ export default function PhotographerSettingsPage() {
             <div className="p-4 bg-green-50 border border-green-200 rounded-card-md text-xs text-green-900 flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
               <span>
-                <strong>Take-Rate Policy:</strong> SnapShoot guarantees creator payouts of exactly 80% on every completed shoot. The platform fee is 20%, covering client acquisition, escrow guarantees, and cloud storage.
+                <strong>Take-Rate Policy:</strong> REEPY guarantees creator payouts of exactly 80% on every completed shoot. The platform fee is 20%, covering client acquisition, escrow guarantees, and cloud storage.
               </span>
             </div>
           </Card>
@@ -1241,7 +1241,7 @@ export default function PhotographerSettingsPage() {
                 />
                 <div>
                   <p className="font-bold text-ink-primary">Automatic Proofing Watermark</p>
-                  <p className="text-ink-secondary">Apply subtle SnapShoot watermarking to preview proofs until final client escrow approval.</p>
+                  <p className="text-ink-secondary">Apply subtle REEPY watermarking to preview proofs until final client escrow approval.</p>
                 </div>
               </label>
             </div>
@@ -1260,7 +1260,7 @@ export default function PhotographerSettingsPage() {
               <h3 className="text-base font-extrabold">Danger Zone: Close Creator Studio</h3>
             </div>
             <p className="text-xs text-red-900 leading-relaxed">
-              Permanently delist your studio from SnapShoot. You must fulfill any ongoing shoots before initiating closure.
+              Permanently delist your studio from REEPY. You must fulfill any ongoing shoots before initiating closure.
             </p>
             <div>
               <Button

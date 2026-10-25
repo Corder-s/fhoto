@@ -3,26 +3,34 @@
 @tailwind utilities;
 
 :root {
-  /* Centralized SnapShoot Design Tokens */
-  --color-primary: #FF6E00;
-  --color-primary-hover: #E86300;
-  --color-primary-active: #D65B00;
-  --color-background: #FAF7F2;
+  /* Centralized REEPY Design Tokens */
+  --color-primary: #14B8A6;
+  --color-primary-hover: #0D9488;
+  --color-primary-active: #0F766E;
+  --color-background: #F5F7F9;
   --color-surface: #FFFFFF;
-  --color-text: #1A1816;
-  --color-text-secondary: #5A544D;
-  --color-text-muted: #8C847A;
-  --color-border: #E8E2D8;
-  --color-border-strong: #D5CEC4;
+  --color-surface-muted: #F1F3F5;
+  --color-text: #191C22;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+  --color-border: #E7EAEE;
+  --color-border-strong: #CBD5E1;
   --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+
+  /* Dark mode / Marketing tokens */
+  --color-dark-bg: #0D0F12;
+  --color-dark-surface: #171A1F;
+  --color-dark-border: #262B33;
 
   /* Aliases for semantic mapping */
   --bg-primary: var(--color-background);
-  --bg-secondary: #F2ECE3;
+  --bg-secondary: #F1F3F5;
   --bg-card: var(--color-surface);
   --primary: var(--color-primary);
   --primary-hover: var(--color-primary-hover);
-  --primary-subtle: #FFF3E5;
+  --primary-subtle: #EFFCF8;
   --text-primary: var(--color-text);
   --text-secondary: var(--color-text-secondary);
   --text-muted: var(--color-text-muted);
@@ -49,12 +57,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D5CEC4;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8C847A;
+  background: #94A3B8;
 }
 
 .font-script {

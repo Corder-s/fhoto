@@ -76,7 +76,7 @@ export default function HowItWorksPage() {
               Transparent Marketplace
             </span>
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink-primary">
-              How SnapShoot Works
+              How REEPY Works
             </h1>
             <p className="text-base sm:text-lg text-ink-secondary leading-relaxed">
               We took the stress out of hiring professional photographers. From geospatial discovery to verified delivery, every step is protected by technology.
@@ -120,7 +120,7 @@ export default function HowItWorksPage() {
             <div className="border-b border-contour-strong pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-ink-primary">For Creators</span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">How Creators Earn with SnapShoot</h2>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-primary">How Creators Earn with REEPY</h2>
               </div>
               <Link href="/for-photographers">
                 <Button variant="secondary" size="sm">
