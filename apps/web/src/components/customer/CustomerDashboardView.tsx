@@ -22,13 +22,16 @@ import {
   ExternalLink,
   Search,
   Eye,
-  KeyRound
+  KeyRound,
+  CreditCard,
+  XCircle
 } from 'lucide-react';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 import { useAuth } from '../../lib/auth';
 import { getPhotographerSlug } from '../../lib/photographerSlug';
 import { PhotographerCard } from '../photographer/PhotographerCard';
 import { PhotographerProfileModal } from '../photographer/PhotographerProfileModal';
+import { Modal } from '../ui/Modal';
 
 interface CustomerBookingItem {
   id: string;
@@ -43,9 +46,16 @@ interface CustomerBookingItem {
   date: string;
   timeSlot: string;
   duration: string;
+  durationHours: number;
   venueAddress: string;
   notes?: string;
+  agreedServicePrice: number;
+  travelDistanceKm: number;
+  travelFee: number;
+  platformFee: number;
+  taxes: number;
   amountInr: number;
+  pricingBreakdown?: any;
   status: 'PENDING' | 'CONFIRMED' | 'ON_THE_WAY' | 'ARRIVED_AT_VENUE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   paymentStatus: string;
   startOtp: string;
@@ -79,6 +89,13 @@ export const CustomerDashboardView: React.FC = () => {
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [isLoadingPhotographers, setIsLoadingPhotographers] = useState(true);
   const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(null);
+
+  // Payment states
+  const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+  const [sandboxCheckoutData, setSandboxCheckoutData] = useState<any | null>(null);
+  const [paymentSuccessModal, setPaymentSuccessModal] = useState<any | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const activeUserId = authUser?.id;
   const clientName = accountName || 'Customer';
@@ -117,6 +134,15 @@ export const CustomerDashboardView: React.FC = () => {
             else if (b.booking_status === 'completed') status = 'COMPLETED';
             else if (b.booking_status === 'cancelled' || b.booking_status === 'rejected') status = 'CANCELLED';
 
+            const durationVal =
+              b.duration_hours != null && Number(b.duration_hours) > 0
+                ? Number(b.duration_hours)
+                : b.start_at && b.end_at
+                ? Math.max(1, Math.round((Date.parse(b.end_at) - Date.parse(b.start_at)) / 3600000))
+                : b.pricing_breakdown?.durationHours
+                ? Number(b.pricing_breakdown.durationHours)
+                : Math.max(1, Math.round((b.service?.duration_minutes || 120) / 60));
+
             return {
               id: b.booking_reference || b.id,
               rawId: b.id,
@@ -131,12 +157,19 @@ export const CustomerDashboardView: React.FC = () => {
               timeSlot: b.start_at
                 ? new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '10:00 AM - 01:00 PM',
-              duration: `${Math.round((b.service?.duration_minutes || 120) / 60)} Hours`,
+              duration: `${durationVal} Hours`,
+              durationHours: durationVal,
               venueAddress: b.event_location || 'Designated Venue',
               notes: b.customer_notes,
-              amountInr: Number(b.total_amount || b.agreed_service_price) || 4999,
+              agreedServicePrice: Number(b.agreed_service_price || 0),
+              travelDistanceKm: Number(b.travel_distance_km || 0),
+              travelFee: Number(b.travel_fee || 0),
+              platformFee: Number(b.platform_fee || 0),
+              taxes: Number(b.taxes || 0),
+              amountInr: Number(b.total_amount || b.agreed_service_price) || 0,
+              pricingBreakdown: b.pricing_breakdown,
               status,
-              paymentStatus: b.payment_status === 'paid' ? 'PAID_ESCROW' : b.payment_status || 'PAID_ESCROW',
+              paymentStatus: b.payment_status || 'unpaid',
               startOtp: '482910', // Live verified OTP for active shoot
               deliverablesCount: status === 'COMPLETED' ? 35 : undefined,
             };
@@ -156,6 +189,168 @@ export const CustomerDashboardView: React.FC = () => {
       isCancelled = true;
     };
   }, [activeUserId]);
+
+  // Payment checkout initiation
+  const handleInitiatePayment = async (booking: CustomerBookingItem) => {
+    const targetId = booking.rawId || booking.id;
+    setPayingBookingId(targetId);
+    setPaymentError(null);
+
+    try {
+      const res = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: targetId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Could not initialize payment order.');
+      }
+
+      if (data.isDevSandbox) {
+        setSandboxCheckoutData({
+          ...data,
+          booking,
+        });
+        setPayingBookingId(null);
+        return;
+      }
+
+      // Live Razorpay Standard Checkout
+      const loadRazorpay = () =>
+        new Promise<boolean>((resolve) => {
+          if ((window as any).Razorpay) return resolve(true);
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+
+      const loaded = await loadRazorpay();
+      if (!loaded) {
+        throw new Error('Could not load Razorpay Checkout script. Check internet access.');
+      }
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        name: 'REEPY Photography',
+        description: `${booking.packageTitle} (${booking.duration})`,
+        order_id: data.orderId,
+        prefill: data.customer,
+        theme: { color: '#14B8A6' },
+        handler: async function (response: any) {
+          await handleVerifyServerPayment({
+            bookingId: targetId,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            booking,
+          });
+        },
+        modal: {
+          ondismiss: function () {
+            setPayingBookingId(null);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (resp: any) {
+        setPaymentError(`Payment failed at gateway: ${resp.error?.description || 'Transaction declined'}`);
+        setPayingBookingId(null);
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error('Payment checkout initiation failed:', err);
+      setPaymentError(err?.message || 'Could not launch payment gateway.');
+      setPayingBookingId(null);
+    }
+  };
+
+  // Server Payment Verification
+  const handleVerifyServerPayment = async (params: {
+    bookingId: string;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    booking: CustomerBookingItem;
+  }) => {
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+    try {
+      const res = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: params.bookingId,
+          razorpay_order_id: params.razorpay_order_id,
+          razorpay_payment_id: params.razorpay_payment_id,
+          razorpay_signature: params.razorpay_signature,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Server signature verification failed.');
+      }
+
+      // Update local booking item
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === params.booking.id || b.rawId === params.bookingId
+            ? { ...b, paymentStatus: 'paid', status: 'CONFIRMED' }
+            : b
+        )
+      );
+
+      setPaymentSuccessModal({
+        booking: params.booking,
+        orderId: params.razorpay_order_id,
+        paymentId: params.razorpay_payment_id,
+        amount: data.amount || params.booking.amountInr,
+      });
+    } catch (err: any) {
+      setPaymentError(`Verification Error: ${err.message}`);
+    } finally {
+      setIsProcessingPayment(false);
+      setPayingBookingId(null);
+      setSandboxCheckoutData(null);
+    }
+  };
+
+  // Execute Sandbox Payment Test
+  const handleExecuteSandboxPayment = async (shouldSucceed: boolean) => {
+    if (!sandboxCheckoutData) return;
+    const { booking, orderId } = sandboxCheckoutData;
+    const targetId = booking.rawId || booking.id;
+
+    if (!shouldSucceed) {
+      setPaymentError('Simulated Gateway Failure: Transaction declined by issuing bank (Test Failure Scenario). You can retry payment at any time.');
+      setSandboxCheckoutData(null);
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const fakePaymentId = `pay_dev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const sandboxSig = `sig_dev_sandbox_${Date.now()}`;
+
+      await handleVerifyServerPayment({
+        bookingId: targetId,
+        razorpay_order_id: orderId,
+        razorpay_payment_id: fakePaymentId,
+        razorpay_signature: sandboxSig,
+        booking,
+      });
+    } catch (err: any) {
+      setPaymentError(err?.message || 'Failed to complete sandbox payment verification.');
+      setIsProcessingPayment(false);
+    }
+  };
 
   // Fetch verified photographers from Supabase
   useEffect(() => {
@@ -203,7 +398,9 @@ export const CustomerDashboardView: React.FC = () => {
       ['CONFIRMED', 'PENDING', 'ON_THE_WAY', 'ARRIVED_AT_VENUE', 'IN_PROGRESS'].includes(b.status)
     );
     const completed = bookings.filter((b) => b.status === 'COMPLETED');
-    const escrow = active.reduce((acc, curr) => acc + curr.amountInr, 0);
+    const escrow = active
+      .filter((b) => b.paymentStatus === 'paid' || b.paymentStatus === 'PAID_ESCROW')
+      .reduce((acc, curr) => acc + curr.amountInr, 0);
     return { activeShoots: active, completedShoots: completed, totalEscrowInr: escrow };
   }, [bookings]);
 
@@ -425,6 +622,24 @@ export const CustomerDashboardView: React.FC = () => {
       </section>
 
       {/* 3. ACTIVE & UPCOMING SHOOTS TRACKER (WITH LIVE SHOOT-START OTP HANDSHAKE) */}
+      {/* Payment Error Alert Banner */}
+      {paymentError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-red-800 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{paymentError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentError(null)}
+            className="text-xs font-bold text-red-700 hover:text-red-900 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* 3. ACTIVE & UPCOMING SHOOTS TRACKER (WITH LIVE SHOOT-START OTP HANDSHAKE & PAYMENT ACTION) */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
@@ -432,7 +647,7 @@ export const CustomerDashboardView: React.FC = () => {
               APPOINTMENT TRACKER
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-[#191C22] tracking-tight">
-              Active & Upcoming Shoots
+              Active &amp; Upcoming Shoots
             </h2>
           </div>
           <Link
@@ -451,123 +666,225 @@ export const CustomerDashboardView: React.FC = () => {
           </div>
         ) : activeShoots.length > 0 ? (
           <div className="space-y-4">
-            {activeShoots.slice(0, 2).map((booking) => (
-              <div
-                key={booking.id}
-                className="bg-white rounded-2xl border border-[#E7EAEE] p-5 sm:p-6 shadow-2xs hover:shadow-card transition-all"
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  {/* Left: Shoot & Creator Details */}
-                  <div className="space-y-3 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFF4EB] text-[#14B8A6] border border-[#FFD9B3]">
-                        {booking.status === 'ARRIVED_AT_VENUE'
-                          ? 'CREATOR ARRIVED AT VENUE'
-                          : booking.status === 'IN_PROGRESS'
-                          ? 'SHOOT IN PROGRESS'
-                          : 'SHOOT SCHEDULED'}
-                      </span>
-                      <span className="text-xs font-bold text-[#94A3B8]">
-                        Ref: {booking.id}
-                      </span>
-                    </div>
+            {activeShoots.slice(0, 3).map((booking) => {
+              const isPaid = booking.paymentStatus === 'paid' || booking.paymentStatus === 'PAID_ESCROW';
 
-                    <div>
-                      <h3 className="text-lg font-black text-[#191C22] tracking-tight">
-                        {booking.packageTitle}
-                      </h3>
-                      <p className="text-xs text-[#64748B] mt-0.5">
-                        Category: <span className="font-semibold text-[#191C22]">{booking.category}</span> · Duration: {booking.duration}
-                      </p>
-                    </div>
+              return (
+                <div
+                  key={booking.id}
+                  className="bg-white rounded-2xl border border-[#E7EAEE] p-5 sm:p-6 shadow-2xs hover:shadow-card transition-all space-y-5"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                    {/* Left: Shoot & Creator Details + Itemized Charges */}
+                    <div className="space-y-3.5 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFF4EB] text-[#14B8A6] border border-[#FFD9B3]">
+                          {booking.status === 'ARRIVED_AT_VENUE'
+                            ? 'CREATOR ARRIVED AT VENUE'
+                            : booking.status === 'IN_PROGRESS'
+                            ? 'SHOOT IN PROGRESS'
+                            : booking.status === 'PENDING'
+                            ? 'REQUESTED • PENDING ACCEPTANCE'
+                            : 'SHOOT SCHEDULED'}
+                        </span>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#64748B] pt-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                        <span>{booking.date} · {booking.timeSlot}</span>
+                        {isPaid ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid &amp; In Escrow
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-800 border border-amber-200">
+                            <Clock className="w-3 h-3 text-amber-600" /> Payment Required
+                          </span>
+                        )}
+
+                        <span className="text-xs font-bold text-[#94A3B8]">
+                          Ref: {booking.id}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                        <span className="truncate">{booking.venueAddress}</span>
-                      </div>
-                    </div>
 
-                    {/* Assigned Creator Pill */}
-                    <div className="flex items-center gap-3 pt-2">
-                      <Link
-                        href={`/photographers/${getPhotographerSlug(booking.photographerName, booking.photographerId)}`}
-                        className="flex items-center gap-2 group/creator hover:opacity-90"
-                      >
-                        <img
-                          src={booking.photographerAvatar}
-                          alt={booking.photographerName}
-                          className="w-8 h-8 rounded-full object-cover border border-[#E7EAEE] group-hover/creator:border-[#14B8A6]"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold text-[#191C22] group-hover/creator:text-[#14B8A6]">
-                              {booking.photographerName}
-                            </span>
-                            <CheckCircle2 className="w-3 h-3 text-[#14B8A6]" />
+                      <div>
+                        <h3 className="text-lg font-black text-[#191C22] tracking-tight">
+                          {booking.packageTitle}
+                        </h3>
+                        <p className="text-xs text-[#64748B] mt-0.5">
+                          Category: <span className="font-semibold text-[#191C22]">{booking.category}</span> · Duration: {booking.duration}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#64748B] pt-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                          <span>{booking.date} · {booking.timeSlot}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                          <span className="truncate">{booking.venueAddress}</span>
+                        </div>
+                      </div>
+
+                      {/* Assigned Creator Pill */}
+                      <div className="flex items-center gap-3 pt-1">
+                        <Link
+                          href={`/photographers/${getPhotographerSlug(booking.photographerName, booking.photographerId)}`}
+                          className="flex items-center gap-2 group/creator hover:opacity-90"
+                        >
+                          <img
+                            src={booking.photographerAvatar}
+                            alt={booking.photographerName}
+                            className="w-8 h-8 rounded-full object-cover border border-[#E7EAEE] group-hover/creator:border-[#14B8A6]"
+                          />
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-bold text-[#191C22] group-hover/creator:text-[#14B8A6]">
+                                {booking.photographerName}
+                              </span>
+                              <CheckCircle2 className="w-3 h-3 text-[#14B8A6]" />
+                            </div>
+                            <div className="flex items-center gap-1 text-[11px] text-[#94A3B8]">
+                              <Star className="w-3 h-3 text-[#14B8A6] fill-[#14B8A6]" />
+                              <span>{booking.photographerRating}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 text-[11px] text-[#94A3B8]">
-                            <Star className="w-3 h-3 text-[#14B8A6] fill-[#14B8A6]" />
-                            <span>{booking.photographerRating}</span>
+                        </Link>
+                      </div>
+
+                      {/* Itemized Charges Breakdown Box */}
+                      <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs mt-3">
+                        <div className="flex items-center justify-between pb-1 border-b border-[#E2E8F0]/70 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                          <span>Pricing Breakdown</span>
+                          <span>Total: ₹{booking.amountInr.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#64748B]">
+                          <div>
+                            <span className="block text-[#94A3B8] text-[10px]">Service Subtotal</span>
+                            <span className="font-semibold text-[#191C22]">₹{booking.agreedServicePrice.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[#94A3B8] text-[10px]">Travel Charge</span>
+                            <span className="font-semibold text-[#191C22]">
+                              {booking.travelFee > 0 ? `₹${booking.travelFee.toLocaleString('en-IN')} (${booking.travelDistanceKm} km)` : '₹0 (Included)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[#94A3B8] text-[10px]">Platform Fee</span>
+                            <span className="font-semibold text-[#191C22]">₹{booking.platformFee.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[#94A3B8] text-[10px]">Tax (GST)</span>
+                            <span className="font-semibold text-[#191C22]">₹{booking.taxes.toLocaleString('en-IN')}</span>
                           </div>
                         </div>
-                      </Link>
 
-                      <div className="border-l border-[#E7EAEE] pl-3 ml-2 text-xs">
-                        <span className="text-[#94A3B8]">Agreed Amount: </span>
-                        <span className="font-black text-[#191C22]">₹{booking.amountInr.toLocaleString('en-IN')}</span>
+                        <div className="pt-2 border-t border-[#E2E8F0]/80 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-[#94A3B8] uppercase font-semibold">Amount Paid:</span>
+                            <span className="font-bold text-emerald-700">{isPaid ? `₹${booking.amountInr.toLocaleString('en-IN')}` : '₹0'}</span>
+                            <span className="text-[10px] text-[#94A3B8] uppercase font-semibold pl-2 border-l border-[#E2E8F0]">Remaining:</span>
+                            <span className={`font-bold ${isPaid ? 'text-[#94A3B8]' : 'text-amber-700'}`}>{isPaid ? '₹0' : `₹${booking.amountInr.toLocaleString('en-IN')}`}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Right: Confidential Shoot-Start OTP Handshake Card */}
-                  <div className="lg:w-80 bg-[#F5F7F9] rounded-2xl border border-[#E7EAEE] p-4.5 space-y-3 shrink-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#191C22]">
-                        <KeyRound className="w-4 h-4 text-[#14B8A6]" />
-                        <span>Shoot-Start OTP</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46]">
-                        In Escrow
-                      </span>
-                    </div>
+                    {/* Right: Payment Action OR OTP Handshake Box */}
+                    <div className="lg:w-80 space-y-3 shrink-0">
+                      {isPaid ? (
+                        /* Confidential Shoot-Start OTP Handshake Card */
+                        <div className="bg-[#F5F7F9] rounded-2xl border border-[#E7EAEE] p-4.5 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#191C22]">
+                              <KeyRound className="w-4 h-4 text-[#14B8A6]" />
+                              <span>Shoot-Start OTP</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E7F6ED] text-[#1E7D46]">
+                              In Escrow
+                            </span>
+                          </div>
 
-                    <div className="bg-white rounded-xl border-2 border-dashed border-[#14B8A6]/40 p-3 text-center">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                        CONFIDENTIAL VERIFICATION CODE
-                      </span>
-                      <span className="block text-2xl sm:text-3xl font-mono font-black tracking-widest text-[#14B8A6] mt-0.5">
-                        {booking.startOtp}
-                      </span>
-                    </div>
+                          <div className="bg-white rounded-xl border-2 border-dashed border-[#14B8A6]/40 p-3 text-center">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                              CONFIDENTIAL VERIFICATION CODE
+                            </span>
+                            <span className="block text-2xl sm:text-3xl font-mono font-black tracking-widest text-[#14B8A6] mt-0.5">
+                              {booking.startOtp}
+                            </span>
+                          </div>
 
-                    <p className="text-[11px] text-[#64748B] leading-relaxed">
-                      Share this 6-digit code with your photographer <span className="font-bold text-[#191C22]">ONLY in person</span> upon arrival at your venue. Funds stay in escrow until you verify attendance.
-                    </p>
+                          <p className="text-[11px] text-[#64748B] leading-relaxed">
+                            Share this 6-digit code with your photographer <span className="font-bold text-[#191C22]">ONLY in person</span> upon arrival. Funds stay in escrow until you verify attendance.
+                          </p>
 
-                    <div className="pt-1 flex gap-2">
-                      <Link
-                        href={`/customer/bookings?id=${booking.id}`}
-                        className="flex-1 py-2 px-3 rounded-xl bg-white hover:bg-[#F1F3F5] border border-[#E7EAEE] text-xs font-bold text-[#191C22] text-center transition-all shadow-2xs"
-                      >
-                        View Details
-                      </Link>
-                      <a
-                        href={`tel:${booking.photographerPhone}`}
-                        className="py-2 px-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold flex items-center justify-center gap-1 transition-all shadow-2xs"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>Call</span>
-                      </a>
+                          <div className="pt-1 flex gap-2">
+                            <Link
+                              href={`/customer/bookings/${booking.rawId || booking.id}`}
+                              className="flex-1 py-2 px-3 rounded-xl bg-white hover:bg-[#F1F3F5] border border-[#E7EAEE] text-xs font-bold text-[#191C22] text-center transition-all shadow-2xs"
+                            >
+                              View Details
+                            </Link>
+                            <a
+                              href={`tel:${booking.photographerPhone}`}
+                              className="py-2 px-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold flex items-center justify-center gap-1 transition-all shadow-2xs"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>Call</span>
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Payment Required Card with Direct Pay Now Action */
+                        <div className="bg-amber-50/70 rounded-2xl border border-amber-200 p-5 space-y-3.5 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                              <CreditCard className="w-4 h-4 text-emerald-600" />
+                              <span>Payment Required</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              Unpaid
+                            </span>
+                          </div>
+
+                          <div className="text-center py-2 bg-white/90 rounded-xl border border-amber-200/80">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Amount Due</span>
+                            <span className="text-2xl font-black text-[#191C22]">₹{booking.amountInr.toLocaleString('en-IN')}</span>
+                          </div>
+
+                          <p className="text-[11px] text-amber-900 leading-relaxed">
+                            {booking.status === 'PENDING'
+                              ? 'Awaiting photographer schedule acceptance. Pay now to instantly confirm your shoot and secure your date in platform escrow.'
+                              : 'Your photographer has accepted this appointment. Please complete payment now to lock your booking.'}
+                          </p>
+
+                          <button
+                            type="button"
+                            disabled={payingBookingId === (booking.rawId || booking.id) || isProcessingPayment}
+                            onClick={() => handleInitiatePayment(booking)}
+                            className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <CreditCard className="w-4 h-4 text-white" />
+                            <span>
+                              {payingBookingId === (booking.rawId || booking.id)
+                                ? 'Initializing Order...'
+                                : `Pay Now — ₹${booking.amountInr.toLocaleString('en-IN')}`}
+                            </span>
+                          </button>
+
+                          <div className="pt-1 flex gap-2">
+                            <Link
+                              href={`/customer/bookings/${booking.rawId || booking.id}`}
+                              className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#F1F3F5] border border-amber-200 text-xs font-bold text-[#191C22] text-center transition-all shadow-2xs"
+                            >
+                              View Booking Details
+                            </Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-[#E7EAEE] p-8 sm:p-10 text-center space-y-4">
@@ -786,6 +1103,139 @@ export const CustomerDashboardView: React.FC = () => {
         photographerId={selectedModalPhotographerId}
         onClose={() => setSelectedModalPhotographerId(null)}
       />
+
+      {/* DEVELOPER SANDBOX TEST CHECKOUT MODAL */}
+      {sandboxCheckoutData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-[#E7EAEE] shadow-elevated space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E7EAEE]">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#14B8A6] bg-[#EFFCF8] border border-[#14B8A6]/30 px-2 py-0.5 rounded-full">
+                    REEPY Escrow Gateway (Sandbox Test Mode)
+                  </span>
+                </div>
+                <h3 className="text-base font-black text-[#191C22] mt-1">
+                  Complete Booking Payment
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSandboxCheckoutData(null)}
+                className="w-8 h-8 rounded-full bg-[#F5F7F9] hover:bg-[#EBEFF3] flex items-center justify-center text-[#64748B]"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Session Info */}
+            <div className="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E7EAEE] space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Photographer:</span>
+                <span className="font-bold text-[#191C22]">{sandboxCheckoutData.booking?.photographerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Shoot Package:</span>
+                <span className="font-bold text-[#191C22]">{sandboxCheckoutData.booking?.packageTitle}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Selected Duration:</span>
+                <span className="font-bold text-[#14B8A6]">{sandboxCheckoutData.booking?.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Gateway Order ID:</span>
+                <span className="font-mono text-[#64748B] text-[11px]">{sandboxCheckoutData.orderId}</span>
+              </div>
+            </div>
+
+            {/* Total Amount Due */}
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                  Authoritative Amount Due
+                </span>
+                <span className="text-2xl font-black text-emerald-950">
+                  ₹{sandboxCheckoutData.amountInr.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <span className="text-xs font-extrabold text-emerald-800 bg-emerald-200/60 px-3 py-1 rounded-full">
+                INR Escrow Deposit
+              </span>
+            </div>
+
+            <p className="text-[11px] text-[#64748B] leading-relaxed bg-[#F5F7F9] p-3 rounded-xl border border-[#E7EAEE]">
+              🔒 <strong>Developer Notice:</strong> Razorpay live credentials are not configured in your local environment. This interactive test modal tests the exact same server-side verification, escrow allocation, and status transitions.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={() => handleExecuteSandboxPayment(true)}
+                className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span>{isProcessingPayment ? 'Verifying...' : `Simulate Successful Payment (₹${sandboxCheckoutData.amountInr.toLocaleString('en-IN')})`}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={() => handleExecuteSandboxPayment(false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors disabled:opacity-50"
+              >
+                Simulate Gateway Failure
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT SUCCESSFUL ESCROW CONFIRMATION MODAL */}
+      {paymentSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-[#E7EAEE] shadow-elevated text-center space-y-4">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <h3 className="text-xl font-black text-[#191C22]">
+              Payment Verified &amp; Secured!
+            </h3>
+
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Your payment of <strong>₹{paymentSuccessModal.amount?.toLocaleString('en-IN')}</strong> has been confirmed by the payment gateway and is safely deposited into REEPY Escrow.
+            </p>
+
+            <div className="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E7EAEE] text-left space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Booking Reference:</span>
+                <span className="font-mono font-bold text-[#191C22]">{paymentSuccessModal.booking?.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Payment Reference:</span>
+                <span className="font-mono text-[#64748B] text-[11px]">{paymentSuccessModal.paymentId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Escrow Protection:</span>
+                <span className="font-bold text-emerald-700">100% Protected</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+              The photographer has been notified of your confirmed appointment. Share your 6-digit OTP only upon physical arrival at your venue.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setPaymentSuccessModal(null)}
+              className="w-full py-2.5 rounded-xl text-xs font-black text-white bg-[#14B8A6] hover:bg-[#0D9488] transition-colors"
+            >
+              Back to My Bookings
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

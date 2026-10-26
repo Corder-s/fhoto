@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorize, jsonError } from '@/lib/server/session';
-import { canCustomerCancel, cleanText, matchesSessionUser } from '@/lib/server/policy';
+import { canCustomerCancel, cleanText, isUuid, matchesSessionUser } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,9 +59,35 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
   const { user, admin } = auth;
 
-  const requested = new URL(req.url).searchParams.get('userId');
-  if (!matchesSessionUser(user.id, requested)) {
+  const { searchParams } = new URL(req.url);
+  const requested = searchParams.get('userId');
+  if (requested && !matchesSessionUser(user.id, requested)) {
     return jsonError(403, 'You can only view your own bookings.');
+  }
+
+  const targetBookingId = searchParams.get('bookingId') || searchParams.get('id');
+  if (targetBookingId) {
+    const isIdUuid = isUuid(targetBookingId);
+    let query = admin
+      .from('bookings')
+      .select(BOOKING_LIST_SELECT)
+      .eq('customer_id', user.id);
+
+    if (isIdUuid) {
+      query = query.or(`id.eq.${targetBookingId},booking_reference.eq.${targetBookingId}`);
+    } else {
+      query = query.eq('booking_reference', targetBookingId);
+    }
+
+    const { data: booking, error } = await query.maybeSingle();
+    if (error) {
+      console.error('Could not load customer booking detail:', error.message);
+      return jsonError(500, 'Could not load booking detail.');
+    }
+    if (!booking) {
+      return jsonError(404, 'Booking not found or does not belong to you.');
+    }
+    return NextResponse.json({ success: true, booking, bookings: [booking] });
   }
 
   const { data: bookings, error } = await admin

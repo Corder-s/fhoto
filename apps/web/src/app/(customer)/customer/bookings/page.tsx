@@ -594,12 +594,91 @@ export default function CustomerBookingsPage() {
                       Cancellation Reason: &ldquo;{b.cancellationReason}&rdquo;
                     </p>
                   )}
+
+                  {/* ITEMIZED PAYMENT & CHARGES CARD SUMMARY */}
+                  <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5 text-xs">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-[#E2E8F0]/70">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Itemized Charges & Payment Ledger</span>
+                      {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid &amp; Secured in Escrow
+                        </span>
+                      ) : b.status === 'PENDING' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          <Clock className="w-3 h-3 text-amber-600" /> Awaiting Acceptance • Payment Due
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          <Clock className="w-3 h-3 text-amber-600" /> Payment Required
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#64748B]">
+                      <div>
+                        <span className="block text-[#94A3B8] text-[10px]">Service Subtotal</span>
+                        <span className="font-semibold text-[#191C22]">₹{b.agreedServicePrice.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[#94A3B8] text-[10px]">Travel Charge</span>
+                        <span className="font-semibold text-[#191C22]">
+                          {b.travelFee > 0 ? `₹${b.travelFee.toLocaleString('en-IN')} (${b.travelDistanceKm} km)` : '₹0 (Included)'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[#94A3B8] text-[10px]">Platform Fee (10%)</span>
+                        <span className="font-semibold text-[#191C22]">₹{b.platformFee.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[#94A3B8] text-[10px]">Applicable Tax (GST)</span>
+                        <span className="font-semibold text-[#191C22]">₹{b.taxes.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E2E8F0]/80 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-4 text-xs">
+                        <div>
+                          <span className="text-[10px] text-[#94A3B8] uppercase block font-semibold">Total Payable</span>
+                          <span className="text-base font-black text-[#191C22]">₹{b.amountInr.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="border-l border-[#E2E8F0] pl-3">
+                          <span className="text-[10px] text-[#94A3B8] uppercase block font-semibold">Amount Paid</span>
+                          <span className="text-xs font-bold text-emerald-700">
+                            {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? `₹${b.amountInr.toLocaleString('en-IN')}` : '₹0'}
+                          </span>
+                        </div>
+                        <div className="border-l border-[#E2E8F0] pl-3">
+                          <span className="text-[10px] text-[#94A3B8] uppercase block font-semibold">Remaining Due</span>
+                          <span className={`text-xs font-bold ${b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? 'text-[#94A3B8]' : 'text-amber-700'}`}>
+                            {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? '₹0' : `₹${b.amountInr.toLocaleString('en-IN')}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Pay Now Button right on ledger card */}
+                      {(b.paymentStatus !== 'PAID_ESCROW' && b.paymentStatus !== 'paid') && (
+                        <button
+                          type="button"
+                          disabled={payingBookingId === (b.rawId || b.id) || isProcessingPayment}
+                          onClick={() => handleInitiatePayment(b)}
+                          className="px-5 py-2 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <CreditCard className="w-4 h-4 text-white" />
+                          <span>
+                            {payingBookingId === (b.rawId || b.id)
+                              ? 'Initializing Order...'
+                              : `Pay Now — ₹${b.amountInr.toLocaleString('en-IN')}`}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Right Financials & Action Buttons */}
                 <div className="lg:col-span-4 flex flex-col justify-between items-start lg:items-end space-y-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-[#E7EAEE]">
                   <div className="text-left lg:text-right">
-                    <p className="text-xl font-black text-[#191C22]">
+                    <p className="text-2xl font-black text-[#191C22]">
                       ₹{b.amountInr.toLocaleString('en-IN')}
                     </p>
                     <div className="text-[11px] flex items-center gap-1 lg:justify-end mt-0.5">
@@ -619,36 +698,36 @@ export default function CustomerBookingsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 w-full lg:justify-end">
-                    {/* PAY NOW CTA BUTTON */}
+                    {/* Primary Pay Now Action */}
                     {(b.paymentStatus !== 'PAID_ESCROW' && b.paymentStatus !== 'paid') && (
-                      b.status === 'CONFIRMED' ? (
-                        <button
-                          type="button"
-                          disabled={payingBookingId === (b.rawId || b.id) || isProcessingPayment}
-                          onClick={() => handleInitiatePayment(b)}
-                          className="px-4 py-2 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        >
-                          <CreditCard className="w-3.5 h-3.5 text-white" />
-                          <span>
-                            {payingBookingId === (b.rawId || b.id)
-                              ? 'Initializing...'
-                              : `Pay Now — ₹${b.amountInr.toLocaleString('en-IN')}`}
-                          </span>
-                        </button>
-                      ) : b.status === 'PENDING' ? (
-                        <span className="px-3 py-1.5 rounded-full text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-amber-600" />
-                          <span>Payment unlocks once photographer accepts</span>
+                      <button
+                        type="button"
+                        disabled={payingBookingId === (b.rawId || b.id) || isProcessingPayment}
+                        onClick={() => handleInitiatePayment(b)}
+                        className="px-4 py-2 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <CreditCard className="w-3.5 h-3.5 text-white" />
+                        <span>
+                          {payingBookingId === (b.rawId || b.id)
+                            ? 'Initializing...'
+                            : `Pay Now — ₹${b.amountInr.toLocaleString('en-IN')}`}
                         </span>
-                      ) : null
+                      </button>
                     )}
+
+                    <Link
+                      href={`/customer/bookings/${b.rawId || b.id}`}
+                      className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#14B8A6] bg-[#EFFCF8] hover:bg-[#CCFBEF] border border-[#99F6E4] transition-all flex items-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View Details</span>
+                    </Link>
 
                     <button
                       onClick={() => setBreakdownModalBooking(b)}
                       className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#191C22] bg-[#F5F7F9] hover:bg-[#EBEFF3] border border-[#E7EAEE] transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      <Eye className="w-3.5 h-3.5 text-[#14B8A6]" />
-                      <span>View Price Breakdown</span>
+                      <span>Itemized Charges</span>
                     </button>
 
                     <Link
