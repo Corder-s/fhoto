@@ -34,6 +34,7 @@ const MIGRATIONS = [
   '20261014000004_admin_distance_settings_and_tracking.sql',
   '20261014000005_booking_duration_and_itemized_pricing.sql',
   '20261014000006_razorpay_order_and_payment_system.sql',
+  '20261014000007_partial_and_full_payment_options.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -983,6 +984,51 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
       // Cleanup
       await db.query('DELETE FROM public.payments WHERE id = $1', [paymentId]);
       await db.query('DELETE FROM public.bookings WHERE id = $1', [bookingId]);
+    });
+  });
+
+  describe('partial and full payment options (20261014000007)', () => {
+    test('supports partially_paid status, amount_paid, and payment_mode columns on bookings', async () => {
+      const creatorRes = await db.query('SELECT id FROM public.creator_profiles WHERE user_id = $1', [IDS.creatorA]);
+      const creatorA = creatorRes.rows[0].id;
+      const sRes = await db.query('SELECT id FROM public.creator_services WHERE creator_id = $1 LIMIT 1', [creatorA]);
+      const serviceId = sRes.rows[0].id;
+
+      const bRes = await db.query(
+        `INSERT INTO public.bookings (
+           booking_reference, customer_id, creator_id, service_id, event_title, event_date,
+           start_at, end_at, event_location, agreed_service_price,
+           total_amount, amount_paid, payment_mode, booking_status, payment_status
+         ) VALUES (
+           'BK-PARTIAL-999', $1, $2, $3, 'Split Payment Shoot', '2026-11-20',
+           '2026-11-20 10:00:00+05:30', '2026-11-20 12:00:00+05:30',
+           'Saket Delhi', 4000.00, 4584.00, 2292.00, 'half', 'confirmed', 'partially_paid'
+         ) RETURNING id, amount_paid, payment_mode, payment_status`,
+        [IDS.customerA, creatorA, serviceId]
+      );
+
+      assert.equal(bRes.rows.length, 1);
+      assert.equal(bRes.rows[0].payment_status, 'partially_paid');
+      assert.equal(Number(bRes.rows[0].amount_paid), 2292.00);
+      assert.equal(bRes.rows[0].payment_mode, 'half');
+
+      // Update to full payment
+      await db.query(
+        `UPDATE public.bookings
+         SET payment_status = 'paid', amount_paid = 4584.00, payment_mode = 'full'
+         WHERE id = $1`,
+        [bRes.rows[0].id]
+      );
+
+      const updated = await db.query(
+        'SELECT amount_paid, payment_status, payment_mode FROM public.bookings WHERE id = $1',
+        [bRes.rows[0].id]
+      );
+      assert.equal(updated.rows[0].payment_status, 'paid');
+      assert.equal(Number(updated.rows[0].amount_paid), 4584.00);
+
+      // Cleanup
+      await db.query('DELETE FROM public.bookings WHERE id = $1', [bRes.rows[0].id]);
     });
   });
 });

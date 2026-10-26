@@ -38,6 +38,9 @@ interface BookingDetail {
   taxes?: number;
   discount_amount?: number;
   total_amount: number;
+  amount_paid?: number;
+  payment_mode?: string;
+  unlocked_perks?: string[];
   pricing_breakdown?: any;
   booking_status: string;
   payment_status: string;
@@ -81,6 +84,7 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
   const [error, setError] = useState<string | null>(null);
 
   // Payment states
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState<'full' | 'half'>('full');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [sandboxCheckoutData, setSandboxCheckoutData] = useState<any | null>(null);
@@ -118,16 +122,18 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
   }, [params.id]);
 
   // Payment initiation
-  const handleInitiatePayment = async () => {
+  const handleInitiatePayment = async (modeOverride?: 'full' | 'half' | 'remaining') => {
     if (!booking) return;
     setIsProcessingPayment(true);
     setPaymentError(null);
+
+    const mode = modeOverride || (booking.payment_status === 'partially_paid' ? 'remaining' : selectedPaymentMode);
 
     try {
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id }),
+        body: JSON.stringify({ bookingId: booking.id, paymentMode: mode }),
       });
 
       const data = await res.json();
@@ -223,8 +229,11 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
         prev
           ? {
               ...prev,
-              payment_status: 'paid',
+              payment_status: data.paymentStatus || 'paid',
               booking_status: 'confirmed',
+              amount_paid: data.amountPaid || prev.total_amount,
+              payment_mode: data.paymentMode || 'full',
+              unlocked_perks: data.unlockedPerks || [],
             }
           : prev
       );
@@ -298,6 +307,14 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
   }
 
   const isPaid = booking.payment_status === 'paid';
+  const isPartiallyPaid = booking.payment_status === 'partially_paid';
+  const totalAmount = Number(booking.total_amount) || 0;
+  const amountPaid = Number(booking.amount_paid) || (isPaid ? totalAmount : (isPartiallyPaid ? Math.round(totalAmount * 0.5) : 0));
+  const remainingDue = Math.max(0, totalAmount - amountPaid);
+  const fullDiscount = Math.round(totalAmount * 0.05);
+  const fullPayableAmount = Math.max(1, totalAmount - fullDiscount);
+  const halfPayableAmount = Math.round(totalAmount * 0.5);
+
   const durationHours =
     booking.duration_hours ||
     booking.pricing_breakdown?.durationHours ||
@@ -320,10 +337,18 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
   const milestones = [
     { title: 'Shoot Booked & Requested', time: new Date(booking.created_at).toLocaleDateString(), completed: true },
     {
-      title: isPaid ? 'Payment Verified & Escrow Secured' : 'Payment Due (Awaiting Checkout)',
-      time: isPaid ? 'Confirmed & Held in Escrow' : 'Payment Required',
-      completed: isPaid,
-      current: !isPaid,
+      title: isPaid
+        ? 'Full Payment Verified & Escrow Secured'
+        : isPartiallyPaid
+        ? '50% Advance Secured in Escrow'
+        : 'Payment Due (Awaiting Checkout)',
+      time: isPaid
+        ? 'Fully Confirmed & Held in Escrow'
+        : isPartiallyPaid
+        ? `₹${amountPaid.toLocaleString('en-IN')} Secured • ₹${remainingDue.toLocaleString('en-IN')} Remaining`
+        : 'Payment Required',
+      completed: isPaid || isPartiallyPaid,
+      current: !isPaid && !isPartiallyPaid,
     },
     {
       title: 'Photographer Confirmed',
@@ -449,14 +474,16 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
             <button
               type="button"
               disabled={isProcessingPayment}
-              onClick={handleInitiatePayment}
+              onClick={() => handleInitiatePayment(isPartiallyPaid ? 'remaining' : undefined)}
               className="px-6 py-3 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
             >
               <CreditCard className="w-4 h-4 text-white" />
               <span>
                 {isProcessingPayment
                   ? 'Initializing Gateway...'
-                  : `Pay Now — ₹${Number(booking.total_amount).toLocaleString('en-IN')}`}
+                  : isPartiallyPaid
+                  ? `Pay Remaining 50% — ₹${remainingDue.toLocaleString('en-IN')}`
+                  : `Pay Now — Choose Plan`}
               </span>
             </button>
           </div>
@@ -576,37 +603,187 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
 
           {/* Ledger Totals */}
           <div className="py-3.5 flex justify-between text-base font-black text-[#191C22] bg-[#F8FAFC] -mx-6 px-6 border-t-2 border-[#E7EAEE]">
-            <span>Total Payable Amount</span>
-            <span>₹{Number(booking.total_amount).toLocaleString('en-IN')}</span>
+            <span>Total Agreed Booking Amount</span>
+            <span>₹{totalAmount.toLocaleString('en-IN')}</span>
           </div>
 
           <div className="py-2.5 flex justify-between font-semibold">
             <span className="text-[#64748B]">Amount Paid to Date:</span>
             <span className="text-emerald-700">
-              {isPaid ? `₹${Number(booking.total_amount).toLocaleString('en-IN')}` : '₹0'}
+              ₹{amountPaid.toLocaleString('en-IN')}
             </span>
           </div>
 
           <div className="py-2.5 flex justify-between font-semibold">
             <span className="text-[#64748B]">Remaining Balance Due:</span>
-            <span className={isPaid ? 'text-[#94A3B8]' : 'text-amber-700'}>
-              {isPaid ? '₹0' : `₹${Number(booking.total_amount).toLocaleString('en-IN')}`}
+            <span className={remainingDue > 0 ? 'text-amber-700' : 'text-[#94A3B8]'}>
+              ₹{remainingDue.toLocaleString('en-IN')}
             </span>
           </div>
         </div>
 
-        {/* If unpaid, bottom pay button */}
+        {/* PAYMENT OPTIONS SELECTOR (IF NOT FULLY PAID) */}
         {!isPaid && (
-          <div className="pt-3 flex justify-end">
-            <button
-              type="button"
-              disabled={isProcessingPayment}
-              onClick={handleInitiatePayment}
-              className="px-6 py-2.5 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <CreditCard className="w-4 h-4 text-white" />
-              <span>{isProcessingPayment ? 'Initializing...' : `Pay Now — ₹${Number(booking.total_amount).toLocaleString('en-IN')}`}</span>
-            </button>
+          <div className="pt-4 border-t border-[#E7EAEE] space-y-4">
+            {isPartiallyPaid ? (
+              /* Already paid 50%, show remaining payment action */
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-black text-blue-900 block">
+                    Second Installment (50% Remaining Balance)
+                  </span>
+                  <span className="text-xs text-blue-700">
+                    Your 50% advance of ₹{amountPaid.toLocaleString('en-IN')} is secured in escrow. Settle the remaining balance anytime before or on shoot completion.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isProcessingPayment}
+                  onClick={() => handleInitiatePayment('remaining')}
+                  className="px-6 py-2.5 rounded-full text-xs font-black text-white bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  <CreditCard className="w-4 h-4 text-white" />
+                  <span>{isProcessingPayment ? 'Initializing...' : `Pay Remaining ₹${remainingDue.toLocaleString('en-IN')}`}</span>
+                </button>
+              </div>
+            ) : (
+              /* Unpaid: Choose Full Payment (with benefits) OR Half Payment (50% Deposit) */
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#191C22]">
+                    Choose Payment Option
+                  </span>
+                  <span className="text-[11px] text-[#14B8A6] font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>REEPY Escrow Guarantee</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* OPTION 1: FULL PAYMENT (WITH 5% DISCOUNT & VIP PERKS) */}
+                  <div
+                    onClick={() => setSelectedPaymentMode('full')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                      selectedPaymentMode === 'full'
+                        ? 'border-[#14B8A6] bg-[#EFFCF8] shadow-sm'
+                        : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40'
+                    }`}
+                  >
+                    <div className="absolute -top-2.5 right-4 bg-gradient-to-r from-[#14B8A6] to-emerald-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs">
+                      Best Value • Save 5%
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <input
+                        type="radio"
+                        name="paymentMode"
+                        checked={selectedPaymentMode === 'full'}
+                        onChange={() => setSelectedPaymentMode('full')}
+                        className="text-[#14B8A6] focus:ring-[#14B8A6]"
+                      />
+                      <span className="text-xs font-black text-[#191C22]">
+                        Pay Full (100% Upfront)
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-lg font-black text-[#191C22]">
+                        ₹{fullPayableAmount.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-[#94A3B8] line-through">
+                        ₹{totalAmount.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        Save ₹{fullDiscount.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] text-[#475569] border-t border-[#14B8A6]/20 pt-2">
+                      <p className="flex items-center gap-1.5 text-emerald-800 font-bold">
+                        <span>🎁</span> <span>5% Instant Prepayment Discount</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-[#191C22]">
+                        <span>⚡</span> <span>Priority 48-Hour Rush Delivery</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-[#191C22]">
+                        <span>📸</span> <span>10 Extra Pro-Edited Photos Included Free</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-[#191C22]">
+                        <span>🔄</span> <span>1 Free Complimentary Date Reschedule</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* OPTION 2: 50% ADVANCE DEPOSIT */}
+                  <div
+                    onClick={() => setSelectedPaymentMode('half')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                      selectedPaymentMode === 'half'
+                        ? 'border-[#14B8A6] bg-[#EFFCF8] shadow-sm'
+                        : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <input
+                        type="radio"
+                        name="paymentMode"
+                        checked={selectedPaymentMode === 'half'}
+                        onChange={() => setSelectedPaymentMode('half')}
+                        className="text-[#14B8A6] focus:ring-[#14B8A6]"
+                      />
+                      <span className="text-xs font-black text-[#191C22]">
+                        Pay 50% Advance Deposit
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-lg font-black text-[#191C22]">
+                        ₹{halfPayableAmount.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-[#64748B]">now</span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] text-[#64748B] border-t border-[#E7EAEE] pt-2">
+                      <p className="flex items-center gap-1.5 text-[#191C22]">
+                        <span>💳</span> <span>Pay 50% now to confirm &amp; reserve slot</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-[#64748B]">
+                        <span>⏳</span> <span>Remaining ₹{halfPayableAmount.toLocaleString('en-IN')} due at shoot</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-[#64748B]">
+                        <span>🛡️</span> <span>Held in escrow until photographer arrives</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Checkout Trigger */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#F8FAFC] p-4 rounded-2xl border border-[#E7EAEE]">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#94A3B8] block">Payable Now</span>
+                    <span className="text-xl font-black text-[#191C22]">
+                      ₹{(selectedPaymentMode === 'full' ? fullPayableAmount : halfPayableAmount).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isProcessingPayment}
+                    onClick={() => handleInitiatePayment(selectedPaymentMode)}
+                    className="w-full sm:w-auto px-7 py-3 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <CreditCard className="w-4 h-4 text-white" />
+                    <span>
+                      {isProcessingPayment
+                        ? 'Initializing Checkout...'
+                        : selectedPaymentMode === 'full'
+                        ? `Pay Full (₹${fullPayableAmount.toLocaleString('en-IN')}) — Get VIP Perks`
+                        : `Pay 50% Advance (₹${halfPayableAmount.toLocaleString('en-IN')}) — Reserve Slot`}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

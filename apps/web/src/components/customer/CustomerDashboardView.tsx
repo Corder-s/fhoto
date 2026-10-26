@@ -24,7 +24,10 @@ import {
   Eye,
   KeyRound,
   CreditCard,
-  XCircle
+  XCircle,
+  Gift,
+  Zap,
+  Percent
 } from 'lucide-react';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 import { useAuth } from '../../lib/auth';
@@ -55,6 +58,10 @@ interface CustomerBookingItem {
   platformFee: number;
   taxes: number;
   amountInr: number;
+  amountPaid?: number;
+  remainingDue?: number;
+  paymentMode?: string;
+  unlockedPerks?: string[];
   pricingBreakdown?: any;
   status: 'PENDING' | 'CONFIRMED' | 'ON_THE_WAY' | 'ARRIVED_AT_VENUE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   paymentStatus: string;
@@ -92,6 +99,7 @@ export const CustomerDashboardView: React.FC = () => {
 
   // Payment states
   const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+  const [paymentOptionsBooking, setPaymentOptionsBooking] = useState<{ booking: CustomerBookingItem; mode: 'full' | 'half' } | null>(null);
   const [sandboxCheckoutData, setSandboxCheckoutData] = useState<any | null>(null);
   const [paymentSuccessModal, setPaymentSuccessModal] = useState<any | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -167,6 +175,10 @@ export const CustomerDashboardView: React.FC = () => {
               platformFee: Number(b.platform_fee || 0),
               taxes: Number(b.taxes || 0),
               amountInr: Number(b.total_amount || b.agreed_service_price) || 0,
+              amountPaid: Number(b.amount_paid) || (b.payment_status === 'paid' ? Number(b.total_amount) : (b.payment_status === 'partially_paid' ? Math.round(Number(b.total_amount) * 0.5) : 0)),
+              remainingDue: Math.max(0, Number(b.total_amount || b.agreed_service_price) - (Number(b.amount_paid) || (b.payment_status === 'paid' ? Number(b.total_amount) : (b.payment_status === 'partially_paid' ? Math.round(Number(b.total_amount) * 0.5) : 0)))),
+              paymentMode: b.payment_mode || 'full',
+              unlockedPerks: b.unlocked_perks || [],
               pricingBreakdown: b.pricing_breakdown,
               status,
               paymentStatus: b.payment_status || 'unpaid',
@@ -191,16 +203,22 @@ export const CustomerDashboardView: React.FC = () => {
   }, [activeUserId]);
 
   // Payment checkout initiation
-  const handleInitiatePayment = async (booking: CustomerBookingItem) => {
+  const handleInitiatePayment = async (
+    booking: CustomerBookingItem,
+    modeOverride?: 'full' | 'half' | 'remaining'
+  ) => {
     const targetId = booking.rawId || booking.id;
     setPayingBookingId(targetId);
     setPaymentError(null);
+    setPaymentOptionsBooking(null);
+
+    const mode = modeOverride || (booking.paymentStatus === 'partially_paid' ? 'remaining' : 'full');
 
     try {
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: targetId }),
+        body: JSON.stringify({ bookingId: targetId, paymentMode: mode }),
       });
 
       const data = await res.json();
@@ -302,7 +320,15 @@ export const CustomerDashboardView: React.FC = () => {
       setBookings((prev) =>
         prev.map((b) =>
           b.id === params.booking.id || b.rawId === params.bookingId
-            ? { ...b, paymentStatus: 'paid', status: 'CONFIRMED' }
+            ? {
+                ...b,
+                paymentStatus: data.paymentStatus || 'paid',
+                status: 'CONFIRMED',
+                amountPaid: data.amountPaid || (data.paymentStatus === 'partially_paid' ? Math.round(params.booking.amountInr * 0.5) : params.booking.amountInr),
+                remainingDue: data.remainingDue ?? (data.paymentStatus === 'partially_paid' ? params.booking.amountInr - Math.round(params.booking.amountInr * 0.5) : 0),
+                paymentMode: data.paymentMode || b.paymentMode,
+                unlockedPerks: data.unlockedPerks || b.unlockedPerks || [],
+              }
             : b
         )
       );
@@ -856,19 +882,35 @@ export const CustomerDashboardView: React.FC = () => {
                               : 'Your photographer has accepted this appointment. Please complete payment now to lock your booking.'}
                           </p>
 
-                          <button
-                            type="button"
-                            disabled={payingBookingId === (booking.rawId || booking.id) || isProcessingPayment}
-                            onClick={() => handleInitiatePayment(booking)}
-                            className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                          >
-                            <CreditCard className="w-4 h-4 text-white" />
-                            <span>
-                              {payingBookingId === (booking.rawId || booking.id)
-                                ? 'Initializing Order...'
-                                : `Pay Now — ₹${booking.amountInr.toLocaleString('en-IN')}`}
-                            </span>
-                          </button>
+                          {booking.paymentStatus === 'partially_paid' ? (
+                            <button
+                              type="button"
+                              disabled={payingBookingId === (booking.rawId || booking.id) || isProcessingPayment}
+                              onClick={() => handleInitiatePayment(booking, 'remaining')}
+                              className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            >
+                              <CreditCard className="w-4 h-4 text-white" />
+                              <span>
+                                {payingBookingId === (booking.rawId || booking.id)
+                                  ? 'Initializing...'
+                                  : `Pay Remaining 50% — ₹${(booking.remainingDue || Math.round(booking.amountInr * 0.5)).toLocaleString('en-IN')}`}
+                              </span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={payingBookingId === (booking.rawId || booking.id) || isProcessingPayment}
+                              onClick={() => setPaymentOptionsBooking({ booking, mode: 'full' })}
+                              className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            >
+                              <CreditCard className="w-4 h-4 text-white" />
+                              <span>
+                                {payingBookingId === (booking.rawId || booking.id)
+                                  ? 'Initializing Order...'
+                                  : `Pay Now (Full or Half) — From ₹${Math.round(booking.amountInr * 0.5).toLocaleString('en-IN')}`}
+                              </span>
+                            </button>
+                          )}
 
                           <div className="pt-1 flex gap-2">
                             <Link
@@ -1104,6 +1146,199 @@ export const CustomerDashboardView: React.FC = () => {
         onClose={() => setSelectedModalPhotographerId(null)}
       />
 
+      {/* PAYMENT OPTIONS MODAL (CHOOSE FULL PAYMENT VS 50% ADVANCE) */}
+      {paymentOptionsBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 border border-[#E7EAEE] shadow-elevated space-y-5">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E7EAEE]">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#EFFCF8] text-[#14B8A6] border border-[#14B8A6]/30">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Choose Your Payment Plan</span>
+                </div>
+                <h3 className="text-xl font-black text-[#191C22] mt-1 tracking-tight">
+                  Select Payment Option
+                </h3>
+                <p className="text-xs text-[#64748B]">
+                  {paymentOptionsBooking.booking.packageTitle} • Total ₹{paymentOptionsBooking.booking.amountInr.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentOptionsBooking(null)}
+                className="w-8 h-8 rounded-full bg-[#F5F7F9] hover:bg-[#EBEFF3] flex items-center justify-center text-[#64748B] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Two Selectable Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Option 1: Full Payment (Recommended) */}
+              <button
+                type="button"
+                onClick={() => setPaymentOptionsBooking({ ...paymentOptionsBooking, mode: 'full' })}
+                className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                  paymentOptionsBooking.mode === 'full'
+                    ? 'border-emerald-500 bg-emerald-50/50 shadow-md ring-2 ring-emerald-500/20'
+                    : 'border-[#E7EAEE] bg-white hover:border-emerald-200 hover:bg-[#F8FAFC]'
+                }`}
+              >
+                <div className="absolute -top-2.5 right-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>Recommended • Save 5%</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-900 uppercase tracking-wide">
+                      100% Full Payment
+                    </span>
+                    <input
+                      type="radio"
+                      checked={paymentOptionsBooking.mode === 'full'}
+                      onChange={() => {}}
+                      className="accent-emerald-600 w-4 h-4 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-black text-emerald-950">
+                        ₹{(paymentOptionsBooking.booking.amountInr - Math.round(paymentOptionsBooking.booking.amountInr * 0.05)).toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs font-bold text-[#94A3B8] line-through">
+                        ₹{paymentOptionsBooking.booking.amountInr.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                      Save ₹{Math.round(paymentOptionsBooking.booking.amountInr * 0.05).toLocaleString('en-IN')} Instantly
+                    </span>
+                  </div>
+
+                  {/* VIP Perks */}
+                  <div className="pt-2 border-t border-emerald-200/60 space-y-1.5 text-[11px] text-emerald-950">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>5% Instant Prepayment Discount</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Priority 48-Hour Rush Delivery</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>10 Extra Pro-Edited Photos</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>100% Escrow Protection</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>1 Free Date Rescheduling</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-[10px] text-emerald-700 font-bold bg-white/80 p-2 rounded-lg border border-emerald-200/60 text-center">
+                  Zero balance due on shoot day
+                </div>
+              </button>
+
+              {/* Option 2: 50% Advance (Half Payment) */}
+              <button
+                type="button"
+                onClick={() => setPaymentOptionsBooking({ ...paymentOptionsBooking, mode: 'half' })}
+                className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                  paymentOptionsBooking.mode === 'half'
+                    ? 'border-[#14B8A6] bg-[#EFFCF8]/50 shadow-md ring-2 ring-[#14B8A6]/20'
+                    : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40 hover:bg-[#F8FAFC]'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#191C22] uppercase tracking-wide">
+                      50% Half Payment
+                    </span>
+                    <input
+                      type="radio"
+                      checked={paymentOptionsBooking.mode === 'half'}
+                      onChange={() => {}}
+                      className="accent-[#14B8A6] w-4 h-4 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-black text-[#191C22]">
+                        ₹{Math.round(paymentOptionsBooking.booking.amountInr * 0.5).toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-[#94A3B8]">Now</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#64748B] block mt-0.5">
+                      Remaining ₹{(paymentOptionsBooking.booking.amountInr - Math.round(paymentOptionsBooking.booking.amountInr * 0.5)).toLocaleString('en-IN')} due before shoot completion
+                    </span>
+                  </div>
+
+                  {/* Standard terms */}
+                  <div className="pt-2 border-t border-[#E7EAEE] space-y-1.5 text-[11px] text-[#64748B]">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                      <span>Locks in photographer calendar slot</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                      <span>Escrow protected advance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+                      <span>Standard 5–7 day delivery timeline</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[#94A3B8]">
+                      <span className="text-xs leading-none">•</span>
+                      <span>No prepayment discount</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-[10px] text-[#64748B] font-bold bg-[#F5F7F9] p-2 rounded-lg border border-[#E7EAEE] text-center">
+                  Second 50% payable via dashboard
+                </div>
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">
+              <button
+                type="button"
+                disabled={payingBookingId === (paymentOptionsBooking.booking.rawId || paymentOptionsBooking.booking.id) || isProcessingPayment}
+                onClick={() => {
+                  const targetBooking = paymentOptionsBooking.booking;
+                  const mode = paymentOptionsBooking.mode;
+                  handleInitiatePayment(targetBooking, mode);
+                }}
+                className="w-full sm:flex-1 py-3 px-5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4 text-white" />
+                <span>
+                  {paymentOptionsBooking.mode === 'full'
+                    ? `Proceed to Pay Full Amount — ₹${(paymentOptionsBooking.booking.amountInr - Math.round(paymentOptionsBooking.booking.amountInr * 0.05)).toLocaleString('en-IN')}`
+                    : `Proceed to Pay 50% Advance — ₹${Math.round(paymentOptionsBooking.booking.amountInr * 0.5).toLocaleString('en-IN')}`}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentOptionsBooking(null)}
+                className="w-full sm:w-auto px-4 py-3 rounded-xl text-xs font-bold text-[#64748B] hover:bg-[#F5F7F9] border border-[#E7EAEE] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DEVELOPER SANDBOX TEST CHECKOUT MODAL */}
       {sandboxCheckoutData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -1165,6 +1400,10 @@ export const CustomerDashboardView: React.FC = () => {
 
             <p className="text-[11px] text-[#64748B] leading-relaxed bg-[#F5F7F9] p-3 rounded-xl border border-[#E7EAEE]">
               🔒 <strong>Developer Notice:</strong> Razorpay live credentials are not configured in your local environment. This interactive test modal tests the exact same server-side verification, escrow allocation, and status transitions.
+              <br />
+              <span className="text-[#14B8A6] font-semibold block mt-1">
+                💡 To switch to live Razorpay checkout, add <code className="bg-white px-1 py-0.5 rounded border border-[#CBD5E1] text-[#191C22]">RAZORPAY_KEY_ID</code> and <code className="bg-white px-1 py-0.5 rounded border border-[#CBD5E1] text-[#191C22]">RAZORPAY_KEY_SECRET</code> to your <code className="bg-white px-1 py-0.5 rounded border border-[#CBD5E1] text-[#191C22]">apps/web/.env.local</code> file and restart the development server.
+              </span>
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">

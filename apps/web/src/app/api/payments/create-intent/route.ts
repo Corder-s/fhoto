@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
         platform_fee,
         taxes,
         booking_status,
-        payment_status
+        payment_status,
+        amount_paid,
+        payment_mode
       `)
       .eq('id', bookingId)
       .maybeSingle();
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       return jsonError(409, 'This shoot booking has been cancelled or rejected and is no longer payable.');
     }
     if (booking.payment_status === 'paid') {
-      return jsonError(409, 'This booking has already been paid and secured in escrow.');
+      return jsonError(409, 'This booking has already been paid in full and secured in escrow.');
     }
 
     const totalAmount = Number(booking.total_amount);
@@ -78,10 +80,41 @@ export async function POST(request: NextRequest) {
       return jsonError(400, 'Invalid booking total amount for payment processing.');
     }
 
-    const amountInPaise = Math.round(totalAmount * 100);
+    const amountPaidSoFar = Number(booking.amount_paid) || 0;
+    const requestedMode = body.paymentMode || 'full';
+    const paymentMode = requestedMode === 'half' ? 'half' : (requestedMode === 'remaining' ? 'remaining' : 'full');
+
+    let payableAmount = totalAmount;
+    let discountApplied = 0;
+    let remainingDue = 0;
+    let unlockedPerks: string[] = [];
+
+    if (paymentMode === 'half') {
+      // 50% deposit now, remaining due on shoot day
+      payableAmount = Math.round(totalAmount * 0.5);
+      remainingDue = totalAmount - payableAmount;
+    } else if (paymentMode === 'remaining') {
+      // Paying remaining balance
+      payableAmount = Math.max(0, totalAmount - amountPaidSoFar);
+      remainingDue = 0;
+    } else {
+      // Full Payment (100%): 5% Instant Prepayment Discount + VIP Perks
+      discountApplied = Math.round(totalAmount * 0.05);
+      payableAmount = Math.max(1, totalAmount - discountApplied);
+      remainingDue = 0;
+      unlockedPerks = [
+        '5% Instant Prepayment Discount Applied',
+        '⚡ Priority 48-Hour Delivery',
+        '📸 10 Extra Pro-Edited Photos',
+        '🛡️ 100% Escrow Protection Guarantee',
+        '🔄 1 Free Complimentary Reschedule'
+      ];
+    }
+
+    const amountInPaise = Math.round(payableAmount * 100);
     const creds = getRazorpayCredentials();
 
-    // 3. Check for existing pending payment with active order ID
+    // 3. Check for existing pending payment with active order ID for same mode & amount
     const { data: existingPayment } = await admin
       .from('payments')
       .select('*')
@@ -104,20 +137,30 @@ export async function POST(request: NextRequest) {
       phone: customerProfile?.phone_number || '+91 98101 23456',
     };
 
-    if (existingPayment && existingPayment.provider_order_id) {
+    if (
+      existingPayment &&
+      existingPayment.provider_order_id &&
+      Number(existingPayment.amount) === payableAmount &&
+      existingPayment.payment_mode === paymentMode
+    ) {
       return NextResponse.json({
         success: true,
         orderId: existingPayment.provider_order_id,
         paymentRecordId: existingPayment.id,
         keyId: creds.keyId || 'rzp_test_sandbox_mode',
         amount: amountInPaise,
-        amountInr: totalAmount,
+        amountInr: payableAmount,
         currency: 'INR',
+        paymentMode,
+        discountApplied,
+        remainingDue,
+        unlockedPerks,
         booking: {
           id: booking.id,
           bookingReference: booking.booking_reference,
           title: booking.event_title,
           totalAmount,
+          payableAmount,
         },
         customer: customerPrefill,
         isSandbox: existingPayment.provider === 'dev_sandbox',
@@ -131,12 +174,15 @@ export async function POST(request: NextRequest) {
     const gatewayOrder = await createGatewayOrder({
       amountInPaise,
       currency: 'INR',
-      receipt: `rcpt_${receiptRef}`,
+      receipt: `rcpt_${receiptRef}_${paymentMode}`,
       notes: {
         booking_id: booking.id,
         customer_id: user.id,
         booking_reference: booking.booking_reference || booking.id,
         event_title: booking.event_title || 'Shoot Booking',
+        payment_mode: paymentMode,
+        discount_applied: String(discountApplied),
+        payable_amount: String(payableAmount),
       },
     });
 
@@ -149,14 +195,19 @@ export async function POST(request: NextRequest) {
         provider: gatewayOrder.provider,
         provider_order_id: gatewayOrder.orderId,
         idempotency_key: idempotencyKey,
-        amount: totalAmount,
+        amount: payableAmount,
         currency: 'INR',
         payment_status: 'pending',
+        payment_mode: paymentMode,
         payment_method: gatewayOrder.isSandbox ? 'dev_sandbox' : 'razorpay_standard',
         metadata: {
           orderId: gatewayOrder.orderId,
           isSandbox: gatewayOrder.isSandbox,
           bookingReference: booking.booking_reference,
+          paymentMode,
+          discountApplied,
+          remainingDue,
+          unlockedPerks,
           rawGatewayResponse: gatewayOrder.rawResponse || null,
         },
       })
@@ -171,23 +222,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       orderId: gatewayOrder.orderId,
-      paymentRecordId: insertedPayment?.id,
+      paymentRecordId: insertedPayment.id,
       keyId: creds.keyId || 'rzp_test_sandbox_mode',
-      amount: gatewayOrder.amount, // in paise
-      amountInr: totalAmount,
+      amount: amountInPaise,
+      amountInr: payableAmount,
       currency: 'INR',
+      paymentMode,
+      discountApplied,
+      remainingDue,
+      unlockedPerks,
       booking: {
         id: booking.id,
         bookingReference: booking.booking_reference,
         title: booking.event_title,
         totalAmount,
+        payableAmount,
       },
       customer: customerPrefill,
       isSandbox: gatewayOrder.isSandbox,
       provider: gatewayOrder.provider,
-      notice: gatewayOrder.isSandbox
-        ? 'DEVELOPMENT SANDBOX TEST MODE: Razorpay live credentials unset. Sandbox test checkout enabled.'
-        : 'LIVE RAZORPAY STANDARD ORDER INITIALIZED.',
+      message: 'New payment order created successfully.',
     });
   } catch (err: any) {
     console.error('[create-intent] Error creating payment order:', err);

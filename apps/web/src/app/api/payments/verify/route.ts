@@ -59,7 +59,9 @@ export async function POST(request: NextRequest) {
         total_amount,
         platform_fee,
         booking_status,
-        payment_status
+        payment_status,
+        amount_paid,
+        payment_mode
       `)
       .eq('id', bookingId)
       .maybeSingle();
@@ -119,15 +121,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. Update booking state: payment_status = 'paid', booking_status = 'confirmed'
+    // 4. Update booking state: payment_status, amount_paid, payment_mode, and unlocked_perks
+    const paymentMode =
+      existingPayment?.payment_mode ||
+      existingPayment?.metadata?.paymentMode ||
+      body.paymentMode ||
+      'full';
+
+    const paidThisTxn = Number(existingPayment?.amount || body.amount || booking.total_amount);
+    const prevPaid = Number(booking.amount_paid) || 0;
+    const totalAmount = Number(booking.total_amount) || 0;
+    const newTotalPaid = Math.min(totalAmount, prevPaid + paidThisTxn);
+
+    const isFullyPaid =
+      paymentMode === 'full' ||
+      paymentMode === 'remaining' ||
+      newTotalPaid >= totalAmount;
+
+    const nextPaymentStatus = isFullyPaid ? 'paid' : 'partially_paid';
+    const unlockedPerks = isFullyPaid && paymentMode === 'full' ? [
+      '5% Instant Prepayment Discount Applied',
+      '⚡ Priority 48-Hour Delivery',
+      '📸 10 Extra Pro-Edited Photos',
+      '🛡️ 100% Escrow Protection Guarantee',
+      '🔄 1 Free Complimentary Reschedule'
+    ] : [];
+
     const prevStatus = booking.booking_status;
     const nextStatus = 'confirmed';
 
     await admin
       .from('bookings')
       .update({
-        payment_status: 'paid',
+        payment_status: nextPaymentStatus,
+        amount_paid: newTotalPaid,
+        payment_mode: paymentMode,
         booking_status: nextStatus,
+        unlocked_perks: unlockedPerks,
         updated_at: now,
       })
       .eq('id', bookingId);
@@ -138,14 +168,14 @@ export async function POST(request: NextRequest) {
         previous_status: prevStatus,
         new_status: nextStatus,
         changed_by: user.id,
-        change_reason: `Payment verified via ${targetOrderId.startsWith('order_dev_') ? 'Sandbox' : 'Razorpay Gateway'} (${targetPaymentId})`,
+        change_reason: `Payment verified via ${targetOrderId.startsWith('order_dev_') ? 'Sandbox' : 'Razorpay Gateway'} (${targetPaymentId}) - Mode: ${paymentMode}`,
       });
     }
 
     // 5. Idempotent Creator Escrow Allocation
-    const totalAmount = Number(booking.total_amount) || 0;
     const platformFee = Number(booking.platform_fee) || 0;
-    const netAmount = Math.max(0, totalAmount - platformFee);
+    const feeToDeduct = isFullyPaid ? platformFee : Math.round(platformFee * (newTotalPaid / totalAmount));
+    const netAmount = Math.max(0, newTotalPaid - feeToDeduct);
 
     const { data: existingPayout } = await admin
       .from('creator_payouts')
@@ -153,12 +183,22 @@ export async function POST(request: NextRequest) {
       .eq('booking_id', booking.id)
       .maybeSingle();
 
-    if (!existingPayout && booking.creator_id) {
+    if (existingPayout) {
+      await admin
+        .from('creator_payouts')
+        .update({
+          gross_amount: newTotalPaid,
+          platform_fee: feeToDeduct,
+          net_amount: netAmount,
+          updated_at: now,
+        })
+        .eq('id', existingPayout.id);
+    } else if (booking.creator_id) {
       await admin.from('creator_payouts').insert({
         booking_id: booking.id,
         creator_id: booking.creator_id,
-        gross_amount: totalAmount,
-        platform_fee: platformFee,
+        gross_amount: newTotalPaid,
+        platform_fee: feeToDeduct,
         net_amount: netAmount,
         payout_status: 'in_escrow',
       });
@@ -171,11 +211,13 @@ export async function POST(request: NextRequest) {
       action: 'PAYMENT_CAPTURED_VERIFIED',
       actor: user.id,
       target: `booking:${booking.id}`,
-      details: `Verified payment ${targetPaymentId} of ₹${totalAmount}. Escrow net ₹${netAmount} allocated.`,
+      details: `Verified payment ${targetPaymentId} of ₹${paidThisTxn} (Mode: ${paymentMode}). Escrow net ₹${netAmount} allocated. Total Paid: ₹${newTotalPaid}/${totalAmount}.`,
       metadata: {
         orderId: targetOrderId,
         paymentId: targetPaymentId,
         totalAmount,
+        amountPaid: newTotalPaid,
+        paymentMode,
         netAmount,
       },
     });
@@ -184,11 +226,13 @@ export async function POST(request: NextRequest) {
     await createInAppNotification({
       userId: user.id,
       type: 'payment_success',
-      title: 'Payment Secured in Escrow',
-      body: `Your payment of ₹${totalAmount.toLocaleString('en-IN')} for "${booking.event_title}" is confirmed and safely held in REEPY Escrow.`,
+      title: isFullyPaid ? 'Full Payment Secured in Escrow' : '50% Advance Deposit Received',
+      body: isFullyPaid
+        ? `Your full payment of ₹${paidThisTxn.toLocaleString('en-IN')} for "${booking.event_title}" is confirmed and safely held in REEPY Escrow. VIP perks unlocked!`
+        : `Your 50% deposit of ₹${paidThisTxn.toLocaleString('en-IN')} for "${booking.event_title}" is confirmed in escrow. Remaining ₹${Math.max(0, totalAmount - newTotalPaid).toLocaleString('en-IN')} due at shoot.`,
       relatedBookingId: booking.id,
       actionUrl: '/customer/bookings',
-      metadata: { bookingReference: booking.booking_reference, paymentId: targetPaymentId },
+      metadata: { bookingReference: booking.booking_reference, paymentId: targetPaymentId, paymentMode },
     });
 
     // Look up creator user_id to notify creator
@@ -202,24 +246,32 @@ export async function POST(request: NextRequest) {
       await createInAppNotification({
         userId: creatorProfile.user_id,
         type: 'booking_paid',
-        title: 'Shoot Booking Payment Received',
-        body: `Client payment of ₹${totalAmount.toLocaleString('en-IN')} is secured in escrow. Shoot is confirmed for ${booking.event_date}.`,
+        title: isFullyPaid ? 'Shoot Fully Paid by Customer' : '50% Advance Deposit Received',
+        body: isFullyPaid
+          ? `Client full payment of ₹${paidThisTxn.toLocaleString('en-IN')} is secured in escrow. Shoot is confirmed for ${booking.event_date}.`
+          : `Client paid 50% advance deposit of ₹${paidThisTxn.toLocaleString('en-IN')} into escrow. Shoot is confirmed for ${booking.event_date}.`,
         relatedBookingId: booking.id,
         actionUrl: '/photographer/bookings',
-        metadata: { bookingReference: booking.booking_reference, paymentId: targetPaymentId },
+        metadata: { bookingReference: booking.booking_reference, paymentId: targetPaymentId, paymentMode },
       });
     }
 
     return NextResponse.json({
       success: true,
       verified: true,
-      bookingId: booking.id,
+      bookingId,
+      paymentStatus: nextPaymentStatus,
+      amountPaid: newTotalPaid,
+      totalAmount,
+      remainingDue: Math.max(0, totalAmount - newTotalPaid),
+      paymentMode,
+      unlockedPerks,
       bookingStatus: nextStatus,
-      paymentStatus: 'paid',
       orderId: targetOrderId,
       paymentId: targetPaymentId,
-      amount: totalAmount,
-      message: 'Payment verified and booking confirmed in escrow.',
+      message: isFullyPaid
+        ? 'Payment verified successfully. Full booking confirmed and VIP perks unlocked!'
+        : '50% advance deposit verified. Booking confirmed! Remaining balance due at shoot.',
     });
   } catch (err: any) {
     console.error('[verify] Exception during payment verification:', err);
