@@ -16,7 +16,11 @@ import {
   Download,
   Filter,
   ShieldCheck,
-  User
+  User,
+  CreditCard,
+  Lock,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { CustomerNoticeBanner } from '../../../../components/customer/CustomerNoticeBanner';
 import { useAuth } from '../../../../lib/auth';
@@ -71,6 +75,13 @@ export default function CustomerBookingsPage() {
   const [breakdownModalBooking, setBreakdownModalBooking] = useState<CustomerBookingItem | null>(null);
   const [cancelReason, setCancelReason] = useState('Change of personal schedule');
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Payment Checkout States
+  const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+  const [sandboxCheckoutData, setSandboxCheckoutData] = useState<any | null>(null);
+  const [paymentSuccessModal, setPaymentSuccessModal] = useState<any | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -131,7 +142,7 @@ export default function CustomerBookingsPage() {
               amountInr: Number(b.total_amount || b.agreed_service_price) || 0,
               pricingBreakdown: b.pricing_breakdown,
               status,
-              paymentStatus: b.payment_status === 'paid' ? 'PAID_ESCROW' : b.payment_status || 'PAID_ESCROW',
+              paymentStatus: b.payment_status === 'paid' ? 'PAID_ESCROW' : (b.payment_status || 'unpaid'),
               startOtp: '482910',
               canCancel,
               cancellationReason: b.cancellation_reason,
@@ -201,6 +212,173 @@ export default function CustomerBookingsPage() {
     }
   };
 
+  // Payment Checkout Trigger
+  const handleInitiatePayment = async (booking: CustomerBookingItem) => {
+    const targetId = booking.rawId || booking.id;
+    setPaymentError(null);
+    setPayingBookingId(targetId);
+
+    try {
+      const res = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: targetId,
+          customerId: user?.id,
+          idempotencyKey: `pay_${targetId}_${Date.now()}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to initialize payment checkout.');
+      }
+
+      if (data.isSandbox) {
+        // Open interactive developer sandbox checkout modal
+        setSandboxCheckoutData({
+          ...data,
+          booking,
+        });
+        setPayingBookingId(null);
+        return;
+      }
+
+      // Live Razorpay Standard Checkout
+      const loadRazorpay = () =>
+        new Promise<boolean>((resolve) => {
+          if ((window as any).Razorpay) return resolve(true);
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+
+      const loaded = await loadRazorpay();
+      if (!loaded) {
+        throw new Error('Could not load Razorpay Checkout script. Check internet access.');
+      }
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        name: 'REEPY Photography',
+        description: `${booking.packageTitle} (${booking.duration})`,
+        order_id: data.orderId,
+        prefill: data.customer,
+        theme: { color: '#14B8A6' },
+        handler: async function (response: any) {
+          await handleVerifyServerPayment({
+            bookingId: targetId,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            booking,
+          });
+        },
+        modal: {
+          ondismiss: function () {
+            setPayingBookingId(null);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (resp: any) {
+        setPaymentError(`Payment failed at gateway: ${resp.error?.description || 'Transaction declined'}`);
+        setPayingBookingId(null);
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error('Payment checkout initiation failed:', err);
+      setPaymentError(err?.message || 'Could not launch payment gateway.');
+      setPayingBookingId(null);
+    }
+  };
+
+  // Server Payment Verification
+  const handleVerifyServerPayment = async (params: {
+    bookingId: string;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    booking: CustomerBookingItem;
+  }) => {
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+    try {
+      const res = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: params.bookingId,
+          razorpay_order_id: params.razorpay_order_id,
+          razorpay_payment_id: params.razorpay_payment_id,
+          razorpay_signature: params.razorpay_signature,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Server signature verification failed.');
+      }
+
+      // Update local booking item
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === params.booking.id || b.rawId === params.bookingId
+            ? { ...b, paymentStatus: 'PAID_ESCROW', status: 'CONFIRMED' }
+            : b
+        )
+      );
+
+      setPaymentSuccessModal({
+        booking: params.booking,
+        orderId: params.razorpay_order_id,
+        paymentId: params.razorpay_payment_id,
+        amount: data.amount || params.booking.amountInr,
+      });
+    } catch (err: any) {
+      setPaymentError(`Verification Error: ${err.message}`);
+    } finally {
+      setIsProcessingPayment(false);
+      setPayingBookingId(null);
+      setSandboxCheckoutData(null);
+    }
+  };
+
+  // Execute Sandbox Payment Test
+  const handleExecuteSandboxPayment = async (shouldSucceed: boolean) => {
+    if (!sandboxCheckoutData) return;
+    const { booking, orderId } = sandboxCheckoutData;
+    const targetId = booking.rawId || booking.id;
+
+    if (!shouldSucceed) {
+      setPaymentError('Simulated Gateway Failure: Transaction declined by issuing bank (Test Failure Scenario). You can retry payment at any time.');
+      setSandboxCheckoutData(null);
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const fakePaymentId = `pay_dev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const sandboxSig = `sig_dev_sandbox_${Date.now()}`;
+
+      await handleVerifyServerPayment({
+        bookingId: targetId,
+        razorpay_order_id: orderId,
+        razorpay_payment_id: fakePaymentId,
+        razorpay_signature: sandboxSig,
+        booking,
+      });
+    } catch (err: any) {
+      setPaymentError(err?.message || 'Failed to complete sandbox payment verification.');
+      setIsProcessingPayment(false);
+    }
+  };
+
   const getStatusBadge = (status: CustomerBookingUiStatus) => {
     switch (status) {
       case 'PENDING':
@@ -233,7 +411,7 @@ export default function CustomerBookingsPage() {
             My Shoot Bookings
           </h1>
           <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Review confirmed appointments, check live photographer transit, view start OTPs, and access completed galleries.
+            Review confirmed appointments, check live photographer transit, complete secure payments, and access completed galleries.
           </p>
         </div>
 
@@ -244,6 +422,23 @@ export default function CustomerBookingsPage() {
           <span>Book a New Shoot</span>
         </Link>
       </div>
+
+      {/* Payment Error Banner */}
+      {paymentError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-red-800 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{paymentError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentError(null)}
+            className="text-xs font-bold text-red-700 hover:text-red-900 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* TAB FILTERS */}
       <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-[#E7EAEE]">
@@ -407,14 +602,47 @@ export default function CustomerBookingsPage() {
                     <p className="text-xl font-black text-[#191C22]">
                       ₹{b.amountInr.toLocaleString('en-IN')}
                     </p>
-                    <p className="text-[11px] text-[#94A3B8] flex items-center gap-1 lg:justify-end">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{b.paymentStatus === 'PAID_ESCROW' ? 'Escrow Protected' : b.paymentStatus}</span>
-                    </p>
+                    <div className="text-[11px] flex items-center gap-1 lg:justify-end mt-0.5">
+                      {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? (
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Escrow Protected (Paid)</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 font-bold flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Payment Due ({b.paymentStatus.toUpperCase()})</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 w-full lg:justify-end">
+                    {/* PAY NOW CTA BUTTON */}
+                    {(b.paymentStatus !== 'PAID_ESCROW' && b.paymentStatus !== 'paid') && (
+                      b.status === 'CONFIRMED' ? (
+                        <button
+                          type="button"
+                          disabled={payingBookingId === (b.rawId || b.id) || isProcessingPayment}
+                          onClick={() => handleInitiatePayment(b)}
+                          className="px-4 py-2 rounded-full text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 text-white" />
+                          <span>
+                            {payingBookingId === (b.rawId || b.id)
+                              ? 'Initializing...'
+                              : `Pay Now — ₹${b.amountInr.toLocaleString('en-IN')}`}
+                          </span>
+                        </button>
+                      ) : b.status === 'PENDING' ? (
+                        <span className="px-3 py-1.5 rounded-full text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Payment unlocks once photographer accepts</span>
+                        </span>
+                      ) : null
+                    )}
+
                     <button
                       onClick={() => setBreakdownModalBooking(b)}
                       className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#191C22] bg-[#F5F7F9] hover:bg-[#EBEFF3] border border-[#E7EAEE] transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
@@ -615,7 +843,7 @@ export default function CustomerBookingsPage() {
               Protected by REEPY Escrow: Your deposit is safely held until shoot completion and OTP verification.
             </p>
 
-            <div className="flex justify-end pt-2 border-t border-[#E7EAEE]">
+            <div className="flex items-center justify-between pt-3 border-t border-[#E7EAEE]">
               <button
                 type="button"
                 onClick={() => setBreakdownModalBooking(null)}
@@ -623,7 +851,155 @@ export default function CustomerBookingsPage() {
               >
                 Close
               </button>
+
+              {(breakdownModalBooking.paymentStatus !== 'PAID_ESCROW' && breakdownModalBooking.paymentStatus !== 'paid' && breakdownModalBooking.status === 'CONFIRMED') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = breakdownModalBooking;
+                    setBreakdownModalBooking(null);
+                    handleInitiatePayment(target);
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-white" />
+                  <span>Pay Now — ₹{breakdownModalBooking.amountInr.toLocaleString('en-IN')}</span>
+                </button>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEVELOPER SANDBOX TEST CHECKOUT MODAL */}
+      {sandboxCheckoutData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-[#E7EAEE] shadow-elevated space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E7EAEE]">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#14B8A6] bg-[#EFFCF8] border border-[#14B8A6]/30 px-2 py-0.5 rounded-full">
+                    REEPY Escrow Gateway (Sandbox Test Mode)
+                  </span>
+                </div>
+                <h3 className="text-base font-black text-[#191C22] mt-1">
+                  Complete Booking Payment
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSandboxCheckoutData(null)}
+                className="w-8 h-8 rounded-full bg-[#F5F7F9] hover:bg-[#EBEFF3] flex items-center justify-center text-[#64748B]"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Session Info */}
+            <div className="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E7EAEE] space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Photographer:</span>
+                <span className="font-bold text-[#191C22]">{sandboxCheckoutData.booking?.photographerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Shoot Package:</span>
+                <span className="font-bold text-[#191C22]">{sandboxCheckoutData.booking?.packageTitle}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Selected Duration:</span>
+                <span className="font-bold text-[#14B8A6]">{sandboxCheckoutData.booking?.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Gateway Order ID:</span>
+                <span className="font-mono text-[#64748B] text-[11px]">{sandboxCheckoutData.orderId}</span>
+              </div>
+            </div>
+
+            {/* Total Amount Due */}
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                  Authoritative Amount Due
+                </span>
+                <span className="text-2xl font-black text-emerald-950">
+                  ₹{sandboxCheckoutData.amountInr.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <span className="text-xs font-extrabold text-emerald-800 bg-emerald-200/60 px-3 py-1 rounded-full">
+                INR Escrow Deposit
+              </span>
+            </div>
+
+            <p className="text-[11px] text-[#64748B] leading-relaxed bg-[#F5F7F9] p-3 rounded-xl border border-[#E7EAEE]">
+              🔒 <strong>Developer Notice:</strong> Razorpay live credentials are not configured in your local environment. This interactive test modal tests the exact same server-side verification, escrow allocation, and status transitions.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={() => handleExecuteSandboxPayment(true)}
+                className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span>{isProcessingPayment ? 'Verifying...' : `Simulate Successful Payment (₹${sandboxCheckoutData.amountInr.toLocaleString('en-IN')})`}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={() => handleExecuteSandboxPayment(false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors disabled:opacity-50"
+              >
+                Simulate Gateway Failure
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT SUCCESSFUL ESCROW CONFIRMATION MODAL */}
+      {paymentSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-[#E7EAEE] shadow-elevated text-center space-y-4">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <h3 className="text-xl font-black text-[#191C22]">
+              Payment Verified & Secured!
+            </h3>
+
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Your payment of <strong>₹{paymentSuccessModal.amount?.toLocaleString('en-IN')}</strong> has been confirmed by the payment gateway and is safely deposited into REEPY Escrow.
+            </p>
+
+            <div className="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E7EAEE] text-left space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Booking Reference:</span>
+                <span className="font-mono font-bold text-[#191C22]">{paymentSuccessModal.booking?.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Payment Reference:</span>
+                <span className="font-mono text-[#64748B] text-[11px]">{paymentSuccessModal.paymentId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Escrow Protection:</span>
+                <span className="font-bold text-emerald-700">100% Protected</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+              The photographer has been notified of your confirmed appointment. Share your 6-digit OTP only upon physical arrival at your venue.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setPaymentSuccessModal(null)}
+              className="w-full py-2.5 rounded-xl text-xs font-black text-white bg-[#14B8A6] hover:bg-[#0D9488] transition-colors"
+            >
+              Back to My Bookings
+            </button>
           </div>
         </div>
       )}

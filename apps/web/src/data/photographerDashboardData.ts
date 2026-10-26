@@ -54,6 +54,8 @@ export interface PhotographerBooking {
   photosUploaded?: boolean;
   cancellationReason?: string;
   createdAt: string;
+  paymentStatus?: 'unpaid' | 'paid' | 'refunded' | 'pending';
+  payoutStatus?: 'pending' | 'in_escrow' | 'released' | 'refunded';
   pricingBreakdown?: any;
 }
 

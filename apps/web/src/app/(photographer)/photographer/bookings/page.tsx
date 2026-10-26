@@ -95,6 +95,8 @@ export default function PhotographerBookingsPage() {
             netEarnings: netEarnings,
             pricingBreakdown: b.pricing_breakdown,
             status,
+            paymentStatus: (b.payment_status as any) || 'unpaid',
+            payoutStatus: b.payment_status === 'paid' ? 'in_escrow' : 'pending',
             startOtp: '482910',
             cancellationReason: b.cancellation_reason,
             createdAt: b.created_at || new Date().toISOString(),
@@ -498,6 +500,24 @@ export default function PhotographerBookingsPage() {
                       <span className="text-xs text-ink-muted">{b.category}</span>
                       <span>•</span>
                       {getStatusBadge(b.status)}
+                      <span>•</span>
+                      {b.paymentStatus === 'paid' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Payment Secured (In Escrow)
+                        </span>
+                      ) : b.paymentStatus === 'refunded' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
+                          Refunded
+                        </span>
+                      ) : b.status === 'REQUESTED' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          Payment Pending Acceptance
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Clock className="w-3 h-3 text-amber-600" /> Awaiting Client Payment
+                        </span>
+                      )}
                     </div>
 
                     <div>
@@ -572,7 +592,11 @@ export default function PhotographerBookingsPage() {
                         ₹{b.netEarnings.toLocaleString('en-IN')}
                       </p>
                       <p className="text-[11px] text-ink-muted">
-                        Your 80% Net Payout (Gross: ₹{b.grossAmount.toLocaleString('en-IN')})
+                        {b.paymentStatus === 'paid' ? (
+                          <span className="text-emerald-600 font-bold">Your 80% Net Payout (Escrow Secured)</span>
+                        ) : (
+                          <span>Your 80% Net Payout (Gross: ₹{b.grossAmount.toLocaleString('en-IN')}) • <span className="text-amber-600 font-semibold">Client Unpaid</span></span>
+                        )}
                       </p>
                     </div>
 
@@ -709,7 +733,18 @@ export default function PhotographerBookingsPage() {
 
             {/* Financials Breakdown */}
             <div className="space-y-2 border-t border-contour-subtle pt-3">
-              <p className="font-bold uppercase text-ink-primary">Escrow Settlement Breakdown</p>
+              <div className="flex items-center justify-between">
+                <p className="font-bold uppercase text-ink-primary">Escrow Settlement Breakdown</p>
+                {selectedBooking.paymentStatus === 'paid' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Funds Secured in Escrow
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <Clock className="w-3 h-3 text-amber-600" /> Client Payment Pending
+                  </span>
+                )}
+              </div>
               <div className="bg-canvas-secondary p-3.5 rounded-card-sm space-y-1.5">
                 <div className="flex justify-between">
                   <span>Gross Client Booking Total:</span>
@@ -722,6 +757,11 @@ export default function PhotographerBookingsPage() {
                 <div className="flex justify-between text-sm font-extrabold text-brand pt-1 border-t border-contour-subtle">
                   <span>Net Creator Take-Rate (80%):</span>
                   <span>₹{selectedBooking.netEarnings.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="text-[10px] text-ink-muted pt-1">
+                  {selectedBooking.paymentStatus === 'paid'
+                    ? 'Payment is held in secure platform escrow and will be automatically disbursed upon shoot completion verification.'
+                    : 'Client has not completed payment yet. Escrow will be provisioned automatically once payment is verified.'}
                 </div>
               </div>
             </div>

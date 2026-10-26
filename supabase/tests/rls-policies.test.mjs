@@ -33,6 +33,7 @@ const MIGRATIONS = [
   '20261014000003_complete_account_deletion_and_cleanup.sql',
   '20261014000004_admin_distance_settings_and_tracking.sql',
   '20261014000005_booking_duration_and_itemized_pricing.sql',
+  '20261014000006_razorpay_order_and_payment_system.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -880,6 +881,107 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
       assert.equal(Number(creatorRead.rows[0].duration_hours), 8);
 
       // Cleanup
+      await db.query('DELETE FROM public.bookings WHERE id = $1', [bookingId]);
+    });
+  });
+
+  describe('Razorpay payment order tracking and RLS security (20261014000006)', () => {
+    test('payments table has provider_order_id, signature, and metadata columns with RLS protection', async () => {
+      // 1. Column presence check
+      const cols = await db.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'payments'
+          AND column_name IN ('provider_order_id', 'signature', 'metadata')
+        ORDER BY column_name
+      `);
+      assert.equal(cols.rows.length, 3, 'payments table must contain provider_order_id, signature, and metadata');
+
+      // 2. Setup a test booking
+      const creatorRes = await db.query('SELECT id FROM public.creator_profiles WHERE user_id = $1', [IDS.creatorA]);
+      const creatorA = creatorRes.rows[0].id;
+      const sRes = await db.query('SELECT id FROM public.creator_services WHERE creator_id = $1 LIMIT 1', [creatorA]);
+      const serviceId = sRes.rows[0].id;
+      const bRes = await db.query(
+        `INSERT INTO public.bookings (
+           booking_reference, customer_id, creator_id, service_id, event_title, event_date,
+           duration_hours, start_at, end_at, event_location, agreed_service_price,
+           total_amount, booking_status, payment_status
+         ) VALUES (
+           'TEST-PAY-001', $1, $2, $3, 'Payment Security Test', '2026-11-05',
+           2.00, '2026-11-05T10:00:00Z', '2026-11-05T12:00:00Z', 'Connaught Place', 2000.00,
+           2596.00, 'confirmed', 'unpaid'
+         ) RETURNING id`,
+        [IDS.customerA, creatorA, serviceId]
+      );
+      const bookingId = bRes.rows[0].id;
+
+      // 3. Customer directly inserting payment without service role must fail
+      await expectDenied(
+        'authenticated',
+        IDS.customerA,
+        `INSERT INTO public.payments (
+           booking_id, customer_id, provider, provider_order_id, idempotency_key, amount, currency, payment_status
+         ) VALUES (
+           $1, $2, 'razorpay', 'order_direct_hacker', 'idem_direct_001', 2596.00, 'INR', 'paid'
+         )`,
+        [bookingId, IDS.customerA]
+      );
+
+      // 4. Privileged server insert succeeds
+      const pRes = await db.query(
+        `INSERT INTO public.payments (
+           booking_id, customer_id, provider, provider_order_id, provider_payment_id,
+           signature, idempotency_key, amount, currency, payment_status, metadata
+         ) VALUES (
+           $1, $2, 'razorpay', 'order_rzp_test_12345', 'pay_rzp_test_67890',
+           'mock_sha256_signature_abc', 'idem_safe_server_001', 2596.00, 'INR', 'paid',
+           '{"provider": "razorpay", "method": "upi"}'::jsonb
+         ) RETURNING id`,
+        [bookingId, IDS.customerA]
+      );
+      const paymentId = pRes.rows[0].id;
+
+      // 5. Customer A can read their payment record including provider_order_id
+      const custRead = await asRole(
+        'authenticated',
+        IDS.customerA,
+        'SELECT provider_order_id, provider_payment_id, amount, payment_status FROM public.payments WHERE id = $1',
+        [paymentId]
+      );
+      assert.equal(custRead.rows.length, 1);
+      assert.equal(custRead.rows[0].provider_order_id, 'order_rzp_test_12345');
+      assert.equal(custRead.rows[0].payment_status, 'paid');
+
+      // 6. Customer B CANNOT read Customer A's payment record
+      const custBRead = await asRole(
+        'authenticated',
+        IDS.customerB,
+        'SELECT id FROM public.payments WHERE id = $1',
+        [paymentId]
+      );
+      assert.equal(custBRead.rows.length, 0, 'Customer B cannot read Customer A payment record');
+
+      // 7. Assigned Creator A can read the payment for their booking
+      const creatorRead = await asRole(
+        'authenticated',
+        IDS.creatorA,
+        'SELECT id, amount, payment_status FROM public.payments WHERE id = $1',
+        [paymentId]
+      );
+      assert.equal(creatorRead.rows.length, 1, 'Assigned creator can audit payment for their shoot');
+
+      // 8. Admin can read all payments
+      const adminRead = await asRole(
+        'authenticated',
+        IDS.admin,
+        'SELECT id FROM public.payments WHERE id = $1',
+        [paymentId]
+      );
+      assert.equal(adminRead.rows.length, 1, 'Admin can read payment record');
+
+      // Cleanup
+      await db.query('DELETE FROM public.payments WHERE id = $1', [paymentId]);
       await db.query('DELETE FROM public.bookings WHERE id = $1', [bookingId]);
     });
   });

@@ -92,12 +92,28 @@ const VARIABLES = [
     source: 'Wherever apps/api runs, e.g. https://api.example.com',
   },
   {
-    name: 'PAYMENT_PROVIDER_SECRET_KEY',
+    name: 'RAZORPAY_KEY_ID',
     requiredIn: 'never',
     kind: 'server',
     purpose:
-      'Leave unset for sandbox test mode. When set, create-intent returns 501 and sandbox confirmation returns 403.',
-    source: 'Gateway dashboard, once order creation is implemented',
+      'Razorpay merchant Key ID. When unset, development sandbox checkout mode is active.',
+    source: 'Razorpay Dashboard -> Settings -> API Keys',
+  },
+  {
+    name: 'RAZORPAY_KEY_SECRET',
+    requiredIn: 'never',
+    kind: 'server',
+    purpose:
+      'Razorpay merchant Key Secret. Used for server order creation and HMAC SHA-256 signature verification.',
+    source: 'Razorpay Dashboard -> Settings -> API Keys',
+  },
+  {
+    name: 'RAZORPAY_WEBHOOK_SECRET',
+    requiredIn: 'never',
+    kind: 'server',
+    purpose:
+      'Razorpay Webhook Secret for validating signature of inbound webhook events.',
+    source: 'Razorpay Dashboard -> Settings -> Webhooks',
   },
 ];
 
