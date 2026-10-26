@@ -183,6 +183,90 @@ describe('Distance-Based Travel Pricing Engine (MASTER PROMPT Section 7.4)', () 
     assert.equal(result.travelFee, 1000);
     assert.equal(result.totalAmount, 6000);
   });
+
+  it('Scenario 8: Default platform policy includes first 20 km for free (15 km booking -> ₹0 travel fee)', () => {
+    // When no custom includedTravelKm is provided, default is 20 km
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 6000,
+      photographerBaseAddress: 'Greater Noida Studio Hub',
+      photographerCoords: pCoords,
+      customerEventAddress: '15 km Venue',
+      venueCoords: { lat: 28.6094, lng: 77.5040 }, // ~15 km away
+      platformFeePercent: 0,
+      gstPercent: 0,
+    });
+
+    assert.equal(result.includedTravelKm, 20);
+    assert.ok(result.calculatedDistanceKm <= 20);
+    assert.equal(result.chargeableDistanceKm, 0);
+    assert.equal(result.travelFee, 0);
+    assert.equal(result.totalAmount, 6000);
+  });
+
+  it('Scenario 9: Booking exactly at 20 km threshold -> ₹0 travel fee', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 5000,
+      photographerBaseAddress: 'Greater Noida Studio Hub',
+      photographerCoords: pCoords,
+      customerEventAddress: '20 km Venue',
+      venueCoords: { lat: 28.6544, lng: 77.5040 }, // ~20 km away
+      travelSettings: {
+        includedTravelKm: 20,
+        travelFeePerKm: 20,
+      },
+      platformFeePercent: 0,
+      gstPercent: 0,
+    });
+
+    assert.equal(result.chargeableDistanceKm, 0);
+    assert.equal(result.travelFee, 0);
+    assert.equal(result.totalAmount, 5000);
+  });
+
+  it('Scenario 10: Booking beyond 20 km (32 km -> 12 km chargeable @ ₹20 = ₹240)', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 5000,
+      photographerBaseAddress: 'Greater Noida Studio Hub',
+      photographerCoords: pCoords,
+      customerEventAddress: '32 km Venue',
+      venueCoords: { lat: 28.7624, lng: 77.5040 }, // ~32 km away
+      travelSettings: {
+        includedTravelKm: 20,
+        travelFeePerKm: 20,
+        serviceRadiusKm: 100,
+      },
+      platformFeePercent: 0,
+      gstPercent: 0,
+    });
+
+    assert.ok(Math.abs(result.travelDistanceKm - 32.0) < 0.5);
+    assert.ok(Math.abs(result.chargeableDistanceKm - 12.0) < 0.5);
+    assert.equal(result.travelFee, Math.round(result.chargeableDistanceKm * 20));
+    assert.equal(result.totalAmount, 5000 + result.travelFee);
+  });
+
+  it('Scenario 11: Booking beyond 20 km with round-trip billing enabled (12 km chargeable * ₹20 * 2 = ₹480)', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 5000,
+      photographerBaseAddress: 'Greater Noida Studio Hub',
+      photographerCoords: pCoords,
+      customerEventAddress: '32 km Venue',
+      venueCoords: { lat: 28.7624, lng: 77.5040 }, // ~32 km away
+      travelSettings: {
+        includedTravelKm: 20,
+        travelFeePerKm: 20,
+        roundTripBilling: true,
+        serviceRadiusKm: 100,
+      },
+      platformFeePercent: 0,
+      gstPercent: 0,
+    });
+
+    assert.equal(result.roundTripBilling, true);
+    assert.ok(Math.abs(result.chargeableDistanceKm - 12.0) < 0.5);
+    assert.equal(result.travelFee, Math.round(result.chargeableDistanceKm * 20 * 2));
+    assert.equal(result.totalAmount, 5000 + result.travelFee);
+  });
 });
 
 describe('OTP Verification Hashing & Security Controls', () => {

@@ -125,14 +125,36 @@ export async function POST(request: NextRequest) {
       return jsonError(400, 'Please select a photography package.');
     }
 
-    const { data: feeSetting } = await admin
-      .from('platform_fee_settings')
-      .select('fee_value')
-      .eq('is_active', true)
-      .order('effective_from', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [feeSettingRes, distanceSettingRes] = await Promise.all([
+      admin
+        .from('platform_fee_settings')
+        .select('fee_value')
+        .eq('is_active', true)
+        .order('effective_from', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from('platform_distance_settings')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const feeSetting = feeSettingRes.data;
+    const platformDistance = distanceSettingRes.data;
+
     const platformFeeRate = feeSetting ? Number(feeSetting.fee_value) : DEFAULT_PLATFORM_FEE_PERCENT;
+    const freeKm = platformDistance ? Number(platformDistance.free_travel_km) : DEFAULT_TRAVEL_SETTINGS.includedTravelKm;
+    const platformRate = platformDistance ? Number(platformDistance.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm;
+    const allowOverride = platformDistance ? platformDistance.allow_photographer_override : true;
+    const roundTrip = platformDistance ? Boolean(platformDistance.round_trip_billing) : false;
+
+    const effectiveTravelRate =
+      allowOverride && creator.travel_fee_per_km !== null && Number(creator.travel_fee_per_km) > 0
+        ? Number(creator.travel_fee_per_km)
+        : platformRate;
 
     // Availability: reject overlapping commitments for this creator.
     const { data: conflicts, error: conflictErr } = await admin
@@ -178,8 +200,9 @@ export async function POST(request: NextRequest) {
       photographerBaseAddress: creator.base_address || creator.city || 'Delhi NCR',
       customerEventAddress: eventLocation,
       travelSettings: {
-        includedTravelKm: creator.included_travel_km ?? DEFAULT_TRAVEL_SETTINGS.includedTravelKm,
-        travelFeePerKm: creator.travel_fee_per_km !== null ? Number(creator.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm,
+        includedTravelKm: freeKm,
+        travelFeePerKm: effectiveTravelRate,
+        roundTripBilling: roundTrip,
         minTravelFee: creator.min_travel_fee !== null ? Number(creator.min_travel_fee) : DEFAULT_TRAVEL_SETTINGS.minTravelFee,
         maxTravelFee: creator.max_travel_fee !== null ? Number(creator.max_travel_fee) : null,
         serviceRadiusKm: creator.service_radius || DEFAULT_TRAVEL_SETTINGS.serviceRadiusKm,

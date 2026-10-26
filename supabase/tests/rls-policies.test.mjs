@@ -31,6 +31,7 @@ const MIGRATIONS = [
   '20261014000001_marketplace_workflow_and_pricing.sql',
   '20261014000002_oauth_account_selection_workflow.sql',
   '20261014000003_complete_account_deletion_and_cleanup.sql',
+  '20261014000004_admin_distance_settings_and_tracking.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -804,4 +805,32 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
       assert.equal(bk.rows[0].n, 0);
     });
   });
+
+  describe('platform distance settings and live tracking (20261014000004)', () => {
+    test('platform distance settings default to 20 km free travel and are publicly readable', async () => {
+      const res = await asRole('anon', null, 'SELECT free_travel_km, travel_fee_per_km, is_active FROM public.platform_distance_settings LIMIT 1');
+      assert.ok(res.rows.length > 0, 'settings row must exist');
+      assert.equal(Number(res.rows[0].free_travel_km), 20, 'free travel distance must default to 20 km');
+      assert.equal(Number(res.rows[0].travel_fee_per_km), 20, 'travel fee per km must default to 20');
+      assert.equal(res.rows[0].is_active, true);
+    });
+
+    test('non-administrators cannot modify platform distance settings', async () => {
+      // Direct UPDATE matches 0 rows due to RLS USING clause
+      const updateRes = await asRole('authenticated', IDS.customerA, 'UPDATE public.platform_distance_settings SET free_travel_km = 0');
+      assert.equal(updateRes.affectedRows ?? 0, 0, 'non-admin update must affect 0 rows under RLS');
+
+      // Direct INSERT by non-admin must fail RLS WITH CHECK policy
+      await expectDenied('authenticated', IDS.customerA, 'INSERT INTO public.platform_distance_settings (free_travel_km) VALUES (0)');
+    });
+
+    test('administrators can update platform distance settings', async () => {
+      await asRole('authenticated', IDS.admin, 'UPDATE public.platform_distance_settings SET free_travel_km = 25 WHERE is_active = TRUE');
+      const check = await db.query('SELECT free_travel_km FROM public.platform_distance_settings WHERE is_active = TRUE');
+      assert.equal(Number(check.rows[0].free_travel_km), 25);
+      // Revert back to 20
+      await asRole('authenticated', IDS.admin, 'UPDATE public.platform_distance_settings SET free_travel_km = 20 WHERE is_active = TRUE');
+    });
+  });
 });
+

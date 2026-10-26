@@ -36,9 +36,15 @@ interface StatsResponse {
   creatorsPending: number;
   totalBookings: number;
   bookingsThisMonth: number;
+  pendingBookings?: number;
+  confirmedBookings?: number;
   disputedBookings: number;
   totalRevenue: number;
   revenueThisMonth: number;
+  totalGrossBookingValue?: number;
+  platformEarnings?: number;
+  photographerLiabilities?: number;
+  totalRefunds?: number;
   comparisons?: {
     usersGrowth: number;
     photographersGrowth: number;
@@ -195,121 +201,46 @@ export const AdminDashboardView: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Fallback demo bookings matching screenshot reference if DB is fresh
+  // Display actual bookings from database (no mock fallback)
   const displayBookings = useMemo(() => {
-    const referenceFallback: BookingRecord[] = [
-      {
-        id: 'b-10284',
-        booking_reference: 'BK-10284',
-        event_title: 'Pre Wedding',
-        event_date: '2024-10-28',
-        booking_status: 'confirmed',
-        total_amount: 18000,
-        created_at: '2024-10-28T10:00:00Z',
-        customer: { full_name: 'Priya Sharma', avatar_url: '/reference-assets/avatar_riya.jpg' },
-        creator: { professional_name: 'Aarav Mehta', user: { avatar_url: '/reference-assets/avatar_aman.jpg' } },
-        service: { title: 'Pre Wedding' },
-      },
-      {
-        id: 'b-10283',
-        booking_reference: 'BK-10283',
-        event_title: 'Portrait Shoot',
-        event_date: '2024-10-27',
-        booking_status: 'pending',
-        total_amount: 8500,
-        created_at: '2024-10-27T14:30:00Z',
-        customer: { full_name: 'Rohan Verma', avatar_url: '/reference-assets/avatar_karan.jpg' },
-        creator: { professional_name: 'Riya Kapoor', user: { avatar_url: '/reference-assets/avatar_riya.jpg' } },
-        service: { title: 'Portrait Shoot' },
-      },
-      {
-        id: 'b-10282',
-        booking_reference: 'BK-10282',
-        event_title: 'Event Coverage',
-        event_date: '2024-10-26',
-        booking_status: 'confirmed',
-        total_amount: 12000,
-        created_at: '2024-10-26T18:00:00Z',
-        customer: { full_name: 'Sneha Iyer', avatar_url: '/reference-assets/cat_portrait.jpg' },
-        creator: { professional_name: 'Vikram Singh', user: { avatar_url: '/reference-assets/seller_profile_aman.jpg' } },
-        service: { title: 'Event Coverage' },
-      },
-      {
-        id: 'b-10281',
-        booking_reference: 'BK-10281',
-        event_title: 'Fashion Shoot',
-        event_date: '2024-10-25',
-        booking_status: 'cancelled',
-        total_amount: 15000,
-        created_at: '2024-10-25T11:20:00Z',
-        customer: { full_name: 'Aditya Kulkarni', avatar_url: '/reference-assets/avatar_karan.jpg' },
-        creator: { professional_name: 'Neha Patel', user: { avatar_url: '/reference-assets/avatar_riya.jpg' } },
-        service: { title: 'Fashion Shoot' },
-      },
-      {
-        id: 'b-10280',
-        booking_reference: 'BK-10280',
-        event_title: 'Product Shoot',
-        event_date: '2024-10-24',
-        booking_status: 'pending',
-        total_amount: 9000,
-        created_at: '2024-10-24T09:15:00Z',
-        customer: { full_name: 'Meera Joshi', avatar_url: '/reference-assets/cat_couple.jpg' },
-        creator: { professional_name: 'Karan Iyer', user: { avatar_url: '/reference-assets/avatar_karan.jpg' } },
-        service: { title: 'Product Shoot' },
-      },
-    ];
-
-    if (bookings.length === 0) return referenceFallback;
-
-    // Merge actual database bookings with formatted reference structure
-    return bookings.slice(0, 5).map((b, i) => ({
+    return bookings.slice(0, 5).map((b) => ({
       id: b.id,
-      booking_reference: b.booking_reference || `BK-${10284 - i}`,
-      event_title: b.event_title || b.service?.title || 'Pre Wedding',
-      event_date: b.event_date ? new Date(b.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Oct 28, 2024',
+      booking_reference: b.booking_reference || `BK-${b.id.slice(0, 8)}`,
+      event_title: b.event_title || b.service?.title || 'Photo Session',
+      event_date: b.event_date
+        ? new Date(b.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Date Pending',
       booking_status: b.booking_status === 'accepted' ? 'confirmed' : b.booking_status,
-      total_amount: b.total_amount || (18000 - i * 2500),
+      total_amount: Number(b.total_amount) || 0,
       created_at: b.created_at,
       customer: {
-        full_name: b.customer?.full_name || referenceFallback[i % 5].customer?.full_name || 'Customer',
-        avatar_url: b.customer?.avatar_url || referenceFallback[i % 5].customer?.avatar_url,
+        full_name: b.customer?.full_name || 'Customer',
+        avatar_url: b.customer?.avatar_url,
       },
       creator: {
-        professional_name: b.creator?.professional_name || referenceFallback[i % 5].creator?.professional_name || 'Photographer',
-        user: { avatar_url: b.creator?.user?.avatar_url || referenceFallback[i % 5].creator?.user?.avatar_url },
+        professional_name: b.creator?.professional_name || 'Photographer',
+        user: { avatar_url: b.creator?.user?.avatar_url },
       },
       service: {
-        title: b.service?.title || b.event_title || referenceFallback[i % 5].service?.title || 'Photography',
+        title: b.service?.title || b.event_title || 'Photography',
       },
     }));
   }, [bookings]);
 
-  // Display users for bottom panel
+  // Display actual users from database (no mock fallback)
   const displayUsers = useMemo(() => {
-    const referenceUsers: UserRecord[] = [
-      { id: 'u1', fullName: 'Ananya Iyer', email: 'ananya@example.com', roles: ['creator'], isPhotographer: true, createdAt: '2 mins ago' },
-      { id: 'u2', fullName: 'Rahul Desai', email: 'rahul@example.com', roles: ['customer'], isPhotographer: false, createdAt: '12 mins ago' },
-      { id: 'u3', fullName: 'Neha Kapoor', email: 'neha@example.com', roles: ['creator'], isPhotographer: true, createdAt: '28 mins ago' },
-      { id: 'u4', fullName: 'Arjun Mehta', email: 'arjun@example.com', roles: ['customer'], isPhotographer: false, createdAt: '1 hour ago' },
-      { id: 'u5', fullName: 'Kavya Reddy', email: 'kavya@example.com', roles: ['creator'], isPhotographer: true, createdAt: '2 hours ago' },
-    ];
-
-    if (users.length === 0) return referenceUsers;
-
-    return users.slice(0, 5).map((u, i) => {
-      // Calculate relative time
-      let relativeTime = referenceUsers[i % 5].createdAt;
+    return users.slice(0, 5).map((u) => {
+      let relativeTime = 'Recently';
       if (u.createdAt) {
         const diffMs = Date.now() - new Date(u.createdAt).getTime();
         const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 60) relativeTime = `${Math.max(1, diffMins)} mins ago`;
-        else if (diffMins < 1440) relativeTime = `${Math.floor(diffMins / 60)} hours ago`;
-        else relativeTime = `${Math.floor(diffMins / 1440)} days ago`;
+        if (diffMins < 60) relativeTime = `${Math.max(1, diffMins)}m ago`;
+        else if (diffMins < 1440) relativeTime = `${Math.floor(diffMins / 60)}h ago`;
+        else relativeTime = `${Math.floor(diffMins / 1440)}d ago`;
       }
       return {
         id: u.id,
-        fullName: u.fullName || referenceUsers[i % 5].fullName,
+        fullName: u.fullName || 'User',
         email: u.email,
         roles: u.roles,
         isPhotographer: u.isPhotographer,
@@ -318,32 +249,48 @@ export const AdminDashboardView: React.FC = () => {
     });
   }, [users]);
 
-  // KPI Sparkline sample point series
-  const sparklines = {
-    users: [24, 28, 35, 30, 42, 50, 48, 62],
-    photographers: [12, 15, 20, 22, 28, 34, 40, 45],
-    bookings: [45, 52, 60, 58, 75, 80, 92, 105],
-    revenue: [30, 45, 50, 68, 65, 82, 90, 110],
-  };
+  // KPI card values: real database aggregations
+  const totalUsersValue = stats?.totalUsers ?? 0;
+  const photographersValue = stats?.photographers ?? 0;
+  const totalBookingsValue = stats?.totalBookings ?? 0;
+  const revenueValue = formatInr(stats?.totalRevenue ?? 0);
 
-  // KPI card values: real stats with elegant fallback
-  const totalUsersValue = stats?.totalUsers ? (stats.totalUsers > 200 ? stats.totalUsers : 2840) : 2840;
-  const photographersValue = stats?.photographers ? (stats.photographers > 50 ? stats.photographers : 482) : 482;
-  const totalBookingsValue = stats?.totalBookings ? (stats.totalBookings > 100 ? stats.totalBookings : 1246) : 1246;
-  const revenueValue = stats?.totalRevenue ? (stats.totalRevenue > 100000 ? formatInr(stats.totalRevenue) : '₹12,84,320') : '₹12,84,320';
+  // Growth percentages from database comparisons
+  const usersGrowth = stats?.comparisons?.usersGrowth ?? 0;
+  const photographersGrowth = stats?.comparisons?.photographersGrowth ?? 0;
+  const bookingsGrowth = stats?.comparisons?.bookingsGrowth ?? 0;
+  const revenueGrowth = stats?.comparisons?.revenueGrowth ?? 0;
 
-  // Booking status donut data
+  // Real status breakdown from database
   const statusCounts = stats?.statusBreakdown || {
-    completed: 742,
-    completedPercent: 59.6,
-    pending: 288,
-    pendingPercent: 23.1,
-    cancelled: 136,
-    cancelledPercent: 10.9,
-    disputed: 80,
-    disputedPercent: 6.4,
-    total: 1246,
+    completed: 0,
+    completedPercent: 0,
+    pending: 0,
+    pendingPercent: 0,
+    cancelled: 0,
+    cancelledPercent: 0,
+    disputed: 0,
+    disputedPercent: 0,
+    total: 0,
   };
+
+  // Sparkline data dynamically scaled from growth series or neutral baseline
+  const sparklines = useMemo(() => {
+    if (stats?.growthSeries && stats.growthSeries.length >= 4) {
+      return {
+        users: stats.growthSeries.map((s) => s.users),
+        photographers: stats.growthSeries.map((s) => Math.max(1, Math.round(s.users * 0.2))),
+        bookings: stats.growthSeries.map((s) => s.bookings),
+        revenue: stats.growthSeries.map((s) => s.revenue),
+      };
+    }
+    return {
+      users: [0, 0, 0, totalUsersValue],
+      photographers: [0, 0, 0, photographersValue],
+      bookings: [0, 0, 0, totalBookingsValue],
+      revenue: [0, 0, 0, stats?.totalRevenue ?? 0],
+    };
+  }, [stats, totalUsersValue, photographersValue, totalBookingsValue]);
 
   // Donut chart arc calculation
   // Radius = 62, Circumference = 2 * PI * 62 = 389.56
@@ -369,21 +316,16 @@ export const AdminDashboardView: React.FC = () => {
     };
   }, [statusCounts, circumference]);
 
-  // Platform growth chart coordinates
+  // Platform growth chart points from genuine database series
   const growthPoints = useMemo(() => {
-    if (stats?.growthSeries && stats.growthSeries.length >= 7) {
+    if (stats?.growthSeries && stats.growthSeries.length >= 2) {
       return stats.growthSeries;
     }
     return [
-      { label: 'Oct 1', users: 35, bookings: 18, revenue: 50 },
-      { label: 'Oct 5', users: 70, bookings: 32, revenue: 105 },
-      { label: 'Oct 10', users: 62, bookings: 38, revenue: 95 },
-      { label: 'Oct 15', users: 85, bookings: 35, revenue: 120 },
-      { label: 'Oct 20', users: 55, bookings: 32, revenue: 85 },
-      { label: 'Oct 25', users: 95, bookings: 40, revenue: 135 },
-      { label: 'Oct 31', users: 110, bookings: 52, revenue: 160 },
+      { label: 'Start', users: 0, bookings: 0, revenue: 0 },
+      { label: 'Today', users: totalUsersValue, bookings: totalBookingsValue, revenue: stats?.totalRevenue ?? 0 },
     ];
-  }, [stats]);
+  }, [stats, totalUsersValue, totalBookingsValue]);
 
   // SVG Chart Dimensions
   const chartW = 680;
@@ -391,10 +333,14 @@ export const AdminDashboardView: React.FC = () => {
   const paddingX = 40;
   const paddingY = 20;
 
+  const maxVal = Math.max(
+    10,
+    ...growthPoints.map((p) => Math.max(p.users, p.bookings, p.revenue))
+  );
+
   const getCoordinates = (values: number[]) => {
-    const maxVal = 200;
     return values.map((val, idx) => {
-      const x = paddingX + (idx / (values.length - 1)) * (chartW - paddingX * 2);
+      const x = paddingX + (idx / Math.max(1, values.length - 1)) * (chartW - paddingX * 2);
       const y = chartH - paddingY - (val / maxVal) * (chartH - paddingY * 2);
       return { x, y };
     });
@@ -406,6 +352,7 @@ export const AdminDashboardView: React.FC = () => {
 
   const generateSmoothPath = (coords: { x: number; y: number }[]) => {
     if (coords.length === 0) return '';
+    if (coords.length === 1) return `M ${coords[0].x},${coords[0].y}`;
     let d = `M ${coords[0].x},${coords[0].y}`;
     for (let i = 0; i < coords.length - 1; i++) {
       const p0 = coords[i];
@@ -420,26 +367,18 @@ export const AdminDashboardView: React.FC = () => {
   const bookingsPath = generateSmoothPath(bookingsCoords);
   const revenuePath = generateSmoothPath(revenueCoords);
 
-  const revenueArea = `${revenuePath} L ${revenueCoords[revenueCoords.length - 1].x},${chartH - paddingY} L ${revenueCoords[0].x},${chartH - paddingY} Z`;
-  const usersArea = `${usersPath} L ${usersCoords[usersCoords.length - 1].x},${chartH - paddingY} L ${usersCoords[0].x},${chartH - paddingY} Z`;
+  const revenueArea = revenueCoords.length > 0
+    ? `${revenuePath} L ${revenueCoords[revenueCoords.length - 1].x},${chartH - paddingY} L ${revenueCoords[0].x},${chartH - paddingY} Z`
+    : '';
+  const usersArea = usersCoords.length > 0
+    ? `${usersPath} L ${usersCoords[usersCoords.length - 1].x},${chartH - paddingY} L ${usersCoords[0].x},${chartH - paddingY} Z`
+    : '';
 
-  // Top locations
-  const topLocations = stats?.topLocations || [
-    { name: 'Mumbai, MH', count: 428, percentage: 85 },
-    { name: 'Delhi, DL', count: 312, percentage: 65 },
-    { name: 'Bengaluru, KA', count: 264, percentage: 55 },
-    { name: 'Hyderabad, TG', count: 186, percentage: 40 },
-    { name: 'Pune, MH', count: 142, percentage: 30 },
-  ];
+  // Top locations from genuine database stats
+  const topLocations = stats?.topLocations || [];
 
-  // Top categories
-  const topCategories = stats?.topCategories || [
-    { name: 'Weddings', count: 392, percentage: 88, color: '#14B8A6' },
-    { name: 'Portraits', count: 286, percentage: 68, color: '#8B5CF6' },
-    { name: 'Events', count: 224, percentage: 52, color: '#3B82F6' },
-    { name: 'Fashion', count: 188, percentage: 42, color: '#EC4899' },
-    { name: 'Reels', count: 156, percentage: 34, color: '#06B6D4' },
-  ];
+  // Top categories from genuine database stats
+  const topCategories = stats?.topCategories || [];
 
   const adminName = session.status === 'authenticated' && session.user?.name ? session.user.name : 'Admin';
 
@@ -483,7 +422,7 @@ export const AdminDashboardView: React.FC = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* ROW 2: FOUR KPI CARDS                                    */}
+      {/* ROW 2: FOUR PRIMARY KPI CARDS                            */}
       {/* ======================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Users */}
@@ -495,10 +434,10 @@ export const AdminDashboardView: React.FC = () => {
             <p className="text-xs font-semibold text-[#64748B]">Total Users</p>
             <p className="text-2xl font-black text-[#0F172A] tracking-tight">{totalUsersValue.toLocaleString('en-IN')}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] font-black text-[#10B981] flex items-center">
-                ↑ +12%
+              <span className={`text-[11px] font-black flex items-center ${usersGrowth >= 0 ? 'text-[#10B981]' : 'text-red-500'}`}>
+                {usersGrowth >= 0 ? `↑ +${usersGrowth}%` : `↓ ${usersGrowth}%`}
               </span>
-              <span className="text-[10px] text-[#94A3B8] font-medium">vs last month</span>
+              <span className="text-[10px] text-[#94A3B8] font-medium">vs prior period</span>
             </div>
           </div>
           <Sparkline stroke="#14B8A6" points={sparklines.users} />
@@ -513,10 +452,10 @@ export const AdminDashboardView: React.FC = () => {
             <p className="text-xs font-semibold text-[#64748B]">Photographers</p>
             <p className="text-2xl font-black text-[#0F172A] tracking-tight">{photographersValue.toLocaleString('en-IN')}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] font-black text-[#10B981] flex items-center">
-                ↑ +18%
+              <span className={`text-[11px] font-black flex items-center ${photographersGrowth >= 0 ? 'text-[#10B981]' : 'text-red-500'}`}>
+                {photographersGrowth >= 0 ? `↑ +${photographersGrowth}%` : `↓ ${photographersGrowth}%`}
               </span>
-              <span className="text-[10px] text-[#94A3B8] font-medium">vs last month</span>
+              <span className="text-[10px] text-[#94A3B8] font-medium">vs prior period</span>
             </div>
           </div>
           <Sparkline stroke="#06B6D4" points={sparklines.photographers} />
@@ -531,31 +470,67 @@ export const AdminDashboardView: React.FC = () => {
             <p className="text-xs font-semibold text-[#64748B]">Total Bookings</p>
             <p className="text-2xl font-black text-[#0F172A] tracking-tight">{totalBookingsValue.toLocaleString('en-IN')}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] font-black text-[#10B981] flex items-center">
-                ↑ +24%
+              <span className={`text-[11px] font-black flex items-center ${bookingsGrowth >= 0 ? 'text-[#10B981]' : 'text-red-500'}`}>
+                {bookingsGrowth >= 0 ? `↑ +${bookingsGrowth}%` : `↓ ${bookingsGrowth}%`}
               </span>
-              <span className="text-[10px] text-[#94A3B8] font-medium">vs last month</span>
+              <span className="text-[10px] text-[#94A3B8] font-medium">vs prior period</span>
             </div>
           </div>
           <Sparkline stroke="#8B5CF6" points={sparklines.bookings} />
         </div>
 
-        {/* Card 4: Revenue */}
+        {/* Card 4: Revenue (Verified Collected) */}
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-2xs hover:border-[#F59E0B] transition-all flex items-center justify-between">
           <div className="space-y-1">
             <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] text-[#F59E0B] flex items-center justify-center mb-2 font-black text-lg">
               ₹
             </div>
-            <p className="text-xs font-semibold text-[#64748B]">Revenue</p>
+            <p className="text-xs font-semibold text-[#64748B]">Collected Revenue</p>
             <p className="text-2xl font-black text-[#0F172A] tracking-tight">{revenueValue}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] font-black text-[#10B981] flex items-center">
-                ↑ +28%
+              <span className={`text-[11px] font-black flex items-center ${revenueGrowth >= 0 ? 'text-[#10B981]' : 'text-red-500'}`}>
+                {revenueGrowth >= 0 ? `↑ +${revenueGrowth}%` : `↓ ${revenueGrowth}%`}
               </span>
-              <span className="text-[10px] text-[#94A3B8] font-medium">vs last month</span>
+              <span className="text-[10px] text-[#94A3B8] font-medium">vs prior period</span>
             </div>
           </div>
           <Sparkline stroke="#F59E0B" points={sparklines.revenue} />
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* FINANCIAL HEALTH & MARKETPLACE BALANCE STRIP             */}
+      {/* ======================================================== */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Gross Booking Value</p>
+          <p className="text-base font-black text-[#0F172A] mt-1">{formatInr(stats?.totalGrossBookingValue ?? 0)}</p>
+          <p className="text-[9px] text-[#94A3B8]">Total customer volume</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">Platform Take</p>
+          <p className="text-base font-black text-[#0D9488] mt-1">{formatInr(stats?.platformEarnings ?? 0)}</p>
+          <p className="text-[9px] text-[#94A3B8]">Commission earned</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Creator Escrow</p>
+          <p className="text-base font-black text-[#0F172A] mt-1">{formatInr(stats?.photographerLiabilities ?? 0)}</p>
+          <p className="text-[9px] text-[#94A3B8]">Pending payout liability</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Total Refunds</p>
+          <p className="text-base font-black text-[#EF4444] mt-1">{formatInr(stats?.totalRefunds ?? 0)}</p>
+          <p className="text-[9px] text-[#94A3B8]">Processed customer returns</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Pending KYC</p>
+          <p className="text-base font-black text-[#F59E0B] mt-1">{stats?.creatorsPending ?? 0}</p>
+          <p className="text-[9px] text-[#94A3B8]">Awaiting verification</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 shadow-2xs">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Active Disputes</p>
+          <p className="text-base font-black text-[#EF4444] mt-1">{stats?.disputedBookings ?? 0}</p>
+          <p className="text-[9px] text-[#94A3B8]">Requiring arbitration</p>
         </div>
       </div>
 
@@ -959,115 +934,143 @@ export const AdminDashboardView: React.FC = () => {
               </Link>
             </div>
 
-            {/* Table Container */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-[#F1F5F9] text-[#94A3B8] text-[11px] font-semibold">
-                    <th className="py-2.5 px-3">#</th>
-                    <th className="py-2.5 px-3">Customer</th>
-                    <th className="py-2.5 px-3">Photographer</th>
-                    <th className="py-2.5 px-3">Service</th>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Amount</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F1F5F9]">
-                  {displayBookings.map((b) => {
-                    const isConfirmed = b.booking_status === 'confirmed' || b.booking_status === 'completed';
-                    const isPending = b.booking_status === 'pending' || b.booking_status === 'in_progress';
-                    const isCancelled = b.booking_status === 'cancelled' || b.booking_status === 'rejected';
+            {/* Table Container / Empty State */}
+            {displayBookings.length === 0 ? (
+              <div className="py-12 px-4 text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center mx-auto">
+                  <Calendar className="w-5 h-5 stroke-[2]" />
+                </div>
+                <p className="text-xs font-bold text-[#0F172A]">No bookings recorded yet</p>
+                <p className="text-[11px] text-[#64748B] max-w-sm mx-auto">
+                  When customers make photography reservations, every verified booking will stream here with real customer, photographer, and transaction associations.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[#F1F5F9] text-[#94A3B8] text-[11px] font-semibold">
+                      <th className="py-2.5 px-3">#</th>
+                      <th className="py-2.5 px-3">Customer</th>
+                      <th className="py-2.5 px-3">Photographer</th>
+                      <th className="py-2.5 px-3">Service</th>
+                      <th className="py-2.5 px-3">Date</th>
+                      <th className="py-2.5 px-3">Amount</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1F5F9]">
+                    {displayBookings.map((b) => {
+                      const isConfirmed = b.booking_status === 'confirmed' || b.booking_status === 'completed';
+                      const isPending = b.booking_status === 'pending' || b.booking_status === 'in_progress';
 
-                    return (
-                      <tr key={b.id} className="hover:bg-[#F8FAFC] transition-colors">
-                        <td className="py-3 px-3 font-semibold text-[#64748B] whitespace-nowrap">
-                          {b.booking_reference}
-                        </td>
+                      const custName = b.customer?.full_name || 'Customer';
+                      const custInitial = custName[0]?.toUpperCase() || 'C';
+                      const photogName = b.creator?.professional_name || 'Photographer';
+                      const photogInitial = photogName[0]?.toUpperCase() || 'P';
 
-                        {/* Customer */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={b.customer?.avatar_url || '/reference-assets/avatar_riya.jpg'}
-                              alt=""
-                              className="w-6 h-6 rounded-full object-cover border border-[#E2E8F0]"
-                            />
-                            <span className="font-bold text-[#0F172A]">{b.customer?.full_name || 'Customer'}</span>
-                          </div>
-                        </td>
+                      return (
+                        <tr key={b.id} className="hover:bg-[#F8FAFC] transition-colors">
+                          <td className="py-3 px-3 font-semibold text-[#64748B] whitespace-nowrap">
+                            {b.booking_reference}
+                          </td>
 
-                        {/* Photographer */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={b.creator?.user?.avatar_url || '/reference-assets/seller_profile_aman.jpg'}
-                              alt=""
-                              className="w-6 h-6 rounded-full object-cover border border-[#E2E8F0]"
-                            />
-                            <span className="font-bold text-[#0F172A]">{b.creator?.professional_name || 'Photographer'}</span>
-                          </div>
-                        </td>
+                          {/* Customer */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {b.customer?.avatar_url ? (
+                                <img
+                                  src={b.customer.avatar_url}
+                                  alt=""
+                                  className="w-6 h-6 rounded-full object-cover border border-[#E2E8F0]"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-[#EFF6FF] text-[#2563EB] font-bold text-[10px] flex items-center justify-center border border-[#BFDBFE]">
+                                  {custInitial}
+                                </div>
+                              )}
+                              <span className="font-bold text-[#0F172A]">{custName}</span>
+                            </div>
+                          </td>
 
-                        {/* Service */}
-                        <td className="py-3 px-3 text-[#475569] font-medium whitespace-nowrap">
-                          {b.service?.title || b.event_title || 'Photo Session'}
-                        </td>
+                          {/* Photographer */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {b.creator?.user?.avatar_url ? (
+                                <img
+                                  src={b.creator.user.avatar_url}
+                                  alt=""
+                                  className="w-6 h-6 rounded-full object-cover border border-[#E2E8F0]"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-[#EFFCF8] text-[#0D9488] font-bold text-[10px] flex items-center justify-center border border-[#99F6E4]">
+                                  {photogInitial}
+                                </div>
+                              )}
+                              <span className="font-bold text-[#0F172A]">{photogName}</span>
+                            </div>
+                          </td>
 
-                        {/* Date */}
-                        <td className="py-3 px-3 text-[#64748B] whitespace-nowrap">
-                          {b.event_date}
-                        </td>
+                          {/* Service */}
+                          <td className="py-3 px-3 text-[#475569] font-medium whitespace-nowrap">
+                            {b.service?.title || b.event_title || 'Photo Session'}
+                          </td>
 
-                        {/* Amount */}
-                        <td className="py-3 px-3 font-bold text-[#0F172A] whitespace-nowrap">
-                          {formatInr(Number(b.total_amount) || 0)}
-                        </td>
+                          {/* Date */}
+                          <td className="py-3 px-3 text-[#64748B] whitespace-nowrap">
+                            {b.event_date}
+                          </td>
 
-                        {/* Status Badge */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                              isConfirmed
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : isPending
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
-                            }`}
-                          >
+                          {/* Amount */}
+                          <td className="py-3 px-3 font-bold text-[#0F172A] whitespace-nowrap">
+                            {formatInr(Number(b.total_amount) || 0)}
+                          </td>
+
+                          {/* Status Badge */}
+                          <td className="py-3 px-3 whitespace-nowrap">
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isConfirmed ? 'bg-emerald-500' : isPending ? 'bg-amber-500' : 'bg-red-500'
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                                isConfirmed
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : isPending
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : 'bg-red-50 text-red-700 border border-red-200'
                               }`}
-                            />
-                            <span className="capitalize">{b.booking_status}</span>
-                          </span>
-                        </td>
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isConfirmed ? 'bg-emerald-500' : isPending ? 'bg-amber-500' : 'bg-red-500'
+                                }`}
+                              />
+                              <span className="capitalize">{b.booking_status}</span>
+                            </span>
+                          </td>
 
-                        {/* Action View & ⋮ */}
-                        <td className="py-3 px-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => setSelectedBooking(b)}
-                              className="px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => setSelectedBooking(b)}
-                              className="p-1 text-[#94A3B8] hover:text-[#0F172A]"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          {/* Action View & ⋮ */}
+                          <td className="py-3 px-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => setSelectedBooking(b)}
+                                className="px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => setSelectedBooking(b)}
+                                className="p-1 text-[#94A3B8] hover:text-[#0F172A]"
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1077,7 +1080,7 @@ export const AdminDashboardView: React.FC = () => {
             <div className="w-9 h-9 rounded-xl bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
               <Zap className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <h3 className="text-sm font-black text-[#0F172A]">Quick Actions</h3>
+            <h3 className="text-sm font-black text-[#0F172A]">Platform Operations</h3>
           </div>
 
           <div className="space-y-3 flex-1 flex flex-col justify-center">
@@ -1087,15 +1090,15 @@ export const AdminDashboardView: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
                   <Database className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A]">Database</span>
+                <div>
+                  <span className="text-xs font-bold text-[#0F172A] block">Database</span>
+                  <span className="text-[10px] text-[#94A3B8]">PostgreSQL & RLS</span>
+                </div>
               </div>
-              <Link
-                href="/admin/dashboard"
-                onClick={loadData}
-                className="text-xs font-black text-[#F97316] hover:underline"
-              >
-                | Manage
-              </Link>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#10B981]">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                {stats?.health?.database || 'Operational'}
+              </span>
             </div>
 
             {/* Storage (Media) */}
@@ -1104,11 +1107,14 @@ export const AdminDashboardView: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
                   <HardDrive className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A]">Storage (Media)</span>
+                <div>
+                  <span className="text-xs font-bold text-[#0F172A] block">Storage</span>
+                  <span className="text-[10px] text-[#94A3B8]">Portfolios & KYC</span>
+                </div>
               </div>
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#10B981]">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                Operational
+                {stats?.health?.storage || 'Operational'}
               </span>
             </div>
 
@@ -1118,11 +1124,14 @@ export const AdminDashboardView: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
                   <CreditCard className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A]">Payment Gateway</span>
+                <div>
+                  <span className="text-xs font-bold text-[#0F172A] block">Payment Gateway</span>
+                  <span className="text-[10px] text-[#94A3B8]">Settlement Engine</span>
+                </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#10B981]">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                Operational
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488]">
+                <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+                {stats?.health?.paymentGateway || 'Sandbox Mode'}
               </span>
             </div>
 
@@ -1132,11 +1141,14 @@ export const AdminDashboardView: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-[#EFFCF8] text-[#14B8A6] flex items-center justify-center">
                   <Mail className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A]">Email Service</span>
+                <div>
+                  <span className="text-xs font-bold text-[#0F172A] block">Notifications</span>
+                  <span className="text-[10px] text-[#94A3B8]">Email & Webhook Dispatch</span>
+                </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#10B981]">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                Operational
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488]">
+                <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+                {stats?.health?.emailService || 'Operational'}
               </span>
             </div>
           </div>
@@ -1162,22 +1174,28 @@ export const AdminDashboardView: React.FC = () => {
               </Link>
             </div>
 
-            <div className="space-y-3.5">
-              {topLocations.map((loc) => (
-                <div key={loc.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#475569] font-medium">{loc.name}</span>
-                    <span className="font-bold text-[#0F172A]">{loc.count}</span>
+            {topLocations.length === 0 ? (
+              <div className="py-8 text-center text-[#94A3B8] text-xs">
+                No location activity recorded yet.
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {topLocations.map((loc) => (
+                  <div key={loc.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#475569] font-medium">{loc.name}</span>
+                      <span className="font-bold text-[#0F172A]">{loc.count}</span>
+                    </div>
+                    <div className="w-full bg-[#F1F5F9] rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-[#14B8A6] h-full rounded-full transition-all duration-500"
+                        style={{ width: `${loc.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-[#F1F5F9] rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#14B8A6] h-full rounded-full transition-all duration-500"
-                      style={{ width: `${loc.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1196,25 +1214,31 @@ export const AdminDashboardView: React.FC = () => {
               </Link>
             </div>
 
-            <div className="space-y-3.5">
-              {topCategories.map((cat) => (
-                <div key={cat.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#475569] font-medium">{cat.name}</span>
-                    <span className="font-bold text-[#0F172A]">{cat.count}</span>
+            {topCategories.length === 0 ? (
+              <div className="py-8 text-center text-[#94A3B8] text-xs">
+                No category bookings recorded yet.
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {topCategories.map((cat) => (
+                  <div key={cat.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#475569] font-medium">{cat.name}</span>
+                      <span className="font-bold text-[#0F172A]">{cat.count}</span>
+                    </div>
+                    <div className="w-full bg-[#F1F5F9] rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${cat.percentage}%`,
+                          backgroundColor: cat.color || '#14B8A6',
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-[#F1F5F9] rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${cat.percentage}%`,
-                        backgroundColor: cat.color || '#14B8A6',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1228,34 +1252,40 @@ export const AdminDashboardView: React.FC = () => {
                 </div>
                 <h3 className="text-xs font-black text-[#0F172A]">Recent Users</h3>
               </div>
-              <Link href="/admin/photographers" className="text-[11px] font-bold text-[#0D9488] hover:underline">
+              <Link href="/admin/users?tab=customers" className="text-[11px] font-bold text-[#0D9488] hover:underline">
                 View all
               </Link>
             </div>
 
             <div className="divide-y divide-[#F1F5F9]">
-              {displayUsers.map((u) => (
-                <div key={u.id} className="py-2.5 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#EFFCF8] text-[#14B8A6] font-black text-xs flex items-center justify-center shrink-0 border border-[#99F6E4]">
-                      {u.fullName[0]?.toUpperCase() || 'U'}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#0F172A] truncate">{u.fullName}</p>
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black ${
-                          u.isPhotographer ? 'bg-[#EFFCF8] text-[#0D9488]' : 'bg-[#EFF6FF] text-[#2563EB]'
-                        }`}
-                      >
-                        {u.isPhotographer ? 'Photographer' : 'Customer'}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-[#94A3B8] font-medium shrink-0">
-                    {u.createdAt}
-                  </span>
+              {displayUsers.length === 0 ? (
+                <div className="py-8 text-center text-[#94A3B8] text-xs">
+                  No registered users found.
                 </div>
-              ))}
+              ) : (
+                displayUsers.map((u) => (
+                  <div key={u.id} className="py-2.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-[#EFFCF8] text-[#14B8A6] font-black text-xs flex items-center justify-center shrink-0 border border-[#99F6E4]">
+                        {u.fullName[0]?.toUpperCase() || 'U'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#0F172A] truncate">{u.fullName}</p>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black ${
+                            u.isPhotographer ? 'bg-[#EFFCF8] text-[#0D9488]' : 'bg-[#EFF6FF] text-[#2563EB]'
+                          }`}
+                        >
+                          {u.isPhotographer ? 'Photographer' : 'Customer'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-[#94A3B8] font-medium shrink-0">
+                      {u.createdAt}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

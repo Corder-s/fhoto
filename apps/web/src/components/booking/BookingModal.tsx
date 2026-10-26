@@ -290,7 +290,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {createdBookingData?.breakdown?.travelDistanceKm !== undefined && (
                   <div className="flex justify-between text-ink-muted">
                     <span>Shoot Distance:</span>
-                    <span>{createdBookingData.breakdown.travelDistanceKm} km ({createdBookingData.breakdown.includedTravelKm || 10} km included)</span>
+                    <span>{createdBookingData.breakdown.travelDistanceKm} km ({createdBookingData.breakdown.includedTravelKm || 20} km included)</span>
                   </div>
                 )}
                 {createdBookingData?.breakdown?.chargeableDistanceKm !== undefined && createdBookingData.breakdown.chargeableDistanceKm > 0 && (

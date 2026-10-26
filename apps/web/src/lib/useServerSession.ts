@@ -6,6 +6,7 @@ export interface ServerSessionUser {
   id: string;
   email: string | null;
   name: string;
+  avatarUrl?: string | null;
   role: string;
   roles: string[];
   /** Effective administrator capabilities; empty for customers and creators. */

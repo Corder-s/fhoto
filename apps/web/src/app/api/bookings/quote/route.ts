@@ -126,7 +126,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 5. Compute Authoritative Pricing Snapshot
+  // 5. Query Active Platform Distance Settings
+  const { data: platformDistance } = await admin
+    .from('platform_distance_settings')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const freeKm = platformDistance ? Number(platformDistance.free_travel_km) : DEFAULT_TRAVEL_SETTINGS.includedTravelKm;
+  const platformRate = platformDistance ? Number(platformDistance.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm;
+  const allowOverride = platformDistance ? platformDistance.allow_photographer_override : true;
+  const roundTrip = platformDistance ? Boolean(platformDistance.round_trip_billing) : false;
+
+  const effectiveTravelRate =
+    allowOverride && creator.travel_fee_per_km !== null && Number(creator.travel_fee_per_km) > 0
+      ? Number(creator.travel_fee_per_km)
+      : platformRate;
+
+  // 6. Compute Authoritative Pricing Snapshot
   const pricingSnapshot = calculateAuthoritativePricing({
     basePackagePrice,
     photographerCoords: { lat: photogLat, lng: photogLng },
@@ -134,8 +153,9 @@ export async function POST(req: NextRequest) {
     photographerBaseAddress: creator.base_address || creator.city || 'Delhi NCR',
     customerEventAddress: eventLocation.trim(),
     travelSettings: {
-      includedTravelKm: creator.included_travel_km ?? DEFAULT_TRAVEL_SETTINGS.includedTravelKm,
-      travelFeePerKm: creator.travel_fee_per_km !== null ? Number(creator.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm,
+      includedTravelKm: freeKm,
+      travelFeePerKm: effectiveTravelRate,
+      roundTripBilling: roundTrip,
       minTravelFee: creator.min_travel_fee !== null ? Number(creator.min_travel_fee) : DEFAULT_TRAVEL_SETTINGS.minTravelFee,
       maxTravelFee: creator.max_travel_fee !== null ? Number(creator.max_travel_fee) : null,
       serviceRadiusKm: creator.service_radius || DEFAULT_TRAVEL_SETTINGS.serviceRadiusKm,

@@ -12,6 +12,7 @@ export interface TravelPricingSettings {
   maxTravelFee: number | null;
   serviceRadiusKm: number;
   allowOutOfArea: boolean;
+  roundTripBilling?: boolean;
 }
 
 export interface PricingBreakdownSnapshot {
@@ -22,6 +23,7 @@ export interface PricingBreakdownSnapshot {
   includedTravelKm: number;
   chargeableDistanceKm: number;
   travelRatePerKm: number;
+  roundTripBilling?: boolean;
   travelFee: number;
   subtotal: number;
   platformFee: number;
@@ -38,12 +40,13 @@ export interface PricingBreakdownSnapshot {
 }
 
 export const DEFAULT_TRAVEL_SETTINGS: TravelPricingSettings = {
-  includedTravelKm: 10,
+  includedTravelKm: 20,
   travelFeePerKm: 20,
   minTravelFee: 0,
   maxTravelFee: null,
   serviceRadiusKm: 50,
   allowOutOfArea: true,
+  roundTripBilling: false,
 };
 
 /**
@@ -184,8 +187,9 @@ export function calculateAuthoritativePricing(input: CalculatePricingInput): Pri
   const includedTravelKm = Math.max(0, settings.includedTravelKm);
   const chargeableDistanceKm = Math.max(0, Math.round((calculatedDistanceKm - includedTravelKm) * 10) / 10);
   const travelRatePerKm = Math.max(0, settings.travelFeePerKm);
+  const isRoundTrip = Boolean(settings.roundTripBilling);
 
-  let rawTravelFee = Math.round(chargeableDistanceKm * travelRatePerKm);
+  let rawTravelFee = Math.round(chargeableDistanceKm * travelRatePerKm * (isRoundTrip ? 2 : 1));
   let travelFee = Math.max(settings.minTravelFee, rawTravelFee);
 
   if (settings.maxTravelFee !== null && settings.maxTravelFee > 0 && travelFee > settings.maxTravelFee) {
@@ -212,6 +216,7 @@ export function calculateAuthoritativePricing(input: CalculatePricingInput): Pri
     includedTravelKm,
     chargeableDistanceKm,
     travelRatePerKm,
+    roundTripBilling: isRoundTrip,
     travelFee,
     subtotal,
     platformFee,

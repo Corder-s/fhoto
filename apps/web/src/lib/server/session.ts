@@ -25,6 +25,7 @@ export interface SessionUser {
   id: string;
   email: string | null;
   name: string;
+  avatarUrl?: string | null;
   roles: AppRole[];
   role: AppRole;
   /** Effective administrator capabilities. Empty for customers and creators. */
@@ -129,7 +130,7 @@ export async function resolveSession(): Promise<SessionResult> {
   const rolesQuery = admin.from('user_roles').select('role').eq('user_id', user.id);
   const profileQuery = admin
     .from('profiles')
-    .select('full_name, email, account_status, role_selected')
+    .select('full_name, email, avatar_url, account_status, role_selected')
     .eq('id', user.id)
     .maybeSingle();
   const creatorQuery = admin
@@ -179,6 +180,7 @@ export async function resolveSession(): Promise<SessionResult> {
       id: user.id,
       email: profile?.email || user.email || null,
       name: profile?.full_name || fallbackName || 'User',
+      avatarUrl: profile?.avatar_url || (meta.avatar_url as string) || null,
       roles,
       role: primaryRole(roles) || 'customer',
       permissions,
