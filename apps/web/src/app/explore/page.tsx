@@ -139,6 +139,7 @@ function ExploreContent() {
   
   // Profile Modal State (Phase 6 View Profile Modal)
   const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(urlPhotographer || null);
+  const [selectedModalPhotographer, setSelectedModalPhotographer] = useState<SamplePhotographer | any | null>(null);
 
   // UI Experience State
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
@@ -1018,7 +1019,10 @@ function ExploreContent() {
                   <PhotographerCard
                     key={creator.id}
                     photographer={creator}
-                    onViewProfileClick={(p) => setSelectedModalPhotographerId(p.id)}
+                    onViewProfileClick={(p) => {
+                      setSelectedModalPhotographer(p);
+                      setSelectedModalPhotographerId(p.id);
+                    }}
                   />
                 ))}
               </div>
@@ -1248,7 +1252,15 @@ function ExploreContent() {
           <PhotographerProfileModal
             isOpen={!!selectedModalPhotographerId}
             photographerId={selectedModalPhotographerId}
-            onClose={() => setSelectedModalPhotographerId(null)}
+            initialPhotographer={
+              selectedModalPhotographer ||
+              filteredPhotographers.find((p) => p.id === selectedModalPhotographerId) ||
+              null
+            }
+            onClose={() => {
+              setSelectedModalPhotographerId(null);
+              setSelectedModalPhotographer(null);
+            }}
           />
 
         </div>

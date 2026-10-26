@@ -54,10 +54,12 @@ export async function POST(request: NextRequest) {
         agreed_service_price,
         platform_fee,
         taxes,
+        discount_amount,
         booking_status,
         payment_status,
         amount_paid,
-        payment_mode
+        payment_mode,
+        pricing_breakdown
       `)
       .eq('id', bookingId)
       .maybeSingle();
@@ -86,27 +88,52 @@ export async function POST(request: NextRequest) {
 
     let payableAmount = totalAmount;
     let discountApplied = 0;
+    let finalDiscountedTotal = totalAmount;
     let remainingDue = 0;
     let unlockedPerks: string[] = [];
 
     if (paymentMode === 'half') {
-      // 50% deposit now, remaining due on shoot day
-      payableAmount = Math.round(totalAmount * 0.5);
-      remainingDue = totalAmount - payableAmount;
+      // Option B — Half Payment: Save 5% on eligible booking total
+      // halfPaymentDiscount = eligibleBookingTotal * 5%
+      // halfPaymentTotal = eligibleBookingTotal - halfPaymentDiscount
+      // Split into two installments:
+      // firstInstallment = Math.round(halfPaymentTotal * 0.5)
+      // secondInstallment = halfPaymentTotal - firstInstallment (absorbs rounding remainder)
+      const halfDiscount = Math.round(totalAmount * 0.05);
+      const halfTotal = totalAmount - halfDiscount;
+      const firstInstallment = Math.round(halfTotal * 0.5);
+      const secondInstallment = halfTotal - firstInstallment;
+
+      discountApplied = halfDiscount;
+      finalDiscountedTotal = halfTotal;
+      payableAmount = firstInstallment;
+      remainingDue = secondInstallment;
     } else if (paymentMode === 'remaining') {
-      // Paying remaining balance
-      payableAmount = Math.max(0, totalAmount - amountPaidSoFar);
+      // Paying remaining balance of Half Payment (Installment 2)
+      // The 5% discount was already applied once to the booking. Do not apply discount a second time!
+      const existingDiscount =
+        Number(booking.discount_amount) ||
+        (booking.pricing_breakdown?.paymentPlan?.discountAmount ? Number(booking.pricing_breakdown.paymentPlan.discountAmount) : Math.round(totalAmount * 0.05));
+      const expectedTotal = totalAmount - existingDiscount;
+
+      discountApplied = existingDiscount;
+      finalDiscountedTotal = expectedTotal;
+      payableAmount = Math.max(0, expectedTotal - amountPaidSoFar);
       remainingDue = 0;
     } else {
-      // Full Payment (100%): 5% Instant Prepayment Discount + VIP Perks
-      discountApplied = Math.round(totalAmount * 0.05);
-      payableAmount = Math.max(1, totalAmount - discountApplied);
+      // Option A — Full Payment: Save 10% on eligible booking total
+      // fullPaymentDiscount = eligibleBookingTotal * 10%
+      // fullPaymentTotal = eligibleBookingTotal - fullPaymentDiscount
+      const fullDiscount = Math.round(totalAmount * 0.10);
+      discountApplied = fullDiscount;
+      finalDiscountedTotal = Math.max(1, totalAmount - fullDiscount);
+      payableAmount = finalDiscountedTotal;
       remainingDue = 0;
       unlockedPerks = [
-        '5% Instant Prepayment Discount Applied',
-        '⚡ Priority 48-Hour Delivery',
-        '📸 10 Extra Pro-Edited Photos',
-        '🛡️ 100% Escrow Protection Guarantee',
+        '10% Instant Prepayment Discount Applied',
+        '⚡ Priority 48-Hour Rush Delivery',
+        '📸 10 Extra Pro-Edited Photos Included',
+        '🛡️ 100% REEPY Escrow Protection Guarantee',
         '🔄 1 Free Complimentary Reschedule'
       ];
     }
@@ -118,7 +145,7 @@ export async function POST(request: NextRequest) {
     const { data: existingPayment } = await admin
       .from('payments')
       .select('*')
-      .eq('booking_id', bookingId)
+      .eq('booking_id', booking.id)
       .eq('payment_status', 'pending')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -153,6 +180,7 @@ export async function POST(request: NextRequest) {
         currency: 'INR',
         paymentMode,
         discountApplied,
+        finalDiscountedTotal,
         remainingDue,
         unlockedPerks,
         booking: {
@@ -161,6 +189,8 @@ export async function POST(request: NextRequest) {
           title: booking.event_title,
           totalAmount,
           payableAmount,
+          finalDiscountedTotal,
+          remainingDue,
         },
         customer: customerPrefill,
         isSandbox: existingPayment.provider === 'dev_sandbox',
@@ -187,10 +217,11 @@ export async function POST(request: NextRequest) {
     });
 
     // 5. Persist Payment Intent Record
+    const installmentNumber = paymentMode === 'remaining' ? 2 : 1;
     const { data: insertedPayment, error: insertErr } = await admin
       .from('payments')
       .insert({
-        booking_id: bookingId,
+        booking_id: booking.id,
         customer_id: user.id,
         provider: gatewayOrder.provider,
         provider_order_id: gatewayOrder.orderId,
@@ -199,13 +230,18 @@ export async function POST(request: NextRequest) {
         currency: 'INR',
         payment_status: 'pending',
         payment_mode: paymentMode,
+        installment_number: installmentNumber,
         payment_method: gatewayOrder.isSandbox ? 'dev_sandbox' : 'razorpay_standard',
         metadata: {
           orderId: gatewayOrder.orderId,
           isSandbox: gatewayOrder.isSandbox,
           bookingReference: booking.booking_reference,
           paymentMode,
+          installmentNumber,
+          eligibleBookingTotal: totalAmount,
           discountApplied,
+          finalDiscountedTotal,
+          payableAmount,
           remainingDue,
           unlockedPerks,
           rawGatewayResponse: gatewayOrder.rawResponse || null,
@@ -228,7 +264,9 @@ export async function POST(request: NextRequest) {
       amountInr: payableAmount,
       currency: 'INR',
       paymentMode,
+      installmentNumber,
       discountApplied,
+      finalDiscountedTotal,
       remainingDue,
       unlockedPerks,
       booking: {
@@ -237,6 +275,8 @@ export async function POST(request: NextRequest) {
         title: booking.event_title,
         totalAmount,
         payableAmount,
+        finalDiscountedTotal,
+        remainingDue,
       },
       customer: customerPrefill,
       isSandbox: gatewayOrder.isSandbox,

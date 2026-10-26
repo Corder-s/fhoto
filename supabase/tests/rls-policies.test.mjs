@@ -35,6 +35,7 @@ const MIGRATIONS = [
   '20261014000005_booking_duration_and_itemized_pricing.sql',
   '20261014000006_razorpay_order_and_payment_system.sql',
   '20261014000007_partial_and_full_payment_options.sql',
+  '20261014000008_performance_indexes_and_query_optimization.sql',
 ];
 
 const SUPABASE_STUBS = `

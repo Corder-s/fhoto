@@ -40,6 +40,22 @@ interface AdminBooking {
   platform_fee: number;
   taxes?: number;
   total_amount: number;
+  amount_paid?: number;
+  payment_mode?: string;
+  discount_amount?: number;
+  payments?: Array<{
+    id: string;
+    provider: string;
+    provider_payment_id?: string;
+    provider_order_id?: string;
+    amount: number;
+    currency: string;
+    payment_status: string;
+    payment_mode?: string;
+    installment_number?: number;
+    paid_at?: string;
+    created_at: string;
+  }>;
   pricing_breakdown?: any;
   booking_status: string;
   payment_status: string;
@@ -438,7 +454,11 @@ export default function AdminBookingsPage() {
                     <div className="mt-1">
                       {b.payment_status === 'paid' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> PAID
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> FULLY PAID
+                        </span>
+                      ) : b.payment_status === 'partially_paid' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                          <CheckCircle2 className="w-3 h-3 text-blue-600" /> PARTIALLY PAID
                         </span>
                       ) : b.payment_status === 'refunded' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
@@ -637,15 +657,50 @@ export default function AdminBookingsPage() {
                   <span>Applicable Taxes (GST 18%):</span>
                   <span>₹{Number(selectedBooking.pricing_breakdown?.taxes || selectedBooking.taxes || 0).toLocaleString('en-IN')}</span>
                 </div>
+                {Number(selectedBooking.discount_amount || 0) > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-700 font-semibold">
+                    <span>Payment Plan Discount ({selectedBooking.payment_mode === 'half' ? '5% Flex' : '10% Full'}):</span>
+                    <span>−₹{Number(selectedBooking.discount_amount).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-1 border-t border-emerald-200 font-black text-sm">
                   <span>Gross Client Total:</span>
                   <span>₹{Number(selectedBooking.total_amount || 0).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-xs text-emerald-700">
+                <div className="flex justify-between text-xs text-emerald-900 font-bold">
+                  <span>Amount Verified &amp; Collected:</span>
+                  <span>₹{Number(selectedBooking.amount_paid || (selectedBooking.payment_status === 'paid' ? selectedBooking.total_amount : 0)).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs text-amber-800 font-semibold">
+                  <span>Outstanding Balance:</span>
+                  <span>₹{Math.max(0, (Number(selectedBooking.total_amount || 0) - Number(selectedBooking.discount_amount || 0)) - Number(selectedBooking.amount_paid || (selectedBooking.payment_status === 'paid' ? selectedBooking.total_amount : 0))).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs text-emerald-700 pt-1 border-t border-emerald-200">
                   <span>Photographer Net Payout:</span>
                   <span className="font-bold">₹{Number(selectedBooking.pricing_breakdown?.photographerEarnings || (Number(selectedBooking.agreed_service_price || 0) + Number(selectedBooking.travel_fee || 0) - Number(selectedBooking.platform_fee || 0))).toLocaleString('en-IN')}</span>
                 </div>
               </div>
+
+              {/* Transactions Ledger */}
+              {selectedBooking.payments && selectedBooking.payments.length > 0 && (
+                <div className="space-y-2 border-t border-[#E7EAEE] pt-3">
+                  <p className="text-[10px] uppercase font-bold text-[#64748B]">Verified Payment Transactions ({selectedBooking.payments.length})</p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {selectedBooking.payments.map((p) => (
+                      <div key={p.id} className="p-2.5 bg-[#F8FAFC] rounded-xl border border-[#E7EAEE] flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-mono text-[11px] font-bold text-[#191C22]">{p.provider_payment_id || p.id}</p>
+                          <p className="text-[10px] text-[#94A3B8]">{p.provider.toUpperCase()} • {p.payment_mode || 'payment'} {p.installment_number ? `(Inst #${p.installment_number})` : ''}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-[#191C22]">₹{Number(p.amount).toLocaleString('en-IN')}</p>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">{p.payment_status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-2 border-t border-[#E7EAEE]">

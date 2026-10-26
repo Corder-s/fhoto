@@ -74,7 +74,7 @@ export const ReepyFeaturedPhotographers: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { openAuthModal } = useAuthModal();
   const [photographers, setPhotographers] = useState<PhotographerCardData[]>(DEFAULT_FEATURED);
-  const [selectedModalPhotographerId, setSelectedModalPhotographerId] = useState<string | null>(null);
+  const [selectedModalPhotographer, setSelectedModalPhotographer] = useState<PhotographerCardData | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -142,16 +142,17 @@ export const ReepyFeaturedPhotographers: React.FC = () => {
             <PhotographerCard
               key={creator.id}
               photographer={creator}
-              onViewProfileClick={(p) => setSelectedModalPhotographerId(p.id)}
+              onViewProfileClick={(p) => setSelectedModalPhotographer(p)}
             />
           ))}
         </div>
 
         {/* Profile Modal */}
         <PhotographerProfileModal
-          isOpen={!!selectedModalPhotographerId}
-          photographerId={selectedModalPhotographerId}
-          onClose={() => setSelectedModalPhotographerId(null)}
+          isOpen={!!selectedModalPhotographer}
+          photographerId={selectedModalPhotographer?.id ?? null}
+          initialPhotographer={selectedModalPhotographer}
+          onClose={() => setSelectedModalPhotographer(null)}
         />
       </div>
     </section>

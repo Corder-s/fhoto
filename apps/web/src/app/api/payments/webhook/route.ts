@@ -79,25 +79,81 @@ export async function POST(req: NextRequest) {
       if (targetBookingId) {
         const { data: booking } = await supabase
           .from('bookings')
-          .select('id, total_amount, platform_fee, creator_id, customer_id, event_title, booking_reference')
+          .select('id, total_amount, platform_fee, discount_amount, creator_id, customer_id, event_title, booking_reference, amount_paid, payment_mode, pricing_breakdown')
           .eq('id', targetBookingId)
           .maybeSingle();
 
         if (booking) {
+          const paymentMode = existingPayment?.payment_mode || existingPayment?.metadata?.paymentMode || 'full';
+          const totalAmount = Number(booking.total_amount) || 0;
+          const paidThisTxn = Number(existingPayment?.amount || paymentEntity?.amount ? Number(paymentEntity.amount) / 100 : 0);
+          const prevPaid = Number(booking.amount_paid) || 0;
+
+          let newTotalPaid = 0;
+          let discountAmount = 0;
+          let remainingDue = 0;
+          let nextPaymentStatus: 'paid' | 'partially_paid' = 'paid';
+
+          if (paymentMode === 'full') {
+            discountAmount = Math.round(totalAmount * 0.10);
+            newTotalPaid = Math.max(1, totalAmount - discountAmount);
+            remainingDue = 0;
+            nextPaymentStatus = 'paid';
+          } else if (paymentMode === 'half') {
+            discountAmount = Math.round(totalAmount * 0.05);
+            const halfTotal = totalAmount - discountAmount;
+            const firstInstallment = Math.round(halfTotal * 0.5);
+            newTotalPaid = firstInstallment;
+            remainingDue = halfTotal - firstInstallment;
+            nextPaymentStatus = 'partially_paid';
+          } else if (paymentMode === 'remaining') {
+            discountAmount = Number(booking.discount_amount) || Math.round(totalAmount * 0.05);
+            newTotalPaid = totalAmount - discountAmount;
+            remainingDue = 0;
+            nextPaymentStatus = 'paid';
+          } else {
+            newTotalPaid = Math.min(totalAmount, prevPaid + paidThisTxn);
+            nextPaymentStatus = newTotalPaid >= totalAmount ? 'paid' : 'partially_paid';
+            remainingDue = Math.max(0, totalAmount - newTotalPaid);
+          }
+
+          const prevBreakdown = (booking.pricing_breakdown as Record<string, any>) || {};
+          const updatedPricingBreakdown = {
+            ...prevBreakdown,
+            paymentPlan: {
+              selectedPlan: paymentMode === 'remaining' ? 'half' : paymentMode,
+              eligibleBookingTotal: totalAmount,
+              discountRatePercent: paymentMode === 'full' ? 10 : 5,
+              discountAmount,
+              finalDiscountedTotal: totalAmount - discountAmount,
+              firstInstallment: paymentMode === 'full' ? totalAmount - discountAmount : Math.round((totalAmount - discountAmount) * 0.5),
+              secondInstallment: paymentMode === 'full' ? 0 : (totalAmount - discountAmount) - Math.round((totalAmount - discountAmount) * 0.5),
+              amountPaid: newTotalPaid,
+              remainingDue,
+              currency: 'INR',
+              verifiedAt: now,
+              lastPaymentId: providerPaymentId,
+            },
+          };
+
           // Confirm booking
           await supabase
             .from('bookings')
             .update({
               booking_status: 'confirmed',
-              payment_status: 'paid',
+              payment_status: nextPaymentStatus,
+              amount_paid: newTotalPaid,
+              discount_amount: discountAmount,
+              payment_mode: paymentMode === 'remaining' ? 'half' : paymentMode,
+              pricing_breakdown: updatedPricingBreakdown,
               updated_at: now,
             })
             .eq('id', booking.id);
 
           // Escrow Allocation
-          const totalAmount = Number(booking.total_amount) || 0;
           const platformFee = Number(booking.platform_fee) || 0;
-          const netAmount = Math.max(0, totalAmount - platformFee);
+          const feeToDeduct = nextPaymentStatus === 'paid' ? platformFee : Math.round(platformFee * (newTotalPaid / totalAmount));
+          const netAmount = Math.max(0, newTotalPaid - feeToDeduct);
 
           const { data: existingPayout } = await supabase
             .from('creator_payouts')
@@ -105,12 +161,23 @@ export async function POST(req: NextRequest) {
             .eq('booking_id', booking.id)
             .maybeSingle();
 
-          if (!existingPayout && booking.creator_id) {
+          if (existingPayout) {
+            await supabase
+              .from('creator_payouts')
+              .update({
+                gross_amount: newTotalPaid,
+                platform_fee: feeToDeduct,
+                net_amount: netAmount,
+                payout_status: 'in_escrow',
+                updated_at: now,
+              })
+              .eq('id', existingPayout.id);
+          } else if (booking.creator_id) {
             await supabase.from('creator_payouts').insert({
               booking_id: booking.id,
               creator_id: booking.creator_id,
-              gross_amount: totalAmount,
-              platform_fee: platformFee,
+              gross_amount: newTotalPaid,
+              platform_fee: feeToDeduct,
               net_amount: netAmount,
               payout_status: 'in_escrow',
             });
@@ -123,16 +190,16 @@ export async function POST(req: NextRequest) {
             action: 'PAYMENT_WEBHOOK_VERIFIED',
             actor: 'razorpay_webhook',
             target: `booking:${booking.id}`,
-            details: `Webhook verified payment ${providerPaymentId} of ₹${totalAmount}. Escrow net ₹${netAmount} allocated.`,
-            metadata: { eventType, providerPaymentId, providerOrderId, totalAmount, platformFee },
+            details: `Webhook verified payment ${providerPaymentId} of ₹${paidThisTxn} (Mode: ${paymentMode}). Escrow net ₹${netAmount} allocated. Total Paid: ₹${newTotalPaid}.`,
+            metadata: { eventType, providerPaymentId, providerOrderId, totalAmount, discountAmount, amountPaid: newTotalPaid, platformFee },
           });
 
           // In-App Notification
           await createInAppNotification({
             userId: booking.customer_id,
             type: 'payment_success',
-            title: 'Payment Confirmed by Gateway',
-            body: `Your payment of ₹${totalAmount.toLocaleString('en-IN')} for "${booking.event_title}" was confirmed via payment gateway webhook.`,
+            title: nextPaymentStatus === 'paid' ? 'Payment Confirmed by Gateway' : 'Advance Deposit Confirmed',
+            body: `Your payment of ₹${paidThisTxn.toLocaleString('en-IN')} for "${booking.event_title}" was confirmed via payment gateway webhook.`,
             relatedBookingId: booking.id,
             actionUrl: '/customer/bookings',
           });

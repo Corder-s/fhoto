@@ -3,6 +3,9 @@ import { authorize, jsonError } from '@/lib/server/session';
 
 export const dynamic = 'force-dynamic';
 
+const statsCache = new Map<string, { data: any; timestamp: number }>();
+const STATS_CACHE_TTL = 15 * 1000; // 15 seconds
+
 /**
  * GET /api/admin/stats
  * Platform totals and marketplace metrics computed entirely from the database
@@ -16,6 +19,11 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const range = url.searchParams.get('range') || '30d';
+
+    const cached = statsCache.get(range);
+    if (cached && (Date.now() - cached.timestamp < STATS_CACHE_TTL)) {
+      return NextResponse.json(cached.data);
+    }
 
     const now = new Date();
     let startDate = new Date();
@@ -84,7 +92,7 @@ export async function GET(req: Request) {
 
     // Financial calculations: Verified Payments, Escrow Liabilities, Platform Fees
     const [paymentsRes, payoutsRes, refundsRes, bookingsRes] = await Promise.all([
-      admin.from('payments').select('amount, paid_at, payment_status, created_at'),
+      admin.from('payments').select('amount, paid_at, payment_status, created_at').eq('payment_status', 'paid'),
       admin.from('creator_payouts').select('gross_amount, platform_fee, net_amount, payout_status'),
       admin.from('refunds').select('refund_amount, refund_status'),
       admin.from('bookings').select('id, booking_status, created_at, total_amount, platform_fee, payment_status, event_location, event_title'),
@@ -298,7 +306,7 @@ export async function GET(req: Request) {
       process.env.GMAIL_USER || process.env.SMTP_HOST || process.env.EMAIL_FROM_ADDRESS
     );
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       stats: {
         totalUsers,
@@ -337,7 +345,11 @@ export async function GET(req: Request) {
         },
         generatedAt: new Date().toISOString(),
       },
-    });
+    };
+
+    statsCache.set(range, { data: responsePayload, timestamp: Date.now() });
+
+    return NextResponse.json(responsePayload);
   } catch (err: any) {
     console.error('Admin stats failed:', err);
     return jsonError(500, err?.message || 'Could not load platform statistics.');

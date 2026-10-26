@@ -309,11 +309,22 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
   const isPaid = booking.payment_status === 'paid';
   const isPartiallyPaid = booking.payment_status === 'partially_paid';
   const totalAmount = Number(booking.total_amount) || 0;
-  const amountPaid = Number(booking.amount_paid) || (isPaid ? totalAmount : (isPartiallyPaid ? Math.round(totalAmount * 0.5) : 0));
-  const remainingDue = Math.max(0, totalAmount - amountPaid);
-  const fullDiscount = Math.round(totalAmount * 0.05);
+
+  // 10% Full Payment (Option A)
+  const fullDiscount = Math.round(totalAmount * 0.10);
   const fullPayableAmount = Math.max(1, totalAmount - fullDiscount);
-  const halfPayableAmount = Math.round(totalAmount * 0.5);
+
+  // 5% Half Payment (Option B - 2 installments, second absorbs rounding remainder)
+  const halfDiscount = Math.round(totalAmount * 0.05);
+  const halfTotal = Math.max(1, totalAmount - halfDiscount);
+  const halfFirstInstallment = Math.round(halfTotal * 0.5);
+  const halfSecondInstallment = halfTotal - halfFirstInstallment;
+  const halfPayableAmount = halfFirstInstallment;
+
+  // Authoritative financial state
+  const agreedTotal = booking.pricing_breakdown?.paymentPlan?.finalDiscountedTotal || (booking.discount_amount ? (totalAmount - Number(booking.discount_amount)) : (isPaid ? fullPayableAmount : totalAmount));
+  const amountPaid = Number(booking.amount_paid) || (isPaid ? agreedTotal : (isPartiallyPaid ? halfFirstInstallment : 0));
+  const remainingDue = Math.max(0, agreedTotal - amountPaid);
 
   const durationHours =
     booking.duration_hours ||
@@ -427,11 +438,15 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
 
               {isPaid ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Escrow Secured (Paid)
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Fully Paid &amp; In Escrow
+                </span>
+              ) : isPartiallyPaid ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                  <CheckCircle2 className="w-3 h-3 text-blue-600" /> 50% Advance Paid (In Escrow)
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-800 border border-amber-200">
-                  <Clock className="w-3 h-3 text-amber-600" /> Payment Required
+                  <Clock className="w-3 h-3 text-amber-600" /> Payment Required (Unpaid)
                 </span>
               )}
             </div>
@@ -447,10 +462,22 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
           <div className="text-left sm:text-right">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] block">Total Amount</span>
             <p className="text-3xl font-black text-[#191C22]">₹{Number(booking.total_amount).toLocaleString('en-IN')}</p>
-            <span className="text-[11px] font-semibold text-green-700 flex items-center sm:justify-end gap-1 mt-0.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
-              100% REEPY Escrow Protected
-            </span>
+            {isPaid ? (
+              <span className="text-[11px] font-semibold text-green-700 flex items-center sm:justify-end gap-1 mt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
+                100% REEPY Escrow Protected
+              </span>
+            ) : isPartiallyPaid ? (
+              <span className="text-[11px] font-semibold text-blue-700 flex items-center sm:justify-end gap-1 mt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                50% Advance in REEPY Escrow
+              </span>
+            ) : (
+              <span className="text-[11px] font-semibold text-amber-700 flex items-center sm:justify-end gap-1 mt-0.5">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                Payment Required to Escrow Funds
+              </span>
+            )}
           </div>
         </div>
 
@@ -661,7 +688,7 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {/* OPTION 1: FULL PAYMENT (WITH 5% DISCOUNT & VIP PERKS) */}
+                  {/* OPTION 1: FULL PAYMENT (WITH 10% DISCOUNT & VIP PERKS) */}
                   <div
                     onClick={() => setSelectedPaymentMode('full')}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
@@ -671,7 +698,7 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                     }`}
                   >
                     <div className="absolute -top-2.5 right-4 bg-gradient-to-r from-[#14B8A6] to-emerald-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs">
-                      Best Value • Save 5%
+                      Best Value • Save 10%
                     </div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <input
@@ -682,7 +709,7 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                         className="text-[#14B8A6] focus:ring-[#14B8A6]"
                       />
                       <span className="text-xs font-black text-[#191C22]">
-                        Pay Full (100% Upfront)
+                        Full Payment — Save 10%
                       </span>
                     </div>
 
@@ -694,13 +721,13 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                         ₹{totalAmount.toLocaleString('en-IN')}
                       </span>
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                        Save ₹{fullDiscount.toLocaleString('en-IN')}
+                        Save ₹{fullDiscount.toLocaleString('en-IN')} (10%)
                       </span>
                     </div>
 
                     <div className="space-y-1 text-[11px] text-[#475569] border-t border-[#14B8A6]/20 pt-2">
                       <p className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                        <span>🎁</span> <span>5% Instant Prepayment Discount</span>
+                        <span>🎁</span> <span>10% Instant Prepayment Discount</span>
                       </p>
                       <p className="flex items-center gap-1.5 text-[#191C22]">
                         <span>⚡</span> <span>Priority 48-Hour Rush Delivery</span>
@@ -711,10 +738,13 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                       <p className="flex items-center gap-1.5 text-[#191C22]">
                         <span>🔄</span> <span>1 Free Complimentary Date Reschedule</span>
                       </p>
+                      <p className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                        <span>🛡️</span> <span>100% Escrow Protected • ₹0 Remaining Due</span>
+                      </p>
                     </div>
                   </div>
 
-                  {/* OPTION 2: 50% ADVANCE DEPOSIT */}
+                  {/* OPTION 2: HALF PAYMENT (WITH 5% DISCOUNT - 2 INSTALLMENTS) */}
                   <div
                     onClick={() => setSelectedPaymentMode('half')}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
@@ -723,6 +753,9 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                         : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40'
                     }`}
                   >
+                    <div className="absolute -top-2.5 right-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs">
+                      Flex Plan • Save 5%
+                    </div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <input
                         type="radio"
@@ -732,26 +765,32 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                         className="text-[#14B8A6] focus:ring-[#14B8A6]"
                       />
                       <span className="text-xs font-black text-[#191C22]">
-                        Pay 50% Advance Deposit
+                        Half Payment — Save 5%
                       </span>
                     </div>
 
-                    <div className="flex items-baseline gap-2 mb-2">
+                    <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-lg font-black text-[#191C22]">
-                        ₹{halfPayableAmount.toLocaleString('en-IN')}
+                        ₹{halfFirstInstallment.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-xs text-[#64748B]">now</span>
+                      <span className="text-xs text-[#64748B]">now (1st installment)</span>
+                    </div>
+                    <div className="text-[11px] text-blue-700 font-semibold mb-2">
+                      Total: ₹{halfTotal.toLocaleString('en-IN')} (Saved ₹{halfDiscount.toLocaleString('en-IN')})
                     </div>
 
                     <div className="space-y-1 text-[11px] text-[#64748B] border-t border-[#E7EAEE] pt-2">
                       <p className="flex items-center gap-1.5 text-[#191C22]">
-                        <span>💳</span> <span>Pay 50% now to confirm &amp; reserve slot</span>
+                        <span>💳</span> <span>1st Installment: ₹{halfFirstInstallment.toLocaleString('en-IN')} due now</span>
                       </p>
                       <p className="flex items-center gap-1.5 text-[#64748B]">
-                        <span>⏳</span> <span>Remaining ₹{halfPayableAmount.toLocaleString('en-IN')} due at shoot</span>
+                        <span>⏳</span> <span>2nd Installment: ₹{halfSecondInstallment.toLocaleString('en-IN')} due later</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-blue-800 font-medium">
+                        <span>🎁</span> <span>5% discount applied once to total amount</span>
                       </p>
                       <p className="flex items-center gap-1.5 text-[#64748B]">
-                        <span>🛡️</span> <span>Held in escrow until photographer arrives</span>
+                        <span>🛡️</span> <span>Both installments protected in REEPY Escrow</span>
                       </p>
                     </div>
                   </div>
@@ -777,8 +816,8 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
                       {isProcessingPayment
                         ? 'Initializing Checkout...'
                         : selectedPaymentMode === 'full'
-                        ? `Pay Full (₹${fullPayableAmount.toLocaleString('en-IN')}) — Get VIP Perks`
-                        : `Pay 50% Advance (₹${halfPayableAmount.toLocaleString('en-IN')}) — Reserve Slot`}
+                        ? `Pay Full (₹${fullPayableAmount.toLocaleString('en-IN')}) — Save 10% & VIP Perks`
+                        : `Pay 1st Installment (₹${halfFirstInstallment.toLocaleString('en-IN')}) — Save 5%`}
                     </span>
                   </button>
                 </div>

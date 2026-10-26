@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Star, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
 import { getPhotographerSlug } from '@/lib/photographerSlug';
+import { prefetchPhotographerProfile } from '@/lib/photographerProfileCache';
 
 export interface PhotographerCardProps {
   photographer: {
@@ -119,6 +120,7 @@ export const PhotographerCard: React.FC<PhotographerCardProps> = ({
 
   return (
     <div
+      onMouseEnter={() => prefetchPhotographerProfile(id)}
       className={`bg-white rounded-3xl border border-[#E7EAEE] overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group ${className}`}
     >
       <div>
@@ -132,6 +134,8 @@ export const PhotographerCard: React.FC<PhotographerCardProps> = ({
             <img
               src={coverSrc}
               alt={`${name} cover`}
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
               onError={() => {
                 if (coverSrc !== DEFAULT_COVER) {
@@ -181,6 +185,8 @@ export const PhotographerCard: React.FC<PhotographerCardProps> = ({
             <img
               src={avatarSrc}
               alt={name}
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
               onError={() => {
                 if (avatarSrc !== DEFAULT_AVATAR) {
@@ -253,6 +259,8 @@ export const PhotographerCard: React.FC<PhotographerCardProps> = ({
             <Link
               href={profileHref}
               onClick={handleProfileClick}
+              onMouseEnter={() => prefetchPhotographerProfile(id)}
+              onFocus={() => prefetchPhotographerProfile(id)}
               className="py-2.5 px-4 rounded-xl bg-[#191C22] hover:bg-black text-white text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <span>View Profile</span>

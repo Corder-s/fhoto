@@ -50,8 +50,62 @@ const BOOKING_LIST_SELECT = `
           id,
           title,
           duration_minutes
+        ),
+        payments:payments!booking_id (
+          id,
+          provider_order_id,
+          provider_payment_id,
+          amount,
+          currency,
+          payment_status,
+          payment_mode,
+          installment_number,
+          paid_at,
+          created_at
         )
       `;
+
+function enrichBookingFinancials(b: any) {
+  if (!b) return b;
+  const verifiedPayments = (b.payments || []).filter(
+    (p: any) => p.payment_status === 'paid' || p.payment_status === 'captured'
+  );
+  const verifiedAmountPaid = verifiedPayments.reduce(
+    (acc: number, p: any) => acc + (Number(p.amount) || 0),
+    0
+  );
+
+  const totalAmount = Number(b.total_amount) || 0;
+  const discountAmount = Number(b.discount_amount) || 0;
+  const finalDiscountedTotal = Math.max(0, totalAmount - discountAmount);
+
+  // Authoritative status and paid amounts based on this booking's own records
+  let authoritativePaid = Number(b.amount_paid) || verifiedAmountPaid;
+  let authoritativeStatus = b.payment_status || 'unpaid';
+
+  if (verifiedAmountPaid > 0) {
+    authoritativePaid = verifiedAmountPaid;
+    if (verifiedAmountPaid >= (finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount)) {
+      authoritativeStatus = 'paid';
+    } else {
+      authoritativeStatus = 'partially_paid';
+    }
+  } else if (b.payment_status === 'unpaid') {
+    authoritativePaid = 0;
+    authoritativeStatus = 'unpaid';
+  }
+
+  const remainingDue = Math.max(0, (finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount) - authoritativePaid);
+
+  return {
+    ...b,
+    amount_paid: authoritativePaid,
+    payment_status: authoritativeStatus,
+    remainingDue,
+    finalDiscountedTotal: finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount,
+    verifiedPayments,
+  };
+}
 
 /**
  * GET /api/customer/bookings
@@ -90,7 +144,8 @@ export async function GET(req: NextRequest) {
     if (!booking) {
       return jsonError(404, 'Booking not found or does not belong to you.');
     }
-    return NextResponse.json({ success: true, booking, bookings: [booking] });
+    const enriched = enrichBookingFinancials(booking);
+    return NextResponse.json({ success: true, booking: enriched, bookings: [enriched] });
   }
 
   const { data: bookings, error } = await admin
@@ -104,7 +159,8 @@ export async function GET(req: NextRequest) {
     return jsonError(500, 'Could not load bookings.');
   }
 
-  return NextResponse.json({ success: true, bookings: bookings || [] });
+  const enrichedList = (bookings || []).map(enrichBookingFinancials);
+  return NextResponse.json({ success: true, bookings: enrichedList });
 }
 
 /**

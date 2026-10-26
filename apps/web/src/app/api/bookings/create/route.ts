@@ -289,16 +289,8 @@ export async function POST(request: NextRequest) {
     });
     if (historyErr) console.error('Could not record booking history:', historyErr.message);
 
-    const { error: payoutErr } = await admin.from('creator_payouts').insert({
-      creator_id: creatorId,
-      booking_id: created.id,
-      gross_amount: pricing.serviceSubtotal + pricing.travelFee,
-      platform_fee: pricing.platformFee,
-      adjustment_amount: 0,
-      net_amount: pricing.photographerEarnings,
-      payout_status: 'in_escrow',
-    });
-    if (payoutErr) console.error('Could not create escrow record:', payoutErr.message);
+    // Note: Escrow payouts are allocated dynamically upon verified payment in /api/payments/verify
+    // and payment webhooks, ensuring unpaid bookings never register premature in_escrow liabilities.
 
     // Fetch Photographer's User Profile for Notifications
     const { data: creatorUser } = await admin

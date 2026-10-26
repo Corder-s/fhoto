@@ -29,6 +29,10 @@ import type { SamplePhotographer, PhotographerServicePackage } from '../../data/
 import { PortfolioLightbox } from '../gallery/PortfolioLightbox';
 import { useAuth } from '../../lib/auth';
 import { useAuthModal } from '../auth/AuthModalContext';
+import {
+  fetchPhotographerProfile,
+  getCachedPhotographerProfile,
+} from '../../lib/photographerProfileCache';
 
 const DEFAULT_COVER = '/reference-assets/seller_banner_photographer.jpg';
 const DEFAULT_AVATAR = '/reference-assets/seller_profile_aman.jpg';
@@ -43,6 +47,7 @@ function getInitials(name: string): string {
 export interface PhotographerProfileModalProps {
   isOpen: boolean;
   photographerId: string | null;
+  initialPhotographer?: SamplePhotographer | any | null;
   initialTab?: 'portfolio' | 'reviews' | 'book';
   onClose: () => void;
 }
@@ -50,6 +55,7 @@ export interface PhotographerProfileModalProps {
 export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> = ({
   isOpen,
   photographerId,
+  initialPhotographer = null,
   initialTab = 'portfolio',
   onClose,
 }) => {
@@ -138,168 +144,218 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
     };
   }, [isOpen, handleKeyDown]);
 
-  // Load photographer details
+  // Helper to normalize creator data from raw card, sample or API payload
+  const buildSamplePhotographer = useCallback((cp: any): SamplePhotographer => {
+    const startingPrice = Number(cp.startingPriceInr) || 2000;
+    const rawPackages = cp.services || cp.servicePackages || [];
+    const servicePackages: PhotographerServicePackage[] =
+      rawPackages.length > 0
+        ? rawPackages.map((s: any, idx: number) => {
+            const desc = s.description || '';
+            const lines = desc.split('\n').map((l: string) => l.trim()).filter(Boolean);
+            const features =
+              lines.length > 0
+                ? lines
+                : [
+                    'Full commercial & personal usage rights',
+                    'High-resolution master color-graded JPEGs',
+                    'Direct cloud delivery via private client gallery',
+                  ];
+
+            const durHours = s.durationMinutes ? Math.max(1, Math.round(s.durationMinutes / 60)) : 1;
+            return {
+              id: s.id,
+              name: s.name || s.title || 'Standard Session',
+              priceInr: Number(s.priceInr || s.base_price || startingPrice),
+              duration: s.duration || `${durHours} Hour${durHours > 1 ? 's' : ''}`,
+              photos: s.photos || desc || '30-40 color-graded frames',
+              turnaround: s.turnaround || `${s.deliveryHours || 48} Hours`,
+              isPopular: idx === 0,
+              features,
+            };
+          })
+        : [
+            {
+              id: 'standard-shoot',
+              name: 'Standard Portrait / Reels Shoot',
+              priceInr: startingPrice,
+              duration: '2 Hours',
+              photos: '30-40 color-graded frames',
+              turnaround: '48 Hours',
+              isPopular: true,
+              features: [
+                'Full commercial & personal usage rights',
+                '30-40 high-resolution color-graded master JPEGs',
+                'Direct cloud delivery via private client gallery',
+                'Verified Shoot-Start OTP handshake included',
+              ],
+            },
+            {
+              id: 'halfday-editorial',
+              name: 'Half-Day Editorial & Lifestyle',
+              priceInr: Math.round(startingPrice * 1.8),
+              duration: '4 Hours',
+              photos: '60-80 color-graded frames',
+              turnaround: '48 Hours',
+              isPopular: false,
+              features: [
+                'Multi-location coverage within city limits',
+                '60-80 high-resolution master JPEGs',
+                'Cinematic reel footage (raw + color graded)',
+                'Full commercial usage rights & platform escrow',
+              ],
+            },
+          ];
+
+    const rawPortfolio = cp.fullPortfolio || cp.portfolio || [];
+    const portfolioItems = rawPortfolio.map((p: any) => ({
+      id: p.id || String(Math.random()),
+      url: p.url || p.preview_url,
+      title: p.title || 'Creative Portfolio Staging',
+      category: p.category || p.mediaType || 'Portraits',
+    }));
+
+    const resolvedCover =
+      cp.coverImageUrl ||
+      portfolioItems[0]?.url ||
+      cp.portfolioPreviews?.[0] ||
+      DEFAULT_COVER;
+    const resolvedAvatar = cp.avatarUrl || DEFAULT_AVATAR;
+
+    const mapped: SamplePhotographer = {
+      id: cp.id,
+      name: cp.name || cp.professional_name || 'Verified Photographer',
+      tagline:
+        cp.tagline ||
+        (cp.bio ? cp.bio.slice(0, 90) + '...' : 'Verified Professional Creative Specialist'),
+      avatarUrl: resolvedAvatar,
+      coverImageUrl: resolvedCover,
+      isVerified: cp.isVerified ?? (cp.verification_status === 'approved'),
+      locationCity: cp.locationCity || cp.city || 'Delhi NCR',
+      locationArea:
+        cp.locationArea ||
+        (cp.city ? `${cp.city}, ${cp.state || 'India'}` : 'Delhi NCR, India'),
+      rating: Number(cp.rating || cp.average_rating) || 5.0,
+      reviewCount: Number(cp.reviewCount || cp.total_reviews) || 0,
+      categories: cp.categories || cp.specialties || ['Portraits', 'Events'],
+      startingPriceInr: startingPrice,
+      availabilityStatus:
+        cp.availabilityStatus || (cp.is_available ? 'Available Today' : 'Book in Advance'),
+      experienceYears: cp.experienceYears || cp.experience_years || 5,
+      cameraGear:
+        cp.cameraGear || 'Sony A7IV, DJI RS3 Gimbal, 24-70mm f/2.8, 50mm Prime',
+      specialties: cp.specialties || cp.categories || ['Portraits', 'Events', 'Reels'],
+      bio:
+        cp.bio ||
+        cp.biography ||
+        'Verified visual creator and professional photographer available for bookings and collaborations.',
+      portfolioPreviews:
+        cp.portfolioPreviews && cp.portfolioPreviews.length > 0
+          ? cp.portfolioPreviews
+          : portfolioItems.map((p: any) => p.url).slice(0, 4),
+      fullPortfolio: portfolioItems,
+      servicePackages,
+      reviews: cp.reviews || [],
+    };
+    (mapped as any).userId = cp.userId || cp.user_id;
+    (mapped as any).slug = cp.slug;
+    return mapped;
+  }, []);
+
+  // Synchronize and load photographer details
   useEffect(() => {
     if (!isOpen || !photographerId) {
       setCreator(null);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
     let isMounted = true;
-    async function fetchCreator() {
-      setIsLoading(true);
-      setError(null);
 
+    // 1. Instant hydration: Check if initialPhotographer matches or if cached profile exists
+    let hydratedImmediately = false;
+
+    if (
+      initialPhotographer &&
+      (initialPhotographer.id === photographerId ||
+        initialPhotographer.userId === photographerId ||
+        initialPhotographer.slug === photographerId)
+    ) {
+      const initialMapped = buildSamplePhotographer(initialPhotographer);
+      setCreator(initialMapped);
+      setCoverSrc(initialMapped.coverImageUrl);
+      setAvatarSrc(initialMapped.avatarUrl);
+      if (initialMapped.servicePackages.length > 0) {
+        setSelectedServiceId(initialMapped.servicePackages[0].id);
+      }
+      setEventLocation(initialMapped.locationArea || 'Delhi NCR');
+      setIsLoading(false);
+      hydratedImmediately = true;
+    } else {
+      const cached = getCachedPhotographerProfile(photographerId);
+      if (cached) {
+        const cachedMapped = buildSamplePhotographer(cached);
+        setCreator(cachedMapped);
+        setCoverSrc(cachedMapped.coverImageUrl);
+        setAvatarSrc(cachedMapped.avatarUrl);
+        if (cachedMapped.servicePackages.length > 0) {
+          setSelectedServiceId(cachedMapped.servicePackages[0].id);
+        }
+        setEventLocation(cachedMapped.locationArea || 'Delhi NCR');
+        setIsLoading(false);
+        hydratedImmediately = true;
+      }
+    }
+
+    if (!hydratedImmediately) {
+      setIsLoading(true);
+      setCreator(null);
+    }
+
+    // 2. Background fetch to enrich with authoritative packages, reviews, and portfolio
+    async function loadAuthoritativeProfile() {
       try {
-        const res = await fetch(`/api/photographers?id=${encodeURIComponent(photographerId!)}`);
-        const data = await res.json();
+        const cp = await fetchPhotographerProfile(photographerId!);
         if (!isMounted) return;
 
-        if (data.photographers && data.photographers.length > 0) {
-          const cp = data.photographers[0];
-
-          let rawPackages = cp.services || [];
-          if (rawPackages.length === 0) {
-            try {
-              const srvRes = await fetch(`/api/photographers/services?creatorId=${encodeURIComponent(cp.id)}`);
-              if (srvRes.ok) {
-                const srvData = await srvRes.json();
-                if (srvData.services && srvData.services.length > 0) {
-                  rawPackages = srvData.services.map((s: any) => ({
-                    id: s.id,
-                    name: s.title,
-                    description: s.description,
-                    priceInr: Number(s.base_price),
-                    durationMinutes: s.duration_minutes,
-                    deliveryHours: s.delivery_time_hours || 48,
-                  }));
-                }
-              }
-            } catch {
-              // ignore
+        if (cp) {
+          const freshMapped = buildSamplePhotographer(cp);
+          setCreator((prev) => {
+            // Smoothly preserve existing previews if fresh is still loading
+            if (prev && freshMapped.fullPortfolio.length === 0 && prev.fullPortfolio.length > 0) {
+              freshMapped.fullPortfolio = prev.fullPortfolio;
+              freshMapped.portfolioPreviews = prev.portfolioPreviews;
             }
+            return freshMapped;
+          });
+          setCoverSrc(freshMapped.coverImageUrl);
+          setAvatarSrc(freshMapped.avatarUrl);
+          if (freshMapped.servicePackages.length > 0) {
+            setSelectedServiceId((prevId) => {
+              const stillExists = freshMapped.servicePackages.some((s) => s.id === prevId);
+              return stillExists ? prevId : freshMapped.servicePackages[0].id;
+            });
           }
-
-          const startingPrice = Number(cp.startingPriceInr) || 2000;
-          const servicePackages: PhotographerServicePackage[] =
-            rawPackages.length > 0
-              ? rawPackages.map((s: any, idx: number) => {
-                  const desc = s.description || '';
-                  const lines = desc.split('\n').map((l: string) => l.trim()).filter(Boolean);
-                  const features =
-                    lines.length > 0
-                      ? lines
-                      : [
-                          'Full commercial & personal usage rights',
-                          'High-resolution master color-graded JPEGs',
-                          'Direct cloud delivery via private client gallery',
-                        ];
-
-                  const durHours = s.durationMinutes ? Math.max(1, Math.round(s.durationMinutes / 60)) : 1;
-                  return {
-                    id: s.id,
-                    name: s.name,
-                    priceInr: s.priceInr,
-                    duration: `${durHours} Hour${durHours > 1 ? 's' : ''}`,
-                    photos: desc || '30-40 color-graded frames',
-                    turnaround: `${s.deliveryHours || 48} Hours`,
-                    isPopular: idx === 0,
-                    features,
-                  };
-                })
-              : [
-                  {
-                    id: 'standard-shoot',
-                    name: 'Standard Portrait / Reels Shoot',
-                    priceInr: startingPrice,
-                    duration: '2 Hours',
-                    photos: '30-40 color-graded frames',
-                    turnaround: '48 Hours',
-                    isPopular: true,
-                    features: [
-                      'Full commercial & personal usage rights',
-                      '30-40 high-resolution color-graded master JPEGs',
-                      'Direct cloud delivery via private client gallery',
-                      'Verified Shoot-Start OTP handshake included',
-                    ],
-                  },
-                  {
-                    id: 'halfday-editorial',
-                    name: 'Half-Day Editorial & Lifestyle',
-                    priceInr: Math.round(startingPrice * 1.8),
-                    duration: '4 Hours',
-                    photos: '60-80 color-graded frames',
-                    turnaround: '48 Hours',
-                    isPopular: false,
-                    features: [
-                      'Multi-location coverage within city limits',
-                      '60-80 high-resolution master JPEGs',
-                      'Cinematic reel footage (raw + color graded)',
-                      'Full commercial usage rights & platform escrow',
-                    ],
-                  },
-                ];
-
-          const portfolioItems = (cp.portfolio || []).map((p: any) => ({
-            id: p.id,
-            url: p.url,
-            title: p.title || 'Creative Portfolio Staging',
-            category: p.mediaType || 'Portraits',
-          }));
-
-          const resolvedCover = cp.coverImageUrl || portfolioItems[0]?.url || DEFAULT_COVER;
-          const resolvedAvatar = cp.avatarUrl || DEFAULT_AVATAR;
-
-          const mapped: SamplePhotographer = {
-            id: cp.id,
-            name: cp.name,
-            tagline: cp.tagline || 'Verified Professional Creative Specialist',
-            avatarUrl: resolvedAvatar,
-            coverImageUrl: resolvedCover,
-            isVerified: cp.isVerified,
-            locationCity: cp.city || 'Delhi NCR',
-            locationArea: cp.locationArea || `${cp.city || 'Delhi NCR'}, India`,
-            rating: Number(cp.rating) || 5.0,
-            reviewCount: Number(cp.reviewCount) || 0,
-            categories: cp.specialties || ['Portraits', 'Events'],
-            startingPriceInr: startingPrice,
-            availabilityStatus: cp.availabilityStatus || 'Available today',
-            experienceYears: cp.experienceYears || 5,
-            cameraGear: cp.cameraGear || 'Sony A7IV, DJI RS3 Gimbal, 24-70mm f/2.8, 50mm Prime',
-            specialties: cp.specialties || ['Portraits', 'Events', 'Reels'],
-            bio:
-              cp.bio ||
-              'Reel specialist and content creator crafting viral visual content. I help brands and individuals produce scroll-stopping reels and lifestyle photography.',
-            portfolioPreviews: portfolioItems.map((p: any) => p.url).slice(0, 4),
-            fullPortfolio: portfolioItems,
-            servicePackages,
-            reviews: [],
-          };
-          (mapped as any).userId = cp.userId || cp.user_id;
-          (mapped as any).slug = cp.slug;
-
-          setCreator(mapped);
-          setCoverSrc(resolvedCover);
-          setAvatarSrc(resolvedAvatar);
-          if (servicePackages.length > 0) {
-            setSelectedServiceId(servicePackages[0].id);
-          }
-          setEventLocation(mapped.locationArea || 'Delhi NCR');
-        } else {
+          setEventLocation(freshMapped.locationArea || 'Delhi NCR');
+        } else if (!hydratedImmediately) {
           setError('Photographer profile not found.');
         }
       } catch (err: any) {
-        if (isMounted) setError(err.message || 'Failed to load photographer profile.');
+        if (isMounted && !hydratedImmediately) {
+          setError(err.message || 'Failed to load photographer profile.');
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
     }
 
-    fetchCreator();
+    loadAuthoritativeProfile();
+
     return () => {
       isMounted = false;
     };
-  }, [isOpen, photographerId]);
+  }, [isOpen, photographerId, initialPhotographer, buildSamplePhotographer]);
 
   const handleShare = () => {
     if (typeof window !== 'undefined' && creator) {
@@ -471,12 +527,44 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
 
           {/* Scrollable Container */}
           <div className="overflow-y-auto flex-1 flex flex-col">
-            {isLoading ? (
-              <div className="py-32 flex flex-col items-center justify-center space-y-3">
-                <div className="w-10 h-10 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-semibold text-[#64748B]">Loading creator profile...</p>
+            {isLoading && !creator ? (
+              <div className="flex-1 flex flex-col animate-pulse">
+                {/* Hero Banner Skeleton */}
+                <div className="relative h-60 sm:h-72 md:h-80 w-full bg-slate-200">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-300/80 via-slate-200/40 to-transparent" />
+                  <div className="absolute bottom-5 left-4 sm:left-7 right-4 sm:right-7 flex items-center gap-4 z-20">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-300 border-4 border-white shrink-0 shadow-md" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-6 bg-slate-300 rounded-lg w-48 max-w-full" />
+                      <div className="h-4 bg-slate-300/80 rounded w-32" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subheader / Tabs Skeleton */}
+                <div className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <div className="h-9 w-24 bg-slate-200 rounded-xl" />
+                    <div className="h-9 w-24 bg-slate-100 rounded-xl" />
+                    <div className="h-9 w-24 bg-slate-100 rounded-xl" />
+                  </div>
+                  <div className="h-9 w-32 bg-slate-200 rounded-xl hidden sm:block" />
+                </div>
+
+                {/* Body Content Skeleton */}
+                <div className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-slate-200 rounded w-full" />
+                    <div className="h-4 bg-slate-200 rounded w-4/5" />
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="aspect-[4/5] bg-slate-200 rounded-2xl" />
+                    <div className="aspect-[4/5] bg-slate-200 rounded-2xl" />
+                    <div className="aspect-[4/5] bg-slate-200 rounded-2xl" />
+                  </div>
+                </div>
               </div>
-            ) : error || !creator ? (
+            ) : !creator ? (
               <div className="py-24 px-6 text-center space-y-3">
                 <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
                 <h3 className="text-lg font-bold text-[#191C22]">Profile Unavailable</h3>

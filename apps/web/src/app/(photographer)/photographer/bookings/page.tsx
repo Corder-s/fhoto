@@ -505,6 +505,10 @@ export default function PhotographerBookingsPage() {
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Payment Secured (In Escrow)
                         </span>
+                      ) : b.paymentStatus === 'partially_paid' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                          <CheckCircle2 className="w-3 h-3 text-blue-600" /> 50% Advance Secured (In Escrow)
+                        </span>
                       ) : b.paymentStatus === 'refunded' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
                           Refunded
@@ -594,6 +598,8 @@ export default function PhotographerBookingsPage() {
                       <p className="text-[11px] text-ink-muted">
                         {b.paymentStatus === 'paid' ? (
                           <span className="text-emerald-600 font-bold">Your 80% Net Payout (Escrow Secured)</span>
+                        ) : b.paymentStatus === 'partially_paid' ? (
+                          <span className="text-blue-600 font-bold">50% Advance in Escrow • Net Payout: ₹{b.netEarnings.toLocaleString('en-IN')}</span>
                         ) : (
                           <span>Your 80% Net Payout (Gross: ₹{b.grossAmount.toLocaleString('en-IN')}) • <span className="text-amber-600 font-semibold">Client Unpaid</span></span>
                         )}
@@ -738,6 +744,10 @@ export default function PhotographerBookingsPage() {
                 {selectedBooking.paymentStatus === 'paid' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Funds Secured in Escrow
+                  </span>
+                ) : selectedBooking.paymentStatus === 'partially_paid' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                    <CheckCircle2 className="w-3 h-3 text-blue-600" /> 50% Advance in Escrow
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">

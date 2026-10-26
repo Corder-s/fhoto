@@ -95,15 +95,49 @@ export async function GET(
   // Fetch payment records associated with this booking
   const { data: payments } = await admin
     .from('payments')
-    .select('id, provider, provider_order_id, provider_payment_id, amount, currency, payment_status, paid_at, created_at')
+    .select('id, provider, provider_order_id, provider_payment_id, amount, currency, payment_status, payment_mode, installment_number, paid_at, created_at')
     .eq('booking_id', booking.id)
     .order('created_at', { ascending: false });
+
+  const verifiedPayments = (payments || []).filter(
+    (p: any) => p.payment_status === 'paid' || p.payment_status === 'captured'
+  );
+  const verifiedAmountPaid = verifiedPayments.reduce(
+    (acc: number, p: any) => acc + (Number(p.amount) || 0),
+    0
+  );
+
+  const totalAmount = Number(booking.total_amount) || 0;
+  const discountAmount = Number(booking.discount_amount) || 0;
+  const finalDiscountedTotal = Math.max(0, totalAmount - discountAmount);
+
+  let authoritativePaid = Number(booking.amount_paid) || verifiedAmountPaid;
+  let authoritativeStatus = booking.payment_status || 'unpaid';
+
+  if (verifiedAmountPaid > 0) {
+    authoritativePaid = verifiedAmountPaid;
+    if (verifiedAmountPaid >= (finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount)) {
+      authoritativeStatus = 'paid';
+    } else {
+      authoritativeStatus = 'partially_paid';
+    }
+  } else if (booking.payment_status === 'unpaid') {
+    authoritativePaid = 0;
+    authoritativeStatus = 'unpaid';
+  }
+
+  const remainingDue = Math.max(0, (finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount) - authoritativePaid);
 
   return NextResponse.json({
     success: true,
     booking: {
       ...booking,
+      amount_paid: authoritativePaid,
+      payment_status: authoritativeStatus,
+      remainingDue,
+      finalDiscountedTotal: finalDiscountedTotal > 0 ? finalDiscountedTotal : totalAmount,
       payments: payments || [],
+      verifiedPayments,
     },
   });
 }

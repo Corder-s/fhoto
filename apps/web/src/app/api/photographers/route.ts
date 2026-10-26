@@ -4,7 +4,6 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { resolveSlugSearchTerm, getPhotographerSlug } from '@/lib/photographerSlug';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
@@ -58,6 +57,9 @@ export async function GET(request: Request) {
       } else if (searchTerm) {
         queryBuilder = queryBuilder.ilike('professional_name', `%${searchTerm}%`);
       }
+      queryBuilder = queryBuilder.limit(1);
+    } else {
+      queryBuilder = queryBuilder.limit(60);
     }
 
     if (location && location !== 'All Locations') {
@@ -92,6 +94,7 @@ export async function GET(request: Request) {
           .eq('is_published', true)
           .in('creator_id', creatorIds)
           .order('display_order', { ascending: true })
+          .limit(creatorId ? 50 : creatorIds.length * 4)
       : Promise.resolve({ data: [] });
 
     const profilesPromise = userIds.length > 0
@@ -209,7 +212,7 @@ export async function GET(request: Request) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       }
     );

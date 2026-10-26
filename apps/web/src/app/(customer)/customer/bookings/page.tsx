@@ -148,13 +148,13 @@ export default function CustomerBookingsPage() {
               platformFee: Number(b.platform_fee || 0),
               taxes: Number(b.taxes || 0),
               amountInr: Number(b.total_amount || b.agreed_service_price) || 0,
-              amountPaid: Number(b.amount_paid) || (b.payment_status === 'paid' ? Number(b.total_amount) : (b.payment_status === 'partially_paid' ? Math.round(Number(b.total_amount) * 0.5) : 0)),
-              remainingDue: Math.max(0, Number(b.total_amount || b.agreed_service_price) - (Number(b.amount_paid) || (b.payment_status === 'paid' ? Number(b.total_amount) : (b.payment_status === 'partially_paid' ? Math.round(Number(b.total_amount) * 0.5) : 0)))),
+              amountPaid: Number(b.amount_paid) || 0,
+              remainingDue: b.remainingDue != null ? Number(b.remainingDue) : Math.max(0, (Number(b.total_amount || b.agreed_service_price) - Number(b.discount_amount || 0)) - (Number(b.amount_paid) || 0)),
               paymentMode: b.payment_mode || 'full',
               unlockedPerks: b.unlocked_perks || [],
               pricingBreakdown: b.pricing_breakdown,
               status,
-              paymentStatus: b.payment_status === 'paid' ? 'PAID_ESCROW' : (b.payment_status || 'unpaid'),
+              paymentStatus: b.payment_status || 'unpaid',
               startOtp: '482910',
               canCancel,
               cancellationReason: b.cancellation_reason,
@@ -344,21 +344,22 @@ export default function CustomerBookingsPage() {
         throw new Error(data.error || 'Server signature verification failed.');
       }
 
-      // Update local booking item
+      // Update local booking item strictly matching canonical ID
+      const target = params.booking?.rawId || params.booking?.id || params.bookingId;
       setBookings((prev) =>
-        prev.map((b) =>
-          b.id === params.booking.id || b.rawId === params.bookingId
-            ? {
-                ...b,
-                paymentStatus: data.paymentStatus === 'paid' ? 'PAID_ESCROW' : (data.paymentStatus || 'PAID_ESCROW'),
-                status: 'CONFIRMED',
-                amountPaid: data.amountPaid || (data.paymentStatus === 'partially_paid' ? Math.round(params.booking.amountInr * 0.5) : params.booking.amountInr),
-                remainingDue: data.remainingDue ?? (data.paymentStatus === 'partially_paid' ? params.booking.amountInr - Math.round(params.booking.amountInr * 0.5) : 0),
-                paymentMode: data.paymentMode || b.paymentMode,
-                unlockedPerks: data.unlockedPerks || b.unlockedPerks || [],
-              }
-            : b
-        )
+        prev.map((b) => {
+          const isMatch = Boolean(target && (b.rawId === target || b.id === target));
+          if (!isMatch) return b;
+          return {
+            ...b,
+            paymentStatus: data.paymentStatus || 'paid',
+            status: 'CONFIRMED',
+            amountPaid: Number(data.amountPaid) || b.amountPaid,
+            remainingDue: Number(data.remainingDue) ?? 0,
+            paymentMode: data.paymentMode || b.paymentMode,
+            unlockedPerks: data.unlockedPerks || b.unlockedPerks || [],
+          };
+        })
       );
 
       setPaymentSuccessModal({
@@ -628,7 +629,11 @@ export default function CustomerBookingsPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Itemized Charges & Payment Ledger</span>
                       {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid &amp; Secured in Escrow
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Fully Paid &amp; Secured in Escrow
+                        </span>
+                      ) : b.paymentStatus === 'partially_paid' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                          <CheckCircle2 className="w-3 h-3 text-blue-600" /> 50% Advance in Escrow • Balance Due
                         </span>
                       ) : b.status === 'PENDING' ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -636,7 +641,7 @@ export default function CustomerBookingsPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                          <Clock className="w-3 h-3 text-amber-600" /> Payment Required
+                          <Clock className="w-3 h-3 text-amber-600" /> Payment Required (Unpaid)
                         </span>
                       )}
                     </div>
@@ -726,12 +731,17 @@ export default function CustomerBookingsPage() {
                       {b.paymentStatus === 'PAID_ESCROW' || b.paymentStatus === 'paid' ? (
                         <span className="text-emerald-700 font-bold flex items-center gap-1">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Escrow Protected (Paid)</span>
+                          <span>Escrow Protected (Fully Paid)</span>
+                        </span>
+                      ) : b.paymentStatus === 'partially_paid' ? (
+                        <span className="text-blue-700 font-bold flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                          <span>50% in Escrow (Balance Due)</span>
                         </span>
                       ) : (
                         <span className="text-amber-700 font-bold flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Payment Due ({b.paymentStatus.toUpperCase()})</span>
+                          <span>Payment Due (Unpaid)</span>
                         </span>
                       )}
                     </div>
@@ -1032,168 +1042,193 @@ export default function CustomerBookingsPage() {
             </div>
 
             {/* Two Selectable Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Option 1: Full Payment (Recommended) */}
-              <button
-                type="button"
-                onClick={() => setPaymentPlanModalBooking({ ...paymentPlanModalBooking, mode: 'full' })}
-                className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
-                  paymentPlanModalBooking.mode === 'full'
-                    ? 'border-emerald-500 bg-emerald-50/50 shadow-md ring-2 ring-emerald-500/20'
-                    : 'border-[#E7EAEE] bg-white hover:border-emerald-200 hover:bg-[#F8FAFC]'
-                }`}
-              >
-                <div className="absolute -top-2.5 right-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  <span>Recommended • Save 5%</span>
-                </div>
+            {(() => {
+              const eligibleTotal = paymentPlanModalBooking.booking.amountInr;
+              const fullDiscount = Math.round(eligibleTotal * 0.10);
+              const fullTotal = eligibleTotal - fullDiscount;
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-emerald-900 uppercase tracking-wide">
-                      100% Full Payment
-                    </span>
-                    <input
-                      type="radio"
-                      checked={paymentPlanModalBooking.mode === 'full'}
-                      onChange={() => {}}
-                      className="accent-emerald-600 w-4 h-4 cursor-pointer"
-                    />
+              const halfDiscount = Math.round(eligibleTotal * 0.05);
+              const halfTotal = eligibleTotal - halfDiscount;
+              const firstInstallment = Math.round(halfTotal * 0.5);
+              const secondInstallment = halfTotal - firstInstallment;
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Option 1: Full Payment (10% Discount) */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentPlanModalBooking({ ...paymentPlanModalBooking, mode: 'full' })}
+                      className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                        paymentPlanModalBooking.mode === 'full'
+                          ? 'border-emerald-500 bg-emerald-50/50 shadow-md ring-2 ring-emerald-500/20'
+                          : 'border-[#E7EAEE] bg-white hover:border-emerald-200 hover:bg-[#F8FAFC]'
+                      }`}
+                    >
+                      <div className="absolute -top-2.5 right-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>Recommended • Save 10%</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-emerald-900 uppercase tracking-wide">
+                            Full Payment — Save 10%
+                          </span>
+                          <input
+                            type="radio"
+                            checked={paymentPlanModalBooking.mode === 'full'}
+                            onChange={() => {}}
+                            className="accent-emerald-600 w-4 h-4 cursor-pointer"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-emerald-950">
+                              ₹{fullTotal.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-xs font-bold text-[#94A3B8] line-through">
+                              ₹{eligibleTotal.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                            Save ₹{fullDiscount.toLocaleString('en-IN')} Instantly (10% Off)
+                          </span>
+                        </div>
+
+                        {/* VIP Perks */}
+                        <div className="pt-2 border-t border-emerald-200/60 space-y-1.5 text-[11px] text-emerald-950">
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>10% Instant Prepayment Discount</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>Priority 48-Hour Rush Delivery</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>10 Extra Pro-Edited Photos Included</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>100% REEPY Escrow Protection</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <RefreshCw className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>1 Free Date Rescheduling</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-[10px] text-emerald-700 font-bold bg-white/80 p-2 rounded-lg border border-emerald-200/60 text-center">
+                        Zero balance due on shoot day (₹0 remaining)
+                      </div>
+                    </button>
+
+                    {/* Option 2: Half Payment (5% Discount + Split Installments) */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentPlanModalBooking({ ...paymentPlanModalBooking, mode: 'half' })}
+                      className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                        paymentPlanModalBooking.mode === 'half'
+                          ? 'border-[#14B8A6] bg-[#EFFCF8]/50 shadow-md ring-2 ring-[#14B8A6]/20'
+                          : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40 hover:bg-[#F8FAFC]'
+                      }`}
+                    >
+                      <div className="absolute -top-2.5 right-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                        <span>Flexible • Save 5%</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-[#191C22] uppercase tracking-wide">
+                            Half Payment — Save 5%
+                          </span>
+                          <input
+                            type="radio"
+                            checked={paymentPlanModalBooking.mode === 'half'}
+                            onChange={() => {}}
+                            className="accent-[#14B8A6] w-4 h-4 cursor-pointer"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-[#191C22]">
+                              ₹{firstInstallment.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-xs text-[#94A3B8]">Now (50%)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] font-extrabold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                              Save ₹{halfDiscount.toLocaleString('en-IN')} (5% Off Total)
+                            </span>
+                            <span className="text-[10px] text-[#94A3B8]">Total: ₹{halfTotal.toLocaleString('en-IN')}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-[#64748B] block mt-1">
+                            Remaining ₹{secondInstallment.toLocaleString('en-IN')} due before shoot completion
+                          </span>
+                        </div>
+
+                        {/* Standard terms */}
+                        <div className="pt-2 border-t border-[#E7EAEE] space-y-1.5 text-[11px] text-[#64748B]">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                            <span>5% discount applied to eligible booking</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                            <span>Locks in photographer calendar slot</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
+                            <span>50% Escrow protected advance</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+                            <span>Remaining 50% payable via dashboard</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-[10px] text-[#64748B] font-bold bg-[#F5F7F9] p-2 rounded-lg border border-[#E7EAEE] text-center">
+                        Second installment: ₹{secondInstallment.toLocaleString('en-IN')}
+                      </div>
+                    </button>
                   </div>
 
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-emerald-950">
-                        ₹{(paymentPlanModalBooking.booking.amountInr - Math.round(paymentPlanModalBooking.booking.amountInr * 0.05)).toLocaleString('en-IN')}
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">
+                    <button
+                      type="button"
+                      disabled={payingBookingId === (paymentPlanModalBooking.booking.rawId || paymentPlanModalBooking.booking.id) || isProcessingPayment}
+                      onClick={() => {
+                        const targetBooking = paymentPlanModalBooking.booking;
+                        const mode = paymentPlanModalBooking.mode;
+                        handleInitiatePayment(targetBooking, mode);
+                      }}
+                      className="w-full sm:flex-1 py-3 px-5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4 text-white" />
+                      <span>
+                        {paymentPlanModalBooking.mode === 'full'
+                          ? `Proceed to Pay Full Amount — ₹${fullTotal.toLocaleString('en-IN')}`
+                          : `Proceed to Pay First Installment — ₹${firstInstallment.toLocaleString('en-IN')}`}
                       </span>
-                      <span className="text-xs font-bold text-[#94A3B8] line-through">
-                        ₹{paymentPlanModalBooking.booking.amountInr.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                      Save ₹{Math.round(paymentPlanModalBooking.booking.amountInr * 0.05).toLocaleString('en-IN')} Instantly
-                    </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentPlanModalBooking(null)}
+                      className="w-full sm:w-auto px-4 py-3 rounded-xl text-xs font-bold text-[#64748B] hover:bg-[#F5F7F9] border border-[#E7EAEE] transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
-
-                  {/* VIP Perks */}
-                  <div className="pt-2 border-t border-emerald-200/60 space-y-1.5 text-[11px] text-emerald-950">
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>5% Instant Prepayment Discount</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Priority 48-Hour Rush Delivery</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>10 Extra Pro-Edited Photos</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>100% Escrow Protection</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <RefreshCw className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>1 Free Date Rescheduling</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 text-[10px] text-emerald-700 font-bold bg-white/80 p-2 rounded-lg border border-emerald-200/60 text-center">
-                  Zero balance due on shoot day
-                </div>
-              </button>
-
-              {/* Option 2: 50% Advance (Half Payment) */}
-              <button
-                type="button"
-                onClick={() => setPaymentPlanModalBooking({ ...paymentPlanModalBooking, mode: 'half' })}
-                className={`relative text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
-                  paymentPlanModalBooking.mode === 'half'
-                    ? 'border-[#14B8A6] bg-[#EFFCF8]/50 shadow-md ring-2 ring-[#14B8A6]/20'
-                    : 'border-[#E7EAEE] bg-white hover:border-[#14B8A6]/40 hover:bg-[#F8FAFC]'
-                }`}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-[#191C22] uppercase tracking-wide">
-                      50% Half Payment
-                    </span>
-                    <input
-                      type="radio"
-                      checked={paymentPlanModalBooking.mode === 'half'}
-                      onChange={() => {}}
-                      className="accent-[#14B8A6] w-4 h-4 cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-[#191C22]">
-                        ₹{Math.round(paymentPlanModalBooking.booking.amountInr * 0.5).toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-xs text-[#94A3B8]">Now</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-[#64748B] block mt-0.5">
-                      Remaining ₹{(paymentPlanModalBooking.booking.amountInr - Math.round(paymentPlanModalBooking.booking.amountInr * 0.5)).toLocaleString('en-IN')} due before shoot completion
-                    </span>
-                  </div>
-
-                  {/* Standard terms */}
-                  <div className="pt-2 border-t border-[#E7EAEE] space-y-1.5 text-[11px] text-[#64748B]">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                      <span>Locks in photographer calendar slot</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-                      <span>Escrow protected advance</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-                      <span>Standard 5–7 day delivery timeline</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[#94A3B8]">
-                      <span className="text-xs leading-none">•</span>
-                      <span>No prepayment discount</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 text-[10px] text-[#64748B] font-bold bg-[#F5F7F9] p-2 rounded-lg border border-[#E7EAEE] text-center">
-                  Second 50% payable via dashboard
-                </div>
-              </button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#E7EAEE]">
-              <button
-                type="button"
-                disabled={payingBookingId === (paymentPlanModalBooking.booking.rawId || paymentPlanModalBooking.booking.id) || isProcessingPayment}
-                onClick={() => {
-                  const targetBooking = paymentPlanModalBooking.booking;
-                  const mode = paymentPlanModalBooking.mode;
-                  handleInitiatePayment(targetBooking, mode);
-                }}
-                className="w-full sm:flex-1 py-3 px-5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 text-white" />
-                <span>
-                  {paymentPlanModalBooking.mode === 'full'
-                    ? `Proceed to Pay Full Amount — ₹${(paymentPlanModalBooking.booking.amountInr - Math.round(paymentPlanModalBooking.booking.amountInr * 0.05)).toLocaleString('en-IN')}`
-                    : `Proceed to Pay 50% Advance — ₹${Math.round(paymentPlanModalBooking.booking.amountInr * 0.5).toLocaleString('en-IN')}`}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentPlanModalBooking(null)}
-                className="w-full sm:w-auto px-4 py-3 rounded-xl text-xs font-bold text-[#64748B] hover:bg-[#F5F7F9] border border-[#E7EAEE] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

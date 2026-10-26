@@ -10,6 +10,11 @@ import { isUuid } from '@/lib/server/policy';
 
 export const dynamic = 'force-dynamic';
 
+// Lightweight in-memory cache for static platform distance settings (60s TTL)
+let cachedPlatformDistance: any = null;
+let cachedPlatformDistanceTimestamp = 0;
+const PLATFORM_SETTINGS_TTL = 60 * 1000;
+
 /**
  * POST /api/bookings/quote
  *
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Database service is unavailable.' }, { status: 503 });
   }
 
-  // 1. Fetch Creator and Travel Settings
+  // 1. Prepare queries for parallel execution
   let creatorQuery = admin
     .from('creator_profiles')
     .select(`
@@ -73,28 +78,54 @@ export async function POST(req: NextRequest) {
     creatorQuery = creatorQuery.ilike('professional_name', `%${creatorId}%`);
   }
 
-  const { data: creator, error: creatorErr } = await creatorQuery.limit(1).maybeSingle();
+  const shouldFetchService = Boolean(serviceId && isUuid(serviceId));
+  const servicePromise = shouldFetchService
+    ? admin
+        .from('creator_services')
+        .select('id, creator_id, base_price, duration_minutes, is_active')
+        .eq('id', serviceId)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
 
+  const now = Date.now();
+  const shouldFetchPlatformDistance = !cachedPlatformDistance || (now - cachedPlatformDistanceTimestamp > PLATFORM_SETTINGS_TTL);
+  const platformDistancePromise = shouldFetchPlatformDistance
+    ? admin
+        .from('platform_distance_settings')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : Promise.resolve({ data: cachedPlatformDistance });
+
+  // Execute creator, service, and platform settings queries concurrently
+  const [creatorRes, serviceRes, platformDistanceRes] = await Promise.all([
+    creatorQuery.limit(1).maybeSingle(),
+    servicePromise,
+    platformDistancePromise,
+  ]);
+
+  const { data: creator, error: creatorErr } = creatorRes;
   if (creatorErr || !creator) {
     return NextResponse.json({ error: 'Photographer not found.' }, { status: 404 });
   }
 
-  // 2. Fetch Selected Service Package Price and Duration
+  if (shouldFetchPlatformDistance && platformDistanceRes.data) {
+    cachedPlatformDistance = platformDistanceRes.data;
+    cachedPlatformDistanceTimestamp = now;
+  }
+  const platformDistance = cachedPlatformDistance || platformDistanceRes.data;
+
+  // 2. Resolve Selected Service Package Price and Duration
   let basePackagePrice = 2000;
   let serviceBaseHours = 2;
-  if (serviceId && isUuid(serviceId)) {
-    const { data: service } = await admin
-      .from('creator_services')
-      .select('id, base_price, duration_minutes, is_active')
-      .eq('id', serviceId)
-      .eq('creator_id', creator.id)
-      .maybeSingle();
+  const service = serviceRes.data;
 
-    if (service && service.base_price) {
-      basePackagePrice = Number(service.base_price);
-      if (service.duration_minutes && service.duration_minutes > 0) {
-        serviceBaseHours = Math.max(1, Math.round(service.duration_minutes / 60));
-      }
+  if (service && service.base_price && (!service.creator_id || service.creator_id === creator.id)) {
+    basePackagePrice = Number(service.base_price);
+    if (service.duration_minutes && service.duration_minutes > 0) {
+      serviceBaseHours = Math.max(1, Math.round(service.duration_minutes / 60));
     }
   } else if (typeof body.basePackagePrice === 'number' && body.basePackagePrice > 0) {
     basePackagePrice = body.basePackagePrice;
@@ -143,15 +174,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 5. Query Active Platform Distance Settings
-  const { data: platformDistance } = await admin
-    .from('platform_distance_settings')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+  // 5. Compute Effective Travel Rates from Platform & Creator Settings
   const freeKm = platformDistance ? Number(platformDistance.free_travel_km) : DEFAULT_TRAVEL_SETTINGS.includedTravelKm;
   const platformRate = platformDistance ? Number(platformDistance.travel_fee_per_km) : DEFAULT_TRAVEL_SETTINGS.travelFeePerKm;
   const allowOverride = platformDistance ? platformDistance.allow_photographer_override : true;
