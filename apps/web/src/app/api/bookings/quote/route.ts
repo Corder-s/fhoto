@@ -13,8 +13,9 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/bookings/quote
  *
- * Computes an authoritative live distance and price breakdown preview
- * based on the photographer's configured travel rules and the event location.
+ * Computes an authoritative live distance, duration, and price breakdown preview
+ * based on the photographer's configured travel rules, selected package, duration,
+ * and the event location.
  */
 export async function POST(req: NextRequest) {
   let body: Record<string, any>;
@@ -24,7 +25,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
   }
 
-  const { creatorId, serviceId, eventLocation, locationLatitude, locationLongitude } = body;
+  const {
+    creatorId,
+    serviceId,
+    eventLocation,
+    locationLatitude,
+    locationLongitude,
+    durationHours: rawDurationHours,
+  } = body;
+
+  const durationHours = rawDurationHours && Number(rawDurationHours) > 0 ? Number(rawDurationHours) : 2;
 
   if (!creatorId) {
     return NextResponse.json({ error: 'creatorId is required.' }, { status: 400 });
@@ -69,21 +79,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Photographer not found.' }, { status: 404 });
   }
 
-  // 2. Fetch Selected Service Package Price
-  let basePackagePrice = 2499;
+  // 2. Fetch Selected Service Package Price and Duration
+  let basePackagePrice = 2000;
+  let serviceBaseHours = 2;
   if (serviceId && isUuid(serviceId)) {
     const { data: service } = await admin
       .from('creator_services')
-      .select('id, base_price, is_active')
+      .select('id, base_price, duration_minutes, is_active')
       .eq('id', serviceId)
       .eq('creator_id', creator.id)
       .maybeSingle();
 
     if (service && service.base_price) {
       basePackagePrice = Number(service.base_price);
+      if (service.duration_minutes && service.duration_minutes > 0) {
+        serviceBaseHours = Math.max(1, Math.round(service.duration_minutes / 60));
+      }
     }
   } else if (typeof body.basePackagePrice === 'number' && body.basePackagePrice > 0) {
     basePackagePrice = body.basePackagePrice;
+    if (typeof body.serviceBaseHours === 'number' && body.serviceBaseHours > 0) {
+      serviceBaseHours = body.serviceBaseHours;
+    }
   }
 
   // 3. Resolve Photographer Base Coordinates
@@ -148,6 +165,8 @@ export async function POST(req: NextRequest) {
   // 6. Compute Authoritative Pricing Snapshot
   const pricingSnapshot = calculateAuthoritativePricing({
     basePackagePrice,
+    durationHours,
+    serviceBaseHours,
     photographerCoords: { lat: photogLat, lng: photogLng },
     venueCoords: { lat: venueLat, lng: venueLng },
     photographerBaseAddress: creator.base_address || creator.city || 'Delhi NCR',

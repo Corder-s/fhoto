@@ -44,9 +44,17 @@ export interface CustomerBookingItem {
   date: string;
   timeSlot: string;
   duration: string;
+  durationHours: number;
   venueAddress: string;
   notes?: string;
+  agreedServicePrice: number;
+  travelDistanceKm: number;
+  includedTravelKm: number;
+  travelFee: number;
+  platformFee: number;
+  taxes: number;
   amountInr: number;
+  pricingBreakdown?: any;
   status: CustomerBookingUiStatus;
   paymentStatus: string;
   startOtp: string;
@@ -60,6 +68,7 @@ export default function CustomerBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ALL' | 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [cancelModalBooking, setCancelModalBooking] = useState<CustomerBookingItem | null>(null);
+  const [breakdownModalBooking, setBreakdownModalBooking] = useState<CustomerBookingItem | null>(null);
   const [cancelReason, setCancelReason] = useState('Change of personal schedule');
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -88,6 +97,15 @@ export default function CustomerBookingsPage() {
 
             const canCancel = status === 'PENDING' || status === 'CONFIRMED';
 
+            const durationVal =
+              b.duration_hours != null && Number(b.duration_hours) > 0
+                ? Number(b.duration_hours)
+                : b.start_at && b.end_at
+                ? Math.max(1, Math.round((Date.parse(b.end_at) - Date.parse(b.start_at)) / 3600000))
+                : b.pricing_breakdown?.durationHours
+                ? Number(b.pricing_breakdown.durationHours)
+                : Math.max(1, Math.round((b.service?.duration_minutes || 120) / 60));
+
             return {
               id: b.booking_reference || b.id,
               rawId: b.id,
@@ -100,10 +118,18 @@ export default function CustomerBookingsPage() {
               packageTitle: b.event_title || 'Client Shoot Session',
               date: b.event_date || 'Upcoming',
               timeSlot: b.start_at ? new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:00 AM - 01:00 PM',
-              duration: `${Math.round((b.service?.duration_minutes || 120) / 60)} Hours`,
+              duration: `${durationVal} Hour${durationVal > 1 ? 's' : ''}`,
+              durationHours: durationVal,
               venueAddress: b.event_location || 'Designated Shoot Venue',
               notes: b.customer_notes,
-              amountInr: Number(b.total_amount || b.agreed_service_price) || 4999,
+              agreedServicePrice: Number(b.agreed_service_price || 0),
+              travelDistanceKm: Number(b.travel_distance_km || 0),
+              includedTravelKm: Number(b.included_travel_km || 20),
+              travelFee: Number(b.travel_fee || 0),
+              platformFee: Number(b.platform_fee || 0),
+              taxes: Number(b.taxes || 0),
+              amountInr: Number(b.total_amount || b.agreed_service_price) || 0,
+              pricingBreakdown: b.pricing_breakdown,
               status,
               paymentStatus: b.payment_status === 'paid' ? 'PAID_ESCROW' : b.payment_status || 'PAID_ESCROW',
               startOtp: '482910',
@@ -389,6 +415,14 @@ export default function CustomerBookingsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 w-full lg:justify-end">
+                    <button
+                      onClick={() => setBreakdownModalBooking(b)}
+                      className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#191C22] bg-[#F5F7F9] hover:bg-[#EBEFF3] border border-[#E7EAEE] transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#14B8A6]" />
+                      <span>View Price Breakdown</span>
+                    </button>
+
                     <Link
                       href={`/photographers/${b.photographerId}`}
                       className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] border border-[#E7EAEE]"
@@ -469,6 +503,125 @@ export default function CustomerBookingsPage() {
                 className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {isCancelling ? 'Processing...' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRICE BREAKDOWN MODAL */}
+      {breakdownModalBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-[#E7EAEE] shadow-elevated space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E7EAEE]">
+              <div>
+                <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+                  Authoritative Price Breakdown
+                </span>
+                <h3 className="text-base font-black text-[#191C22]">
+                  {breakdownModalBooking.id}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBreakdownModalBooking(null)}
+                className="w-8 h-8 rounded-full bg-[#F5F7F9] hover:bg-[#EBEFF3] flex items-center justify-center text-[#64748B] hover:text-[#191C22] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Session Summary */}
+            <div className="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E7EAEE] space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Photographer:</span>
+                <span className="font-bold text-[#191C22]">{breakdownModalBooking.photographerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Shoot Package:</span>
+                <span className="font-bold text-[#191C22]">{breakdownModalBooking.packageTitle}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Selected Duration:</span>
+                <span className="font-bold text-[#14B8A6]">{breakdownModalBooking.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Event Date &amp; Time:</span>
+                <span className="font-medium text-[#191C22]">{breakdownModalBooking.date}, {breakdownModalBooking.timeSlot}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94A3B8]">Venue:</span>
+                <span className="font-medium text-[#191C22] max-w-[240px] truncate text-right">{breakdownModalBooking.venueAddress}</span>
+              </div>
+            </div>
+
+            {/* Itemized Line Items */}
+            <div className="space-y-2 text-xs text-[#64748B] border-b border-[#F1F5F9] pb-3">
+              <div className="flex justify-between items-center">
+                <span>Service Subtotal ({breakdownModalBooking.duration})</span>
+                <span className="font-bold text-[#191C22]">
+                  ₹{(breakdownModalBooking.pricingBreakdown?.serviceSubtotal || breakdownModalBooking.agreedServicePrice).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>
+                  Travel Charges
+                  {breakdownModalBooking.pricingBreakdown
+                    ? ` (${breakdownModalBooking.pricingBreakdown.calculatedDistanceKm} km, first ${breakdownModalBooking.pricingBreakdown.includedTravelKm} km free)`
+                    : ' (First 20 km included)'}
+                </span>
+                <span className="font-bold text-[#191C22]">
+                  {(breakdownModalBooking.pricingBreakdown?.travelFee || breakdownModalBooking.travelFee) > 0
+                    ? `₹${(breakdownModalBooking.pricingBreakdown?.travelFee || breakdownModalBooking.travelFee).toLocaleString('en-IN')}`
+                    : 'FREE (₹0)'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Platform Facilitation Fee (10% Escrow &amp; Guarantee)</span>
+                <span className="font-bold text-[#191C22]">
+                  ₹{(breakdownModalBooking.pricingBreakdown?.platformFee || breakdownModalBooking.platformFee).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Applicable Taxes (GST 18%)</span>
+                <span className="font-bold text-[#191C22]">
+                  ₹{(breakdownModalBooking.pricingBreakdown?.taxes || breakdownModalBooking.taxes).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            {/* Total and Escrow State */}
+            <div className="flex items-center justify-between p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-emerald-950">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider block text-emerald-800">
+                  Total Payable Amount
+                </span>
+                <span className="text-xl font-black text-emerald-950">
+                  ₹{breakdownModalBooking.amountInr.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Payment Status</span>
+                <span className="text-xs font-black text-emerald-900 bg-emerald-200/60 px-2.5 py-1 rounded-full">
+                  {breakdownModalBooking.paymentStatus}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+              Protected by REEPY Escrow: Your deposit is safely held until shoot completion and OTP verification.
+            </p>
+
+            <div className="flex justify-end pt-2 border-t border-[#E7EAEE]">
+              <button
+                type="button"
+                onClick={() => setBreakdownModalBooking(null)}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-[#191C22] bg-[#F5F7F9] hover:bg-[#EBEFF3] transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

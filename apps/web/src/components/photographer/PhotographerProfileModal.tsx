@@ -88,6 +88,11 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccessData, setBookingSuccessData] = useState<any | null>(null);
 
+  // Live Authoritative Quote State
+  const [quote, setQuote] = useState<any | null>(null);
+  const [isCalculatingQuote, setIsCalculatingQuote] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
   // Reset tab on open
   useEffect(() => {
     if (isOpen) {
@@ -296,8 +301,6 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
     };
   }, [isOpen, photographerId]);
 
-  if (!isOpen) return null;
-
   const handleShare = () => {
     if (typeof window !== 'undefined' && creator) {
       const url = `${window.location.origin}/photographers/${creator.id}`;
@@ -315,7 +318,64 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
   // Calculate estimated price based on selected service / hourly rate
   const selectedService = creator?.servicePackages.find((s) => s.id === selectedServiceId);
   const baseRate = selectedService ? selectedService.priceInr : (creator?.startingPriceInr || 2000);
-  const estimatedTotal = Math.round(baseRate * (durationHours / 2));
+  const serviceBaseHours = 2;
+  const fallbackSubtotal = Math.round(baseRate * (durationHours / serviceBaseHours));
+  const fallbackPlatformFee = Math.round(fallbackSubtotal * 0.1);
+  const fallbackTaxes = Math.round((fallbackSubtotal + fallbackPlatformFee) * 0.18);
+  const displaySubtotal = quote?.serviceSubtotal ?? fallbackSubtotal;
+  const displayTravelFee = quote?.travelFee ?? 0;
+  const displayPlatformFee = quote?.platformFee ?? fallbackPlatformFee;
+  const displayTaxes = quote?.taxes ?? fallbackTaxes;
+  const displayTotal = quote?.totalAmount ?? (fallbackSubtotal + fallbackPlatformFee + fallbackTaxes);
+
+  // Live Authoritative Quote Recalculation
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'book' || !creator || !eventLocation.trim() || eventLocation.trim().length < 3) {
+      setQuote(null);
+      return;
+    }
+
+    let isCancelled = false;
+    const timer = setTimeout(async () => {
+      setIsCalculatingQuote(true);
+      setQuoteError(null);
+
+      try {
+        const res = await fetch('/api/bookings/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            creatorId: creator.id,
+            serviceId: selectedServiceId.includes('standard') || selectedServiceId.includes('halfday') ? undefined : selectedServiceId,
+            basePackagePrice: selectedService ? selectedService.priceInr : (creator?.startingPriceInr || 2000),
+            durationHours,
+            eventLocation: eventLocation.trim(),
+          }),
+        });
+
+        const data = await res.json();
+        if (isCancelled) return;
+
+        if (res.ok && data.success && data.quote) {
+          setQuote(data.quote);
+          setQuoteError(null);
+        } else {
+          setQuoteError(data.error || 'Could not calculate quote.');
+        }
+      } catch (err: any) {
+        if (!isCancelled) {
+          setQuoteError(err?.message || 'Distance and price calculation error.');
+        }
+      } finally {
+        if (!isCancelled) setIsCalculatingQuote(false);
+      }
+    }, 300);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen, activeTab, creator, selectedServiceId, durationHours, eventLocation, selectedService]);
 
   // Handle Booking Request Submission
   const handleBookingSubmit = async (e: React.FormEvent) => {
@@ -339,6 +399,10 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
     setBookingError(null);
 
     try {
+      const startDateTime = `${eventDate}T10:00:00Z`;
+      const endHour = Math.min(23, 10 + durationHours);
+      const endDateTime = `${eventDate}T${endHour.toString().padStart(2, '0')}:00:00Z`;
+
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,8 +412,9 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
           serviceId: selectedServiceId.includes('standard') || selectedServiceId.includes('halfday') ? undefined : selectedServiceId,
           eventTitle: `Booking Request: ${selectedService?.name || 'Photography Session'}`,
           eventDate: eventDate,
-          startAt: `${eventDate}T10:00:00Z`,
-          endAt: `${eventDate}T${10 + durationHours}:00:00Z`,
+          durationHours: durationHours,
+          startAt: startDateTime,
+          endAt: endDateTime,
           eventLocation: eventLocation.trim(),
           customerNotes: `Client: ${clientName} (${clientPhone}, ${clientEmail})\nNotes: ${customerNotes}`,
           bookingType: 'scheduled',
@@ -362,7 +427,9 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
         setBookingSuccessData(data.booking || {
           id: `BK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           date: eventDate,
-          amount: estimatedTotal,
+          duration_hours: durationHours,
+          agreed_service_price: displaySubtotal,
+          total_amount: displayTotal,
         });
       } else {
         setBookingError(data.error || 'Failed to submit booking request. Please check inputs and try again.');
@@ -378,6 +445,8 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
     (creator as any)?.slug?.replace(/^pro-/, '') ||
     creator?.name.toLowerCase().replace(/\s+/g, '.') ||
     'creator.reels';
+
+  if (!isOpen) return null;
 
   return (
     <>
@@ -758,8 +827,16 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
                               <span className="font-bold text-[#191C22]">{eventDate}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-[#94A3B8]">Estimated Total:</span>
-                              <span className="font-bold text-emerald-600">₹{estimatedTotal.toLocaleString('en-IN')}</span>
+                              <span className="text-[#94A3B8]">Shoot Duration:</span>
+                              <span className="font-bold text-[#191C22]">{bookingSuccessData?.duration_hours || durationHours} Hours</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#94A3B8]">Service Subtotal:</span>
+                              <span className="font-bold text-[#191C22]">₹{Number(bookingSuccessData?.agreed_service_price || displaySubtotal).toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#94A3B8]">Total Payable:</span>
+                              <span className="font-bold text-emerald-600">₹{Number(bookingSuccessData?.total_amount || displayTotal).toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-[#94A3B8]">Status:</span>
@@ -769,11 +846,11 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
 
                           <div className="pt-2 flex items-center justify-center gap-3">
                             <Link
-                              href="/customer/dashboard"
+                              href="/customer/bookings"
                               onClick={onClose}
                               className="px-5 py-2.5 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold transition-all shadow-xs"
                             >
-                              Go to Customer Dashboard →
+                              Go to My Bookings →
                             </Link>
                             <button
                               type="button"
@@ -945,42 +1022,79 @@ export const PhotographerProfileModal: React.FC<PhotographerProfileModalProps> =
                             />
                           </div>
 
-                          {/* ESTIMATED PRICE BOX */}
-                          <div className="p-4 bg-white rounded-2xl border border-[#E7EAEE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-                            <div className="space-y-0.5">
+                          {/* AUTHORITATIVE ITEMIZED PRICE BREAKDOWN BOX */}
+                          <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#E7EAEE] space-y-3.5 shadow-2xs">
+                            <div className="flex items-center justify-between">
                               <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider">
-                                Estimated Total
+                                Price Breakdown &amp; Transparency
                               </span>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xl sm:text-2xl font-black text-[#191C22]">
-                                  ₹{estimatedTotal.toLocaleString('en-IN')}
+                              {isCalculatingQuote && (
+                                <span className="text-[10px] text-[#14B8A6] font-bold flex items-center gap-1">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Calculating live quote...
                                 </span>
-                                <span className="text-[11px] text-[#64748B]">
-                                  ({durationHours} hrs × base rate)
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-[#94A3B8]">
-                                Protected by REEPY Escrow & Shoot-Start OTP handshake
-                              </p>
+                              )}
                             </div>
 
-                            <button
-                              type="submit"
-                              disabled={isSubmittingBooking}
-                              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:bg-[#0F766E] text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                            >
-                              {isSubmittingBooking ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  <span>Submitting Request...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Send className="w-3.5 h-3.5" />
-                                  <span>Send Booking Request</span>
-                                </>
-                              )}
-                            </button>
+                            <div className="space-y-2 text-xs text-[#64748B] border-b border-[#F1F5F9] pb-3.5">
+                              <div className="flex justify-between items-center">
+                                <span>
+                                  Service Subtotal ({durationHours} hr{durationHours > 1 ? 's' : ''} shoot session)
+                                </span>
+                                <span className="font-bold text-[#191C22]">₹{displaySubtotal.toLocaleString('en-IN')}</span>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <span>
+                                  Travel Distance Charges {quote ? `(${quote.calculatedDistanceKm} km, first 20 km free)` : '(First 20 km included)'}
+                                </span>
+                                <span className="font-bold text-[#191C22]">
+                                  {displayTravelFee > 0 ? `₹${displayTravelFee.toLocaleString('en-IN')}` : 'FREE (₹0)'}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <span>Platform Facilitation Fee (10% Escrow Protection)</span>
+                                <span className="font-bold text-[#191C22]">₹{displayPlatformFee.toLocaleString('en-IN')}</span>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <span>Applicable Taxes (GST 18%)</span>
+                                <span className="font-bold text-[#191C22]">₹{displayTaxes.toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                              <div>
+                                <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+                                  Total Payable Amount
+                                </span>
+                                <span className="text-xl sm:text-2xl font-black text-[#191C22]">
+                                  ₹{displayTotal.toLocaleString('en-IN')}
+                                </span>
+                                <p className="text-[10px] text-[#94A3B8]">
+                                  Protected by REEPY Escrow &amp; Shoot-Start OTP handshake
+                                </p>
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={isSubmittingBooking || isCalculatingQuote}
+                                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:bg-[#0F766E] text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                              >
+                                {isSubmittingBooking ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Submitting Request...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-3.5 h-3.5" />
+                                    <span>Send Booking Request</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </form>
                       )}

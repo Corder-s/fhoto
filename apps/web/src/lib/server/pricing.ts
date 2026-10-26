@@ -1,8 +1,8 @@
 /**
- * Distance Calculation and Distance-Based Pricing Engine
+ * Authoritative Pricing & Distance Engine
  *
- * Implements authoritative geodesic (Haversine) distance calculation,
- * venue location resolution, and transparent travel-pricing breakdown.
+ * Implements server-side geodesic (Haversine) distance calculation,
+ * duration scaling, and transparent itemized price breakdown snapshots.
  */
 
 export interface TravelPricingSettings {
@@ -17,6 +17,9 @@ export interface TravelPricingSettings {
 
 export interface PricingBreakdownSnapshot {
   baseServicePrice: number;
+  durationHours: number;
+  serviceBaseHours: number;
+  serviceSubtotal: number;
   calculatedDistanceKm: number;
   travelDistanceKm: number;
   distanceMethod: 'haversine_straight_line' | 'road';
@@ -36,6 +39,7 @@ export interface PricingBreakdownSnapshot {
   isOutOfArea: boolean;
   photographerBaseAddress: string;
   customerEventAddress: string;
+  photographerEarnings: number;
   warnings?: string[];
 }
 
@@ -126,37 +130,48 @@ export function resolveCoordinatesFromText(text: string): { lat: number; lng: nu
 
 export interface CalculatePricingInput {
   basePackagePrice: number;
-  photographerCoords: { lat: number; lng: number };
-  venueCoords: { lat: number; lng: number };
-  photographerBaseAddress: string;
-  customerEventAddress: string;
+  durationHours?: number;
+  serviceBaseHours?: number;
+  photographerCoords?: { lat: number; lng: number };
+  venueCoords?: { lat: number; lng: number };
+  photographerBaseAddress?: string;
+  customerEventAddress?: string;
   travelSettings?: Partial<TravelPricingSettings>;
   platformFeePercent?: number;
   gstPercent?: number;
 }
 
 /**
- * Authoritative Distance-Based Pricing Engine
+ * Authoritative Pricing Engine with Duration Scaling & Distance Logic
  *
  * Formula:
+ * Service Subtotal = round(Base Package Price × (Duration Hours / Service Base Hours))
  * Chargeable Distance = max(0, Calculated Travel Distance - Included Travel Distance)
  * Travel Fee = max(Minimum Travel Fee, Chargeable Distance × Travel Rate Per KM)
- * Subtotal = Base Service Price + Travel Fee
- * Platform Fee = Subtotal × Platform Rate %
- * Taxes = (Subtotal + Platform Fee) × GST %
+ * Subtotal = Service Subtotal + Travel Fee
+ * Platform Fee = round((Subtotal × Platform Rate %) / 100)
+ * Taxes = round(((Subtotal + Platform Fee) × GST %) / 100)
  * Final Price = Subtotal + Platform Fee + Taxes - Discounts
  */
 export function calculateAuthoritativePricing(input: CalculatePricingInput): PricingBreakdownSnapshot {
   const {
     basePackagePrice,
+    durationHours: rawDuration,
+    serviceBaseHours: rawBaseHours,
     photographerCoords,
     venueCoords,
-    photographerBaseAddress,
-    customerEventAddress,
+    photographerBaseAddress = 'Delhi NCR',
+    customerEventAddress = 'Delhi NCR',
     travelSettings: customSettings,
     platformFeePercent = 10,
     gstPercent = 18,
   } = input;
+
+  const durationHours = rawDuration && rawDuration > 0 ? Number(rawDuration) : 2;
+  const serviceBaseHours = rawBaseHours && rawBaseHours > 0 ? Number(rawBaseHours) : 2;
+
+  // Scale service subtotal with requested shoot duration
+  const serviceSubtotal = Math.round(basePackagePrice * (durationHours / serviceBaseHours));
 
   const settings: TravelPricingSettings = {
     ...DEFAULT_TRAVEL_SETTINGS,
@@ -202,14 +217,18 @@ export function calculateAuthoritativePricing(input: CalculatePricingInput): Pri
     warnings.push(`Venue location is ${calculatedDistanceKm} km away, which exceeds the photographer's standard service radius of ${settings.serviceRadiusKm} km.`);
   }
 
-  const subtotal = basePackagePrice + travelFee;
+  const subtotal = serviceSubtotal + travelFee;
   const platformFee = Math.round((subtotal * platformFeePercent) / 100);
   const taxes = Math.round((subtotal + platformFee) * (gstPercent / 100));
   const discountAmount = 0;
   const totalAmount = subtotal + platformFee + taxes - discountAmount;
+  const photographerEarnings = serviceSubtotal + travelFee - platformFee;
 
   return {
     baseServicePrice: basePackagePrice,
+    durationHours,
+    serviceBaseHours,
+    serviceSubtotal,
     calculatedDistanceKm,
     travelDistanceKm: calculatedDistanceKm,
     distanceMethod: 'haversine_straight_line',
@@ -229,6 +248,7 @@ export function calculateAuthoritativePricing(input: CalculatePricingInput): Pri
     isOutOfArea,
     photographerBaseAddress,
     customerEventAddress,
+    photographerEarnings,
     warnings: warnings.length > 0 ? warnings : undefined,
   };
 }

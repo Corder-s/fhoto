@@ -54,6 +54,7 @@ export interface PhotographerBooking {
   photosUploaded?: boolean;
   cancellationReason?: string;
   createdAt: string;
+  pricingBreakdown?: any;
 }
 
 export interface PhotographerServicePackage {

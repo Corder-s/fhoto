@@ -267,6 +267,67 @@ describe('Distance-Based Travel Pricing Engine (MASTER PROMPT Section 7.4)', () 
     assert.equal(result.travelFee, Math.round(result.chargeableDistanceKm * 20 * 2));
     assert.equal(result.totalAmount, 5000 + result.travelFee);
   });
+
+  it('Scenario 12: Duration scaling (8 Hours on ₹1,000 2-hour base package -> ₹4,000 subtotal)', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 1000,
+      durationHours: 8,
+      serviceBaseHours: 2,
+      photographerBaseAddress: 'Delhi NCR',
+      photographerCoords: pCoords,
+      customerEventAddress: 'Delhi NCR',
+      venueCoords: pCoords, // 0 km travel
+      platformFeePercent: 10,
+      gstPercent: 18,
+    });
+
+    assert.equal(result.durationHours, 8);
+    assert.equal(result.serviceBaseHours, 2);
+    assert.equal(result.serviceSubtotal, 4000); // 1000 * (8 / 2) = 4000
+    assert.equal(result.travelFee, 0);
+    assert.equal(result.platformFee, 400); // 10% of 4000
+    assert.equal(result.taxes, 792); // 18% of (4000 + 400)
+    assert.equal(result.totalAmount, 5192); // 4000 + 400 + 792
+    assert.equal(result.photographerEarnings, 3600); // 4000 - 400
+  });
+
+  it('Scenario 13: Exact bug reproduction (2 Hours @ ₹1,000 -> ₹1,298 total)', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 1000,
+      durationHours: 2,
+      serviceBaseHours: 2,
+      photographerBaseAddress: 'Delhi NCR',
+      photographerCoords: pCoords,
+      customerEventAddress: 'Delhi NCR',
+      venueCoords: pCoords,
+      platformFeePercent: 10,
+      gstPercent: 18,
+    });
+
+    assert.equal(result.serviceSubtotal, 1000);
+    assert.equal(result.platformFee, 100);
+    assert.equal(result.taxes, 198);
+    assert.equal(result.totalAmount, 1298); // Matches the ₹1,298 shown in customer dashboard card
+  });
+
+  it('Scenario 14: Exact bug reproduction (2 Hours @ ₹2,000 -> ₹2,596 total)', () => {
+    const result = calculateAuthoritativePricing({
+      basePackagePrice: 2000,
+      durationHours: 2,
+      serviceBaseHours: 2,
+      photographerBaseAddress: 'Delhi NCR',
+      photographerCoords: pCoords,
+      customerEventAddress: 'Delhi NCR',
+      venueCoords: pCoords,
+      platformFeePercent: 10,
+      gstPercent: 18,
+    });
+
+    assert.equal(result.serviceSubtotal, 2000);
+    assert.equal(result.platformFee, 200);
+    assert.equal(result.taxes, 396);
+    assert.equal(result.totalAmount, 2596); // Matches the ₹2,596 booking in recording
+  });
 });
 
 describe('OTP Verification Hashing & Security Controls', () => {

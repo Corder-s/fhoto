@@ -30,12 +30,17 @@ interface AdminBooking {
   booking_reference: string;
   event_title: string;
   event_date: string;
+  duration_hours?: number;
   start_at: string;
   end_at: string;
   event_location: string;
   agreed_service_price: number;
+  travel_distance_km?: number;
+  travel_fee?: number;
   platform_fee: number;
+  taxes?: number;
   total_amount: number;
+  pricing_breakdown?: any;
   booking_status: string;
   payment_status: string;
   customer_notes?: string;
@@ -391,6 +396,11 @@ export default function AdminBookingsPage() {
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#14B8A6]" />
+                      {b.duration_hours || Math.max(1, Math.round((Date.parse(b.end_at) - Date.parse(b.start_at)) / 3600000))} Hours
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-[#14B8A6]" />
                       {b.event_location}
                     </span>
@@ -593,15 +603,35 @@ export default function AdminBookingsPage() {
                 <p className="text-[#94A3B8]">{selectedBooking.event_date}</p>
               </div>
 
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1">
-                <p className="text-[10px] uppercase font-bold text-emerald-800">Escrow Financial Snapshot</p>
-                <div className="flex justify-between">
-                  <span>Gross Client Total:</span>
-                  <span className="font-bold">₹{Number(selectedBooking.total_amount || 0).toLocaleString('en-IN')}</span>
+              <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-emerald-800">Itemized Escrow Financial Snapshot</p>
+                <div className="flex justify-between text-xs">
+                  <span>Shoot Duration:</span>
+                  <span className="font-bold">{selectedBooking.duration_hours || Math.max(1, Math.round((Date.parse(selectedBooking.end_at) - Date.parse(selectedBooking.start_at)) / 3600000))} Hours</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span>Platform Fee (Retained):</span>
+                  <span>Service Subtotal:</span>
+                  <span className="font-bold">₹{Number(selectedBooking.pricing_breakdown?.serviceSubtotal || selectedBooking.agreed_service_price || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>Travel Distance Charges:</span>
+                  <span>₹{Number(selectedBooking.pricing_breakdown?.travelFee || selectedBooking.travel_fee || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>Platform Commission (10%):</span>
                   <span>₹{Number(selectedBooking.platform_fee || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>Applicable Taxes (GST 18%):</span>
+                  <span>₹{Number(selectedBooking.pricing_breakdown?.taxes || selectedBooking.taxes || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-emerald-200 font-black text-sm">
+                  <span>Gross Client Total:</span>
+                  <span>₹{Number(selectedBooking.total_amount || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-xs text-emerald-700">
+                  <span>Photographer Net Payout:</span>
+                  <span className="font-bold">₹{Number(selectedBooking.pricing_breakdown?.photographerEarnings || (Number(selectedBooking.agreed_service_price || 0) + Number(selectedBooking.travel_fee || 0) - Number(selectedBooking.platform_fee || 0))).toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>

@@ -32,6 +32,7 @@ const MIGRATIONS = [
   '20261014000002_oauth_account_selection_workflow.sql',
   '20261014000003_complete_account_deletion_and_cleanup.sql',
   '20261014000004_admin_distance_settings_and_tracking.sql',
+  '20261014000005_booking_duration_and_itemized_pricing.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -832,5 +833,56 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
       await asRole('authenticated', IDS.admin, 'UPDATE public.platform_distance_settings SET free_travel_km = 20 WHERE is_active = TRUE');
     });
   });
+
+  describe('booking duration and itemized pricing snapshot (20261014000005)', () => {
+    test('bookings table has duration_hours column and stores selected duration', async () => {
+      const colCheck = await db.query(
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'bookings' AND column_name = 'duration_hours'"
+      );
+      assert.ok(colCheck.rows.length > 0, 'duration_hours column must exist on bookings table');
+
+      const cp = await db.query('SELECT id FROM public.creator_profiles WHERE user_id = $1', [IDS.creatorA]);
+      const creatorA = cp.rows[0].id;
+      const svc = await db.query('SELECT id FROM public.creator_services WHERE creator_id = $1 LIMIT 1', [creatorA]);
+      const serviceId = svc.rows[0].id;
+
+      // Insert server-side test booking with 8 hours
+      const testRef = `TEST-DUR-${Date.now()}`;
+      const insRes = await db.query(
+        `INSERT INTO public.bookings (
+           booking_reference, customer_id, creator_id, service_id, event_title, event_date,
+           duration_hours, start_at, end_at, event_location, agreed_service_price, platform_fee,
+           taxes, total_amount, pricing_breakdown, booking_status, payment_status
+         ) VALUES (
+           $1, $2, $3, $4, '8-Hour Reel Shoot', '2026-11-01',
+           8.00, '2026-11-01T10:00:00Z', '2026-11-01T18:00:00Z', 'Delhi NCR', 4000.00, 400.00,
+           792.00, 5192.00, '{"durationHours": 8, "serviceSubtotal": 4000, "totalAmount": 5192}'::jsonb,
+           'pending', 'unpaid'
+         ) RETURNING id`,
+        [testRef, IDS.customerA, creatorA, serviceId]
+      );
+      const bookingId = insRes.rows[0].id;
+
+      // Customer A can read their own booking with duration_hours = 8
+      const custRead = await asRole('authenticated', IDS.customerA, 'SELECT duration_hours, agreed_service_price, total_amount FROM public.bookings WHERE id = $1', [bookingId]);
+      assert.equal(custRead.rows.length, 1);
+      assert.equal(Number(custRead.rows[0].duration_hours), 8);
+      assert.equal(Number(custRead.rows[0].agreed_service_price), 4000);
+      assert.equal(Number(custRead.rows[0].total_amount), 5192);
+
+      // Customer B cannot read Customer A's booking
+      const custBRead = await asRole('authenticated', IDS.customerB, 'SELECT id FROM public.bookings WHERE id = $1', [bookingId]);
+      assert.equal(custBRead.rows.length, 0, 'Customer B cannot read Customer A booking');
+
+      // Assigned Creator can read the booking duration
+      const creatorRead = await asRole('authenticated', IDS.creatorA, 'SELECT duration_hours FROM public.bookings WHERE id = $1', [bookingId]);
+      assert.equal(creatorRead.rows.length, 1);
+      assert.equal(Number(creatorRead.rows[0].duration_hours), 8);
+
+      // Cleanup
+      await db.query('DELETE FROM public.bookings WHERE id = $1', [bookingId]);
+    });
+  });
 });
+
 

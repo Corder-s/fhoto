@@ -19,9 +19,9 @@ const GST_PERCENT = 18;
  * POST /api/bookings/create
  *
  * Creates a booking for the authenticated customer. Pricing is computed on the
- * server from the creator's active service package; client-supplied amounts are
- * ignored. The creator must be approved and the time window must not overlap an
- * existing accepted/confirmed/in-progress booking.
+ * server from the creator's active service package and duration selection; client-supplied
+ * amounts are ignored. The creator must be approved and the time window must not overlap
+ * an existing accepted/confirmed/in-progress booking.
  */
 export async function POST(request: NextRequest) {
   const auth = await authorize({ roles: ['customer'] });
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     eventDate,
     startAt,
     endAt,
+    durationHours: rawDurationHours,
     locationLatitude,
     locationLongitude,
     bookingType = 'scheduled',
@@ -63,8 +64,19 @@ export async function POST(request: NextRequest) {
     return jsonError(400, 'Invalid booking type.');
   }
 
+  // Determine Duration
+  let durationHours = rawDurationHours && Number(rawDurationHours) > 0 ? Number(rawDurationHours) : 2;
   const startTime = startAt || `${eventDate}T10:00:00Z`;
-  const endTime = endAt || `${eventDate}T14:00:00Z`;
+  let endTime = endAt;
+  if (!endTime) {
+    const startHour = Number(startTime.substring(11, 13)) || 10;
+    const endHour = Math.min(23, startHour + durationHours);
+    endTime = `${eventDate}T${endHour.toString().padStart(2, '0')}:00:00Z`;
+  } else if (!rawDurationHours) {
+    const parsedDiff = Math.round((Date.parse(endTime) - Date.parse(startTime)) / 3600000);
+    if (parsedDiff > 0) durationHours = parsedDiff;
+  }
+
   if (Number.isNaN(Date.parse(startTime)) || Number.isNaN(Date.parse(endTime)) || Date.parse(endTime) <= Date.parse(startTime)) {
     return jsonError(400, 'The booking end time must be after its start time.');
   }
@@ -105,8 +117,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Price comes from the database, never from the client.
-    let agreedServicePrice = 0;
-    let serviceDuration = 120;
+    let basePackagePrice = 0;
+    let serviceBaseHours = 2;
     let resolvedServiceId: string | null = null;
     if (serviceId) {
       const { data: service } = await admin
@@ -118,8 +130,10 @@ export async function POST(request: NextRequest) {
       if (!service || !service.is_active) {
         return jsonError(400, 'The selected package is not available from this photographer.');
       }
-      agreedServicePrice = Number(service.base_price);
-      serviceDuration = service.duration_minutes || serviceDuration;
+      basePackagePrice = Number(service.base_price);
+      if (service.duration_minutes && service.duration_minutes > 0) {
+        serviceBaseHours = Math.max(1, Math.round(service.duration_minutes / 60));
+      }
       resolvedServiceId = service.id;
     } else {
       return jsonError(400, 'Please select a photography package.');
@@ -192,9 +206,11 @@ export async function POST(request: NextRequest) {
       venueLng = resolvedVenue?.lng ?? photogLng;
     }
 
-    // Server-Authoritative Distance and Pricing Calculation
+    // Server-Authoritative Distance and Pricing Calculation with Duration Scaling
     const pricing = calculateAuthoritativePricing({
-      basePackagePrice: agreedServicePrice,
+      basePackagePrice,
+      durationHours,
+      serviceBaseHours,
       photographerCoords: { lat: photogLat, lng: photogLng },
       venueCoords: { lat: venueLat, lng: venueLng },
       photographerBaseAddress: creator.base_address || creator.city || 'Delhi NCR',
@@ -231,13 +247,14 @@ export async function POST(request: NextRequest) {
         service_id: resolvedServiceId,
         event_title: eventTitle,
         event_date: eventDate,
+        duration_hours: durationHours,
         start_at: startTime,
         end_at: endTime,
         event_location: eventLocation,
         location_latitude: venueLat,
         location_longitude: venueLng,
         customer_notes: customerNotes,
-        agreed_service_price: agreedServicePrice,
+        agreed_service_price: pricing.serviceSubtotal,
         travel_distance_km: pricing.calculatedDistanceKm,
         distance_method: pricing.distanceMethod,
         included_travel_km: pricing.includedTravelKm,
@@ -268,17 +285,17 @@ export async function POST(request: NextRequest) {
       previous_status: null,
       new_status: initialStatus,
       changed_by: user.id,
-      change_reason: 'Booking requested by customer with authoritative distance pricing snapshot',
+      change_reason: 'Booking requested by customer with authoritative distance and duration pricing snapshot',
     });
     if (historyErr) console.error('Could not record booking history:', historyErr.message);
 
     const { error: payoutErr } = await admin.from('creator_payouts').insert({
       creator_id: creatorId,
       booking_id: created.id,
-      gross_amount: agreedServicePrice + pricing.travelFee,
+      gross_amount: pricing.serviceSubtotal + pricing.travelFee,
       platform_fee: pricing.platformFee,
       adjustment_amount: 0,
-      net_amount: agreedServicePrice + pricing.travelFee - pricing.platformFee,
+      net_amount: pricing.photographerEarnings,
       payout_status: 'in_escrow',
     });
     if (payoutErr) console.error('Could not create escrow record:', payoutErr.message);
@@ -304,91 +321,80 @@ export async function POST(request: NextRequest) {
       userId: creator.user_id,
       type: 'booking_request',
       title: 'New Booking Request',
-      body: `${customerName} requested a shoot "${eventTitle}" for ${eventDate} (${pricing.calculatedDistanceKm} km away). Total: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
+      body: `${customerName} requested a ${durationHours}-hour shoot "${eventTitle}" for ${eventDate}. Agreed: ₹${pricing.serviceSubtotal.toLocaleString('en-IN')}, Total: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
       relatedBookingId: created.id,
       actionUrl: '/photographer/bookings',
-      metadata: { bookingReference: bookingRef, distanceKm: pricing.calculatedDistanceKm },
+      metadata: { bookingReference: bookingRef, distanceKm: pricing.calculatedDistanceKm, durationHours },
     });
 
     await createInAppNotification({
       userId: user.id,
       type: 'booking_placed',
       title: 'Booking Request Placed',
-      body: `Your shoot request with ${creatorName} for "${eventTitle}" on ${eventDate} is placed. Total Quoted: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
+      body: `Your ${durationHours}-hour shoot request with ${creatorName} for "${eventTitle}" on ${eventDate} is placed. Total Quoted: ₹${pricing.totalAmount.toLocaleString('en-IN')}`,
       relatedBookingId: created.id,
       actionUrl: '/customer/bookings',
-      metadata: { bookingReference: bookingRef },
+      metadata: { bookingReference: bookingRef, durationHours },
     });
 
-    // 2. Transactional Email Notifications
+    // 2. Email Notifications (Non-blocking)
     if (creatorUser?.email) {
-      const email = EmailTemplates.bookingRequested(
+      const creatorTmpl = EmailTemplates.bookingRequested(
         customerName,
         'creator',
         bookingRef,
         eventTitle,
         eventDate,
-        startTime.split('T')[1]?.slice(0, 5) || '10:00',
+        startTime,
         eventLocation,
         pricing.totalAmount,
         pricing.calculatedDistanceKm,
         pricing.travelFee
       );
-      await sendPlatformEmail({
-        to: { email: creatorUser.email, name: creatorName, userId: creatorUser.id },
-        subject: email.subject,
-        templateName: 'booking_requested_creator',
-        eventType: 'booking.requested',
-        html: email.html,
+      sendPlatformEmail({
+        to: { email: creatorUser.email, name: creatorName, userId: creator.user_id },
+        subject: creatorTmpl.subject,
+        templateName: 'booking_request_creator',
+        eventType: 'booking.created',
+        html: creatorTmpl.html,
         relatedEntityId: created.id,
-        idempotencyKey: `book_req_creator_${created.id}`,
-      });
+      }).catch((e) => console.error('Failed to email creator for new booking:', e));
     }
 
     if (customerUser?.email) {
-      const email = EmailTemplates.bookingRequested(
+      const customerTmpl = EmailTemplates.bookingRequested(
         customerName,
         'customer',
         bookingRef,
         eventTitle,
         eventDate,
-        startTime.split('T')[1]?.slice(0, 5) || '10:00',
+        startTime,
         eventLocation,
         pricing.totalAmount,
         pricing.calculatedDistanceKm,
         pricing.travelFee
       );
-      await sendPlatformEmail({
-        to: { email: customerUser.email, name: customerName, userId: customerUser.id },
-        subject: email.subject,
-        templateName: 'booking_requested_customer',
-        eventType: 'booking.requested',
-        html: email.html,
+      sendPlatformEmail({
+        to: { email: customerUser.email, name: customerName, userId: user.id },
+        subject: customerTmpl.subject,
+        templateName: 'booking_created_customer',
+        eventType: 'booking.created',
+        html: customerTmpl.html,
         relatedEntityId: created.id,
-        idempotencyKey: `book_req_customer_${created.id}`,
-      });
+      }).catch((e) => console.error('Failed to email customer for new booking:', e));
     }
 
-    return NextResponse.json({
-      success: true,
-      booking: created,
-      breakdown: {
-        agreedServicePrice,
-        travelDistanceKm: pricing.calculatedDistanceKm,
-        distanceMethod: pricing.distanceMethod,
-        includedTravelKm: pricing.includedTravelKm,
-        chargeableDistanceKm: pricing.chargeableDistanceKm,
-        travelFee: pricing.travelFee,
-        platformFee: pricing.platformFee,
-        taxes: pricing.taxes,
-        totalAmount: pricing.totalAmount,
-        currency: 'INR',
-        serviceDurationMinutes: serviceDuration,
-        snapshot: pricing,
+    return NextResponse.json(
+      {
+        success: true,
+        booking: created,
+        pricingSnapshot: pricing,
+        message: 'Booking request placed successfully with authoritative duration and pricing snapshot.',
       },
-    });
-  } catch (err) {
-    console.error('Error creating booking:', err);
-    return jsonError(500, 'Internal server error processing booking.');
+      { status: 201 }
+    );
+  } catch (err: any) {
+    console.error('Unhandled booking creation error:', err);
+    return jsonError(500, err.message || 'Internal server error while placing booking.');
   }
 }

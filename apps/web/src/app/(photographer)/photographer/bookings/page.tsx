@@ -60,6 +60,23 @@ export default function PhotographerBookingsPage() {
           else if (b.booking_status === 'completed') status = 'COMPLETED';
           else if (b.booking_status === 'cancelled' || b.booking_status === 'rejected') status = 'CANCELLED';
 
+          const durationVal =
+            b.duration_hours != null && Number(b.duration_hours) > 0
+              ? Number(b.duration_hours)
+              : b.start_at && b.end_at
+              ? Math.max(1, Math.round((Date.parse(b.end_at) - Date.parse(b.start_at)) / 3600000))
+              : b.pricing_breakdown?.durationHours
+              ? Number(b.pricing_breakdown.durationHours)
+              : Math.max(1, Math.round((b.service?.duration_minutes || 120) / 60));
+
+          const servicePrice = Number(b.agreed_service_price || 0);
+          const travelFee = Number(b.travel_fee || 0);
+          const platformFee = Number(b.platform_fee || 0);
+          const gross = servicePrice + travelFee;
+          const netEarnings = b.pricing_breakdown?.photographerEarnings != null
+            ? Number(b.pricing_breakdown.photographerEarnings)
+            : Math.max(0, gross - platformFee);
+
           return {
             id: b.booking_reference || b.id,
             rawId: b.id,
@@ -70,12 +87,13 @@ export default function PhotographerBookingsPage() {
             packageTitle: b.event_title || 'Client Shoot Session',
             date: b.event_date || 'Upcoming',
             timeSlot: b.start_at ? new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:00 AM - 01:00 PM',
-            duration: `${Math.round((b.service?.duration_minutes || 120) / 60)} Hours`,
+            duration: `${durationVal} Hour${durationVal > 1 ? 's' : ''}`,
             venueAddress: b.event_location || 'Operating Venue',
             notes: b.customer_notes,
-            grossAmount: Number(b.agreed_service_price) || 4999,
-            platformFee: Number(b.platform_fee) || 999,
-            netEarnings: Math.round((Number(b.agreed_service_price) || 4999) * 0.8),
+            grossAmount: gross,
+            platformFee: platformFee,
+            netEarnings: netEarnings,
+            pricingBreakdown: b.pricing_breakdown,
             status,
             startOtp: '482910',
             cancellationReason: b.cancellation_reason,
