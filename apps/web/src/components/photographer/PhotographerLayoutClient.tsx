@@ -20,12 +20,8 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
-  // Auto redirect to /login if unauthenticated or signed out from protected photographer routes (preserving returnUrl)
-  useEffect(() => {
-    if (isMounted && !isAuthenticated) {
-      router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
-    }
-  }, [isMounted, isAuthenticated, pathname, router]);
+  // Unified authentication state: authenticated either in local client or via SSR session cookie
+  const isAuthed = isAuthenticated || serverSession.status === 'authenticated';
 
   // Role gate uses the server-verified roles (never the localStorage copy).
   const serverRoles = serverSession.status === 'authenticated' ? serverSession.user.roles : [];
@@ -33,14 +29,17 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   const isAdmin = !isOwner && serverRoles.includes('admin');
   const isAuthorizedRole = !isOwner && !isAdmin && serverRoles.includes('creator');
 
+  // Auto redirect to /login if unauthenticated or signed out from protected photographer routes (preserving returnUrl)
+  useEffect(() => {
+    if (isMounted && !isAuthed && serverSession.status !== 'loading') {
+      router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+    }
+  }, [isMounted, isAuthed, serverSession.status, pathname, router]);
+
   // Automatic redirect based on user permissions
   useEffect(() => {
-    if (isMounted && isAuthenticated) {
-      if (serverSession.status === 'authenticated' && serverSession.user.roleSelected === false) {
-        router.replace('/auth/select-role');
-        return;
-      }
-      if (user && user.roleSelected === false) {
+    if (isMounted && isAuthed && serverSession.status === 'authenticated') {
+      if (serverSession.user.roleSelected === false) {
         router.replace('/auth/select-role');
         return;
       }
@@ -50,7 +49,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
         return;
       }
 
-      if (serverSession.status === 'authenticated' && !isAuthorizedRole) {
+      if (!isAuthorizedRole) {
         if (isOwner) {
           router.replace('/owner/dashboard');
         } else if (isAdmin) {
@@ -60,10 +59,10 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
         }
       }
     }
-  }, [isMounted, isAuthenticated, user, serverSession, isAuthorizedRole, isOwner, isAdmin, router, pathname]);
+  }, [isMounted, isAuthed, serverSession, isAuthorizedRole, isOwner, isAdmin, router, pathname]);
 
   // Loading skeleton while reading storage/cookies
-  if (!isMounted) {
+  if (!isMounted || (serverSession.status === 'loading' && !isAuthenticated)) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
@@ -72,7 +71,7 @@ export const PhotographerLayoutClient: React.FC<{ children: React.ReactNode }> =
   }
 
   // 1. Unauthenticated Gate: Redirecting to login
-  if (!isAuthenticated || !user) {
+  if (!isAuthed) {
     return (
       <div className="min-h-screen bg-canvas-primary flex items-center justify-center">
         <div className="text-center space-y-3">

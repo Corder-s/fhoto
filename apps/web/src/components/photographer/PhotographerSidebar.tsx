@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
   Users,
+  TrendingUp,
   CreditCard,
   BarChart3,
   Sparkles,
@@ -51,6 +52,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
   const { logout } = useAuth();
   const {
     creatorProfile,
+    profile,
     stats,
     accountName,
     professionalName,
@@ -65,7 +67,8 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
     router.push('/login');
   };
 
-  const handleSlug = `@${(professionalName || accountName).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  const displayName = creatorProfile?.professional_name || profile?.full_name || accountName || 'Creator';
+  const handleSlug = `@${displayName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
   const publicProfileUrl = creatorProfile?.id
     ? `/photographers/${creatorProfile.id}`
@@ -73,14 +76,14 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
 
   const navGroups: NavGroup[] = [
     {
-      group: 'Overview',
+      group: 'OVERVIEW',
       items: [
-        { label: 'Studio Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
+        { label: 'Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
         { label: 'Analytics & Trends', href: '/photographer/analytics', icon: BarChart3 },
       ],
     },
     {
-      group: 'Business & Shoots',
+      group: 'BUSINESS & SHOOTS',
       items: [
         {
           label: 'Booking Requests',
@@ -89,48 +92,37 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
           badge: stats.newRequests > 0 ? String(stats.newRequests) : undefined,
           badgeColor: 'bg-[#14B8A6] text-white',
         },
-        { label: 'Calendar & Hours', href: '/photographer/availability', icon: Clock },
+        { label: 'Calendar & Availability', href: '/photographer/availability', icon: Clock },
         { label: 'Client Directory', href: '/photographer/clients', icon: Users },
       ],
     },
     {
-      group: 'Portfolio & Offerings',
+      group: 'PORTFOLIO & OFFERINGS',
       items: [
         { label: 'Portfolio Gallery', href: '/photographer/portfolio', icon: ImageIcon },
         { label: 'Packages & Pricing', href: '/photographer/services', icon: Package },
-        {
-          label: 'Live Public Profile',
-          href: publicProfileUrl,
-          icon: ExternalLink,
-          isExternal: true,
-        },
+        { label: 'My Profile', href: '/photographer/business', icon: UserCheck },
       ],
     },
     {
-      group: 'Financials',
+      group: 'FINANCIALS',
       items: [
-        { label: 'Earnings & Payouts', href: '/photographer/payouts', icon: DollarSign },
-        { label: 'Creator Plan', href: '/photographer/subscription', icon: CreditCard },
+        { label: 'Earnings', href: '/photographer/earnings', icon: TrendingUp },
+        { label: 'Payments & Payouts', href: '/photographer/payouts', icon: DollarSign },
       ],
     },
     {
-      group: 'Reputation',
+      group: 'ACCOUNT',
       items: [
         {
-          label: 'Client Reviews',
+          label: 'Reviews & Ratings',
           href: '/photographer/reviews',
           icon: Star,
           badge: creatorProfile?.average_rating ? `${Number(creatorProfile.average_rating).toFixed(1)} ★` : undefined,
           badgeColor: 'bg-amber-400/20 text-amber-300 border border-amber-400/30',
         },
-      ],
-    },
-    {
-      group: 'Studio Account',
-      items: [
-        { label: 'Edit Studio Profile', href: '/photographer/business', icon: UserCheck },
-        { label: 'Verification Center', href: '/photographer/verification', icon: ShieldCheck },
-        { label: 'Account Settings', href: '/photographer/settings', icon: Settings },
+        { label: 'Profile Verification', href: '/photographer/verification', icon: ShieldCheck },
+        { label: 'Settings', href: '/photographer/settings', icon: Settings },
       ],
     },
   ];
@@ -204,7 +196,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <p className="text-xs font-bold text-white truncate">
-                  {professionalName || accountName}
+                  {displayName}
                 </p>
                 {creatorProfile?.verification_status === 'approved' && (
                   <span title="Verified Pro" className="inline-flex shrink-0">

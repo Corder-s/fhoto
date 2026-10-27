@@ -87,13 +87,12 @@ export const SellerDashboardView: React.FC = () => {
 
   // Load real data from Supabase APIs
   const loadDashboardData = async () => {
-    if (!authUser?.id) return;
     try {
       setIsLoading(true);
       const [bookingsRes, portfolioRes, servicesRes] = await Promise.all([
-        fetch(`/api/photographers/bookings?userId=${authUser.id}`).catch(() => null),
-        fetch(`/api/photographers/portfolio?userId=${authUser.id}`).catch(() => null),
-        fetch(`/api/photographers/services?userId=${authUser.id}`).catch(() => null),
+        fetch('/api/photographers/bookings').catch(() => null),
+        fetch('/api/photographers/portfolio').catch(() => null),
+        fetch('/api/photographers/services').catch(() => null),
       ]);
 
       if (bookingsRes && bookingsRes.ok) {
@@ -125,7 +124,7 @@ export const SellerDashboardView: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
-  }, [authUser?.id]);
+  }, []);
 
   // Handle Avatar Change
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -76,26 +76,25 @@ export default function PhotographerPortfolioPage() {
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerToast, setBannerToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Sync banner from creatorProfile or fetch
+  // Sync banner from creatorProfile or fetch directly
   useEffect(() => {
     if (creatorProfile?.cover_image_url) {
       setCurrentBanner(creatorProfile.cover_image_url);
-    } else if (authUser?.id) {
-      fetch(`/api/photographers/banner?userId=${authUser.id}`)
+    } else {
+      fetch('/api/photographers/banner')
         .then((r) => r.json())
         .then((d) => {
           if (d.bannerUrl) setCurrentBanner(d.bannerUrl);
         })
         .catch(() => {});
     }
-  }, [creatorProfile?.cover_image_url, authUser?.id]);
+  }, [creatorProfile?.cover_image_url]);
 
   // Load real portfolio from Supabase
   const loadPortfolio = async () => {
-    if (!authUser?.id) return;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/photographers/portfolio?userId=${authUser.id}`);
+      const res = await fetch('/api/photographers/portfolio');
       const data = await res.json();
 
       if (data.items && Array.isArray(data.items)) {
@@ -122,7 +121,7 @@ export default function PhotographerPortfolioPage() {
 
   useEffect(() => {
     loadPortfolio();
-  }, [authUser?.id]);
+  }, []);
 
   // Handle Cover Banner Upload
   const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,11 +204,6 @@ export default function PhotographerPortfolioPage() {
       return;
     }
 
-    if (!authUser?.id) {
-      setPhotoUploadError('Please sign in again to upload photographs.');
-      return;
-    }
-
     setPhotoUploadError('');
     setIsUploadingPhoto(true);
     setPhotoUploadProgress(25);
@@ -279,8 +273,6 @@ export default function PhotographerPortfolioPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: authUser?.id,
-          creatorId: creatorProfile?.id,
           title: newTitle.trim(),
           description: newCategory,
           previewUrl: trimmedUrl,

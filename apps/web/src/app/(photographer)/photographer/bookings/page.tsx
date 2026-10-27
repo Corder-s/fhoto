@@ -43,10 +43,9 @@ export default function PhotographerBookingsPage() {
 
   // Load real bookings from Supabase
   const fetchBookings = async () => {
-    if (!authUser?.id) return;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/photographers/bookings?userId=${authUser.id}`);
+      const res = await fetch('/api/photographers/bookings');
       const data = await res.json();
 
       if (data.bookings && Array.isArray(data.bookings)) {
@@ -114,7 +113,7 @@ export default function PhotographerBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
-  }, [authUser?.id]);
+  }, []);
 
   // OTP Modal State
   const [otpModalBooking, setOtpModalBooking] = useState<PhotographerBooking | null>(null);

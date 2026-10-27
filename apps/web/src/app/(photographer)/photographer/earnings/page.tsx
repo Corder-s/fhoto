@@ -27,9 +27,8 @@ export default function PhotographerEarningsPage() {
     let isCancelled = false;
 
     async function loadBookings() {
-      if (!authUser?.id) return;
       try {
-        const res = await fetch(`/api/photographers/bookings?userId=${authUser.id}`);
+        const res = await fetch('/api/photographers/bookings');
         const data = await res.json();
         if (isCancelled) return;
         if (data.bookings) setDbBookings(data.bookings);
@@ -42,7 +41,7 @@ export default function PhotographerEarningsPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authUser?.id]);
+  }, []);
 
   const completedBookings = dbBookings.filter((b) => b.booking_status === 'completed');
   const grossBookingValue = completedBookings.reduce((sum, b) => sum + (Number(b.agreed_service_price) || 0), 0);

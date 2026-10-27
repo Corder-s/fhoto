@@ -71,11 +71,9 @@ export default function PhotographerServicesPage() {
     let isCancelled = false;
 
     async function loadServices() {
-      if (!authUser?.id) return;
-
       try {
         setIsLoading(true);
-        const res = await fetch(`/api/photographers/services?userId=${authUser.id}`);
+        const res = await fetch('/api/photographers/services');
         const data = await res.json();
         if (isCancelled) return;
 
@@ -106,7 +104,7 @@ export default function PhotographerServicesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authUser?.id]);
+  }, []);
 
   const handleOpenAdd = () => {
     if (isAtQuota) {

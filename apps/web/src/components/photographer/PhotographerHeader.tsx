@@ -66,6 +66,8 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
     }
   };
 
+  const displayName = creatorProfile?.professional_name || accountName || 'Creator';
+
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 shadow-2xs">
       {/* Left: Mobile Toggle + Search Bar */}
@@ -217,7 +219,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             </div>
             <div className="hidden lg:block text-left">
               <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
-                {professionalName || accountName}
+                {displayName}
               </p>
               <p className="text-[10px] text-[#0D9488] font-semibold">
                 Creator Studio
@@ -229,7 +231,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-4 py-2 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-900 truncate">
-                  {professionalName || accountName}
+                  {displayName}
                 </p>
                 <p className="text-[11px] text-slate-400 truncate">
                   {creatorProfile?.city || 'Delhi NCR'}
@@ -243,7 +245,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
                   <User className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Edit Studio Profile</span>
+                  <span>My Profile</span>
                 </Link>
                 <Link
                   href="/photographer/settings"
@@ -251,7 +253,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                   className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Account Settings</span>
+                  <span>Settings</span>
                 </Link>
                 <Link
                   href={publicUrl}

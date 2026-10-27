@@ -130,7 +130,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastSelfMutationRef = useRef<number>(0);
 
-  const fetchProfileData = useCallback(async (userId: string) => {
+  const fetchProfileData = useCallback(async (userId?: string) => {
     // Abort previous in-flight request if still running
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -143,15 +143,28 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setError(null);
 
     try {
-      const res = await fetch(`/api/profile/me?userId=${encodeURIComponent(userId)}`, {
+      const url = userId ? `/api/profile/me?userId=${encodeURIComponent(userId)}` : '/api/profile/me';
+      const res = await fetch(url, {
         signal: controller.signal,
+        credentials: 'same-origin',
       });
-      const data = await res.json();
 
       // Check if another request was launched in the meantime
       if (currentFetchId !== activeFetchIdRef.current) return;
 
-      if (!res.ok || !data.success) {
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Genuinely unauthenticated: clear state
+          setProfile(null);
+          setCreatorProfile(null);
+          setStats(defaultStats);
+          return;
+        }
+        throw new Error('Failed to load user profile from database.');
+      }
+
+      const data = await res.json();
+      if (!data.success) {
         throw new Error(data.error || 'Failed to load user profile from database.');
       }
 
@@ -165,17 +178,19 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       setUserRole(resolvedRole);
 
-      if (
-        authUser &&
-        (authUser.role !== resolvedRole ||
-          (data.roleSelected !== undefined && authUser.roleSelected !== data.roleSelected))
-      ) {
-        saveAuthSession({
-          ...authUser,
+      // Keep client localStorage in sync with authoritative server profile
+      if (data.profile) {
+        const syncedAuth: AuthUser = {
+          id: data.profile.id,
+          name: data.profile.full_name || 'Creator',
+          email: data.profile.email || '',
           role: resolvedRole,
-          roleSelected: data.roleSelected !== undefined ? data.roleSelected : authUser.roleSelected,
-        });
+          avatarUrl: data.profile.avatar_url || undefined,
+          roleSelected: data.roleSelected !== undefined ? data.roleSelected : true,
+        };
+        saveAuthSession(syncedAuth);
       }
+
       if (data.stats) {
         setStats(data.stats);
       }
@@ -189,27 +204,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setLoading(false);
       }
     }
-  }, [authUser]);
+  }, []);
 
-  // Sync on auth user change
+  // Sync on mount or auth user change
   useEffect(() => {
     if (!isMounted) return;
-
-    if (!authUser?.id) {
-      // User is logged out: reset all account-specific state
-      activeFetchIdRef.current++;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      setProfile(null);
-      setCreatorProfile(null);
-      setStats(defaultStats);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    fetchProfileData(authUser.id);
+    fetchProfileData(authUser?.id);
   }, [authUser?.id, isMounted, fetchProfileData]);
 
   // Listen to profile update broadcast events across windows/tabs (skipping self mutations)

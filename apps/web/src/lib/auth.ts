@@ -119,6 +119,24 @@ function initGlobalAuthSubscription(): void {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         syncSessionUser(session);
+      } else if (!getStoredSession()) {
+        fetch('/api/auth/session', { cache: 'no-store', credentials: 'same-origin' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((body) => {
+            if (body?.authenticated && body.user) {
+              const u = body.user;
+              const syncd: AuthUser = {
+                id: u.id,
+                name: u.name || 'User',
+                email: u.email || '',
+                role: u.role || 'customer',
+                avatarUrl: u.avatarUrl || undefined,
+                roleSelected: u.roleSelected !== undefined ? u.roleSelected : true,
+              };
+              saveAuthSession(syncd);
+            }
+          })
+          .catch(() => {});
       }
     });
 

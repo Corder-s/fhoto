@@ -116,12 +116,11 @@ export default function PhotographerBusinessPage() {
 
   // Load Services and Portfolio counts
   const loadRelatedStudioData = async () => {
-    if (!authUser?.id) return;
     try {
       setIsLoadingServices(true);
       const [srvRes, portRes] = await Promise.all([
-        fetch(`/api/photographers/services?userId=${authUser.id}`).catch(() => null),
-        fetch(`/api/photographers/portfolio?userId=${authUser.id}`).catch(() => null),
+        fetch('/api/photographers/services').catch(() => null),
+        fetch('/api/photographers/portfolio').catch(() => null),
       ]);
 
       if (srvRes && srvRes.ok) {
@@ -141,7 +140,7 @@ export default function PhotographerBusinessPage() {
 
   useEffect(() => {
     loadRelatedStudioData();
-  }, [authUser?.id]);
+  }, []);
 
   // Synchronize state when creatorProfile loads from Supabase
   useEffect(() => {
