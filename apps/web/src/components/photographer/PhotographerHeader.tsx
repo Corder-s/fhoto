@@ -13,7 +13,8 @@ import {
   Share2,
   Check,
   ShieldCheck,
-  Radio
+  Radio,
+  LifeBuoy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
@@ -120,6 +121,15 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
             </span>
           )}
         </button>
+
+        {/* Help & Support Desk Link */}
+        <Link
+          href="/photographer/support"
+          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          title="Creator Studio Help Center & Support"
+        >
+          <LifeBuoy className="w-5 h-5 stroke-[1.8]" />
+        </Link>
 
         {/* Notifications Popover */}
         <div className="relative">

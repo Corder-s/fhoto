@@ -36,6 +36,7 @@ const MIGRATIONS = [
   '20261014000006_razorpay_order_and_payment_system.sql',
   '20261014000007_partial_and_full_payment_options.sql',
   '20261014000008_performance_indexes_and_query_optimization.sql',
+  '20261014000009_support_tickets_system.sql',
 ];
 
 const SUPABASE_STUBS = `
@@ -1030,6 +1031,102 @@ describe('Supabase schema security (RLS, column guards, storage policies)', () =
 
       // Cleanup
       await db.query('DELETE FROM public.bookings WHERE id = $1', [bRes.rows[0].id]);
+    });
+  });
+
+  describe('Support tickets and messages policy isolation', () => {
+    let ticketId;
+
+    test('customer can create and view their own ticket, but cannot view another customer ticket', async () => {
+      // Customer A creates a support ticket
+      const insertRes = await asRole(
+        'authenticated',
+        IDS.customerA,
+        `INSERT INTO public.support_tickets (
+           ticket_reference, requester_id, requester_role, subject, category, description
+         ) VALUES (
+           'TCK-TEST-001', $1, 'customer', 'Need reschedule assistance', 'bookings_reservations', 'Please help reschedule'
+         ) RETURNING id`,
+        [IDS.customerA]
+      );
+      assert.equal(insertRes.rows.length, 1);
+      ticketId = insertRes.rows[0].id;
+
+      // Customer A can view it
+      const viewSelf = await asRole(
+        'authenticated',
+        IDS.customerA,
+        'SELECT id, ticket_reference FROM public.support_tickets WHERE id = $1',
+        [ticketId]
+      );
+      assert.equal(viewSelf.rows.length, 1);
+
+      // Customer B cannot view it
+      const viewOther = await asRole(
+        'authenticated',
+        IDS.customerB,
+        'SELECT id, ticket_reference FROM public.support_tickets WHERE id = $1',
+        [ticketId]
+      );
+      assert.equal(viewOther.rows.length, 0);
+
+      // Admin can view it
+      const viewAdmin = await asRole(
+        'authenticated',
+        IDS.admin,
+        'SELECT id, ticket_reference FROM public.support_tickets WHERE id = $1',
+        [ticketId]
+      );
+      assert.equal(viewAdmin.rows.length, 1);
+    });
+
+    test('internal admin notes are strictly hidden from customer requester', async () => {
+      // Public reply from Admin
+      await asRole(
+        'authenticated',
+        IDS.admin,
+        `INSERT INTO public.support_ticket_messages (
+           ticket_id, sender_id, sender_role, message_text, is_internal_note
+         ) VALUES (
+           $1, $2, 'admin', 'We are looking into this for you.', FALSE
+         )`,
+        [ticketId, IDS.admin]
+      );
+
+      // Internal Note from Admin
+      await asRole(
+        'authenticated',
+        IDS.admin,
+        `INSERT INTO public.support_ticket_messages (
+           ticket_id, sender_id, sender_role, message_text, is_internal_note
+         ) VALUES (
+           $1, $2, 'admin', 'INTERNAL NOTE: Photographer confirmed delay via phone.', TRUE
+         )`,
+        [ticketId, IDS.admin]
+      );
+
+      // Customer A sees ONLY the public message, NOT the internal note
+      const custMessages = await asRole(
+        'authenticated',
+        IDS.customerA,
+        'SELECT message_text, is_internal_note FROM public.support_ticket_messages WHERE ticket_id = $1',
+        [ticketId]
+      );
+      assert.equal(custMessages.rows.length, 1);
+      assert.equal(custMessages.rows[0].is_internal_note, false);
+      assert.equal(custMessages.rows[0].message_text, 'We are looking into this for you.');
+
+      // Admin sees BOTH messages
+      const adminMessages = await asRole(
+        'authenticated',
+        IDS.admin,
+        'SELECT message_text, is_internal_note FROM public.support_ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC',
+        [ticketId]
+      );
+      assert.equal(adminMessages.rows.length, 2);
+
+      // Cleanup
+      await db.query('DELETE FROM public.support_tickets WHERE id = $1', [ticketId]);
     });
   });
 });

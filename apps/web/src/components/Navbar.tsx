@@ -78,6 +78,17 @@ export default function Navbar({ variant = 'auto' }: NavbarProps) {
     pathname === '/for-photographers' ||
     pathname.startsWith('/for-photographers/');
 
+  const supportHref = isCreatorRole
+    ? '/photographer/support'
+    : isAdminRole
+    ? '/admin/support'
+    : '/customer/support';
+
+  const isSupportActive =
+    pathname === supportHref ||
+    pathname.startsWith(`${supportHref}/`) ||
+    pathname === '/help';
+
   const userSettingsHref =
     isCreatorRole
       ? '/photographer/settings'
@@ -160,6 +171,18 @@ export default function Navbar({ variant = 'auto' }: NavbarProps) {
               >
                 {galleryLabel}
               </Link>
+              <Link
+                href={supportHref}
+                className={`transition-colors ${
+                  isSupportActive
+                    ? 'text-[#14B8A6] font-bold'
+                    : isDarkMode
+                    ? 'text-[#94A3B8] hover:text-white'
+                    : 'text-[#64748B] hover:text-[#191C22]'
+                }`}
+              >
+                Support
+              </Link>
             </>
           ) : (
             /* Public REEPY Navigation matching reference */
@@ -199,6 +222,18 @@ export default function Navbar({ variant = 'auto' }: NavbarProps) {
                 }`}
               >
                 Become a Pro
+              </Link>
+              <Link
+                href="/help"
+                className={`transition-colors ${
+                  pathname === '/help'
+                    ? 'text-[#14B8A6] font-bold'
+                    : isDarkMode
+                    ? 'text-[#CBD5E1] hover:text-white'
+                    : 'text-[#64748B] hover:text-[#191C22]'
+                }`}
+              >
+                Help Center
               </Link>
             </>
           )}
@@ -341,6 +376,15 @@ export default function Navbar({ variant = 'auto' }: NavbarProps) {
                 >
                   {galleryLabel}
                 </Link>
+                <Link
+                  href={supportHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 rounded-xl transition-colors ${
+                    isSupportActive ? 'text-[#14B8A6] font-bold bg-[#14B8A6]/10' : ''
+                  }`}
+                >
+                  Help & Support
+                </Link>
               </>
             ) : (
               <>
@@ -364,6 +408,13 @@ export default function Navbar({ variant = 'auto' }: NavbarProps) {
                   className="px-3 py-2 rounded-xl hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] transition-colors"
                 >
                   Become a Pro
+                </Link>
+                <Link
+                  href="/help"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] transition-colors"
+                >
+                  Help Center
                 </Link>
               </>
             )}

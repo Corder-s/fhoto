@@ -31,6 +31,7 @@ import {
   Sliders,
   Menu,
   X,
+  LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import { useServerSession } from '../../../lib/useServerSession';
@@ -250,6 +251,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     {
       title: 'OPERATIONS',
       items: [
+        { label: 'Support & Help Desk', href: '/admin/support', icon: LifeBuoy },
         { label: 'Audit & System Logs', href: '/admin/logs', icon: ShieldAlert },
       ],
     },

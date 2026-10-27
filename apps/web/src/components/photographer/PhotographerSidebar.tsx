@@ -24,7 +24,8 @@ import {
   BarChart3,
   Sparkles,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  LifeBuoy
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
@@ -123,6 +124,7 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
         },
         { label: 'Profile Verification', href: '/photographer/verification', icon: ShieldCheck },
         { label: 'Settings', href: '/photographer/settings', icon: Settings },
+        { label: 'Help & Support', href: '/photographer/support', icon: LifeBuoy },
       ],
     },
   ];

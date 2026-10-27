@@ -146,6 +146,7 @@ export default function Footer() {
               <li><Link href="/customer/dashboard" className="hover:text-[#14B8A6] transition-colors">Client Portal</Link></li>
               <li><Link href="/photographer/dashboard" className="hover:text-[#14B8A6] transition-colors">Creator Studio</Link></li>
               <li><Link href="/admin/dashboard" className="hover:text-[#14B8A6] transition-colors">Admin Operations</Link></li>
+              <li><Link href="/help" className="hover:text-[#14B8A6] transition-colors text-white font-medium">Help Center & FAQs</Link></li>
             </ul>
           </div>
         </div>
@@ -154,6 +155,7 @@ export default function Footer() {
         <div className="border-t border-[#1F242D] mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#64748B] gap-4">
           <p>© {new Date().getFullYear()} REEPY Marketplace. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-6">
+            <Link href="/help" className="hover:text-white transition-colors">Help & Support</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/cancellation" className="hover:text-white transition-colors">Cancellation & Escrow Policy</Link>

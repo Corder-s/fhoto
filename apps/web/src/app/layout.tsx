@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Caveat, Inter } from 'next/font/google';
 import './globals.css';
-import { AiChatWidgetRoot } from '../components/ai/AiChatWidgetRoot';
 import { AuthModalProvider } from '../components/auth/AuthModalContext';
 import { UserProfileProvider } from '../context/UserProfileContext';
 
@@ -42,7 +41,6 @@ export default function RootLayout({
         <AuthModalProvider>
           <UserProfileProvider>
             {children}
-            <AiChatWidgetRoot />
           </UserProfileProvider>
         </AuthModalProvider>
       </body>
