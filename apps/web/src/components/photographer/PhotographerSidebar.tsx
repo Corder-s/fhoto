@@ -8,8 +8,7 @@ import {
   Calendar,
   Clock,
   Package,
-  Image,
-  TrendingUp,
+  Image as ImageIcon,
   DollarSign,
   Star,
   ShieldCheck,
@@ -21,11 +20,12 @@ import {
   LogOut,
   Users,
   CreditCard,
-  Briefcase,
-  Layers,
   BarChart3,
+  Sparkles,
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
-import { clearAuthSession, useAuth } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 
 interface SidebarProps {
@@ -33,13 +33,23 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+interface NavGroup {
+  group: string;
+  items: Array<{
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+    badgeColor?: string;
+    isExternal?: boolean;
+  }>;
+}
+
 export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
   const {
-    authUser,
-    profile,
     creatorProfile,
     stats,
     accountName,
@@ -55,29 +65,74 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
     router.push('/login');
   };
 
-  const handleSlug = `@${accountName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  const handleSlug = `@${(professionalName || accountName).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
-  const navItems = [
-    { label: 'Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
-    { label: 'My Profile', href: '/photographer/business', icon: UserCheck },
-    { label: 'Portfolio', href: '/photographer/portfolio', icon: Image },
-    { label: 'Packages & Pricing', href: '/photographer/services', icon: Package },
-    { label: 'Availability', href: '/photographer/availability', icon: Clock },
+  const publicProfileUrl = creatorProfile?.id
+    ? `/photographers/${creatorProfile.id}`
+    : '/photographer/business';
+
+  const navGroups: NavGroup[] = [
     {
-      label: 'Booking Requests',
-      href: '/photographer/bookings',
-      icon: Calendar,
-      badge: stats.newRequests > 0 ? String(stats.newRequests) : undefined,
-      badgeColor: 'bg-[#FF4D4D] text-white',
+      group: 'Overview',
+      items: [
+        { label: 'Studio Dashboard', href: '/photographer/dashboard', icon: LayoutDashboard },
+        { label: 'Analytics & Trends', href: '/photographer/analytics', icon: BarChart3 },
+      ],
     },
-    { label: 'My Bookings', href: '/photographer/bookings', icon: Calendar },
-    { label: 'Clients', href: '/photographer/clients', icon: Users },
-    { label: 'Earnings & Payouts', href: '/photographer/payouts', icon: DollarSign },
-    { label: 'Subscription', href: '/photographer/subscription', icon: CreditCard },
-    { label: 'Analytics', href: '/photographer/analytics', icon: BarChart3 },
-    { label: 'Reviews', href: '/photographer/reviews', icon: Star },
-    { label: 'Settings', href: '/photographer/settings', icon: Settings },
-    { label: 'Help & Support', href: '/photographer/settings', icon: ShieldCheck },
+    {
+      group: 'Business & Shoots',
+      items: [
+        {
+          label: 'Booking Requests',
+          href: '/photographer/bookings',
+          icon: Calendar,
+          badge: stats.newRequests > 0 ? String(stats.newRequests) : undefined,
+          badgeColor: 'bg-[#14B8A6] text-white',
+        },
+        { label: 'Calendar & Hours', href: '/photographer/availability', icon: Clock },
+        { label: 'Client Directory', href: '/photographer/clients', icon: Users },
+      ],
+    },
+    {
+      group: 'Portfolio & Offerings',
+      items: [
+        { label: 'Portfolio Gallery', href: '/photographer/portfolio', icon: ImageIcon },
+        { label: 'Packages & Pricing', href: '/photographer/services', icon: Package },
+        {
+          label: 'Live Public Profile',
+          href: publicProfileUrl,
+          icon: ExternalLink,
+          isExternal: true,
+        },
+      ],
+    },
+    {
+      group: 'Financials',
+      items: [
+        { label: 'Earnings & Payouts', href: '/photographer/payouts', icon: DollarSign },
+        { label: 'Creator Plan', href: '/photographer/subscription', icon: CreditCard },
+      ],
+    },
+    {
+      group: 'Reputation',
+      items: [
+        {
+          label: 'Client Reviews',
+          href: '/photographer/reviews',
+          icon: Star,
+          badge: creatorProfile?.average_rating ? `${Number(creatorProfile.average_rating).toFixed(1)} ★` : undefined,
+          badgeColor: 'bg-amber-400/20 text-amber-300 border border-amber-400/30',
+        },
+      ],
+    },
+    {
+      group: 'Studio Account',
+      items: [
+        { label: 'Edit Studio Profile', href: '/photographer/business', icon: UserCheck },
+        { label: 'Verification Center', href: '/photographer/verification', icon: ShieldCheck },
+        { label: 'Account Settings', href: '/photographer/settings', icon: Settings },
+      ],
+    },
   ];
 
   return (
@@ -85,47 +140,60 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-ink-primary/50 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container: Sleek Dark Navy/Charcoal Surface */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white border-r border-contour-subtle flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-[#0B0F19] border-r border-slate-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 text-slate-300 shadow-2xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-contour-subtle shrink-0">
-          <div className="flex items-center gap-2.5 select-none cursor-default" aria-label="REEPY Brand">
-            <div className="w-8 h-8 rounded-card-sm bg-brand flex items-center justify-center text-white shadow-sm">
-              <Camera className="w-4 h-4" />
+        <div className="h-16 px-5 flex items-center justify-between border-b border-slate-800/80 shrink-0 bg-[#0B0F19]">
+          <Link
+            href="/photographer/dashboard"
+            onClick={onClose}
+            className="flex items-center gap-2.5 select-none group"
+            aria-label="REEPY Creator Studio"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D9488] to-[#14B8A6] flex items-center justify-center text-white shadow-md shadow-[#14B8A6]/20 group-hover:scale-105 transition-transform">
+              <Camera className="w-4 h-4 stroke-[2.2]" />
             </div>
-            <span className="text-xl font-black tracking-tight text-ink-primary">
-              REEPY
-            </span>
-          </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-black tracking-tight text-white">
+                  REEPY
+                </span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded-md bg-[#14B8A6]/20 text-[#2DD4BF] border border-[#14B8A6]/30">
+                  STUDIO
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium -mt-0.5">Creator Workspace</span>
+            </div>
+          </Link>
 
           <button
             onClick={onClose}
-            className="p-1.5 text-ink-muted hover:text-ink-primary lg:hidden rounded-card-sm hover:bg-canvas-secondary"
+            className="p-1.5 text-slate-400 hover:text-white lg:hidden rounded-lg hover:bg-slate-800 transition-colors"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Profile Card Snippet */}
-        <div className="p-4 border-b border-contour-subtle bg-canvas-primary/60 shrink-0">
+        {/* Creator Identity Widget Snippet */}
+        <div className="p-4 border-b border-slate-800/80 bg-slate-900/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden bg-[#14B8A6] text-white flex items-center justify-center text-sm font-black border-2 border-white shadow-sm shrink-0 relative">
+            <div className="w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-[#0D9488] to-[#14B8A6] text-white flex items-center justify-center text-sm font-black border border-white/10 shadow-sm shrink-0 relative">
               <span className="select-none">{initials}</span>
               {displayAvatar && (
                 <img
                   src={displayAvatar}
-                  alt={accountName}
+                  alt={professionalName || accountName}
                   className="absolute inset-0 w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -135,99 +203,117 @@ export const PhotographerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose })
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-ink-primary truncate">
-                  {accountName}
+                <p className="text-xs font-bold text-white truncate">
+                  {professionalName || accountName}
                 </p>
                 {creatorProfile?.verification_status === 'approved' && (
-                  <span title="Verified Professional" className="inline-flex">
-                    <ShieldCheck className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <span title="Verified Pro" className="inline-flex shrink-0">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#14B8A6]" />
                   </span>
                 )}
               </div>
-              <p className="text-xs text-ink-secondary truncate">
+              <p className="text-[11px] text-slate-400 truncate">
                 {handleSlug}
               </p>
-              <div className="flex items-center gap-2 mt-0.5 text-[11px] font-medium text-ink-muted">
-                <span>⭐ {creatorProfile?.average_rating ? Number(creatorProfile.average_rating).toFixed(1) : '5.0'}</span>
+              <div className="flex items-center gap-2 mt-1 text-[10px] font-semibold text-slate-400">
+                <span className="text-amber-300">★ {creatorProfile?.average_rating ? Number(creatorProfile.average_rating).toFixed(1) : '5.0'}</span>
                 <span>•</span>
                 <span className="truncate">{creatorProfile?.city || 'Delhi NCR'}</span>
               </div>
             </div>
           </div>
+
+          {/* Verification mini banner */}
+          <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+            <span className="text-slate-400">Studio Status:</span>
+            <span
+              className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
+                creatorProfile?.verification_status === 'approved'
+                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                  : creatorProfile?.verification_status === 'pending'
+                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                  : 'bg-slate-800 text-slate-300 border border-slate-700'
+              }`}
+            >
+              {creatorProfile?.verification_status === 'approved'
+                ? 'Verified Pro'
+                : creatorProfile?.verification_status === 'pending'
+                ? 'Under Review'
+                : 'Draft Profile'}
+            </span>
+          </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={() => onClose()}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-[#EFFCF8] text-[#14B8A6] font-black'
-                    : 'text-[#64748B] hover:text-[#191C22] hover:bg-[#F1F3F5]'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon
-                    className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-[#14B8A6]' : 'text-[#94A3B8]'
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`ml-2 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ${
-                      item.badgeColor
+        {/* Grouped Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
+          {navGroups.map((group) => (
+            <div key={group.group} className="space-y-1">
+              <p className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                {group.group}
+              </p>
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    target={item.isExternal ? '_blank' : undefined}
+                    rel={item.isExternal ? 'noopener noreferrer' : undefined}
+                    onClick={() => onClose()}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      isActive
+                        ? 'bg-[#14B8A6] text-white font-bold shadow-sm shadow-[#14B8A6]/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                     }`}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 ${
+                          isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                        }`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.badge && (
+                        <span
+                          className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                            isActive ? 'bg-white text-[#0D9488]' : item.badgeColor || 'bg-slate-800 text-slate-200'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                      {item.isExternal && (
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* Upgrade to Pro Card */}
-        <div className="p-3.5 m-3 rounded-2xl bg-[#EFFCF8] border border-[#99F6E4] space-y-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-base">👑</span>
-            <span className="text-xs font-black text-[#191C22]">Upgrade to Pro</span>
-          </div>
-          <p className="text-[11px] text-[#64748B] leading-relaxed">
-            Get more bookings, better visibility and premium features.
-          </p>
-          <Link
-            href="/photographer/subscription"
-            className="block w-full py-2 px-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] text-white text-xs font-bold text-center transition-colors shadow-2xs"
-          >
-            View Plans →
-          </Link>
-        </div>
-
         {/* Bottom Actions */}
-        <div className="p-3 border-t border-contour-subtle space-y-1 bg-white shrink-0">
+        <div className="p-3 border-t border-slate-800/80 space-y-1.5 bg-[#0B0F19] shrink-0">
           <Link
             href="/customer/dashboard"
-            className="block text-center text-[11px] font-semibold text-ink-muted hover:text-brand px-3 py-1 transition-colors"
+            className="block text-center text-[11px] font-semibold text-slate-400 hover:text-[#14B8A6] py-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
           >
             Switch to Client Account →
           </Link>
 
-          <Link
-            href="/login"
+          <button
             onClick={handleSignOut}
-            className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg px-3 py-1 transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-center text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl py-2 px-3 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
     </>

@@ -47,9 +47,6 @@ export async function GET(request: Request) {
       `)
       .order('average_rating', { ascending: false });
 
-    // Only platform-approved photographers are publicly discoverable or bookable.
-    queryBuilder = queryBuilder.eq('verification_status', 'approved');
-
     if (creatorId) {
       const { isUuid: isIdUuid, searchTerm } = resolveSlugSearchTerm(creatorId);
       if (isIdUuid) {
@@ -59,7 +56,8 @@ export async function GET(request: Request) {
       }
       queryBuilder = queryBuilder.limit(1);
     } else {
-      queryBuilder = queryBuilder.limit(60);
+      // Only platform-approved photographers are publicly discoverable in the marketplace directory.
+      queryBuilder = queryBuilder.eq('verification_status', 'approved').limit(60);
     }
 
     if (location && location !== 'All Locations') {

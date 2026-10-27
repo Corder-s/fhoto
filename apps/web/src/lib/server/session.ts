@@ -289,3 +289,38 @@ export async function getOwnCreatorProfile(
     .maybeSingle();
   return (data as { id: string; verification_status: string; cover_image_url?: string | null } | null) || null;
 }
+
+/** Looks up or initializes a default creator profile for the authenticated creator. */
+export async function getOrCreateOwnCreatorProfile(
+  admin: SupabaseClient,
+  userId: string,
+  fallbackName?: string
+): Promise<{ id: string; verification_status: string; cover_image_url?: string | null }> {
+  let profile = await getOwnCreatorProfile(admin, userId);
+  if (!profile) {
+    const { data: userProfile } = await admin
+      .from('profiles')
+      .select('full_name, city')
+      .eq('id', userId)
+      .maybeSingle();
+    const name = fallbackName || userProfile?.full_name || 'Photographer';
+    const { data: created, error } = await admin
+      .from('creator_profiles')
+      .insert({
+        user_id: userId,
+        professional_name: name,
+        city: 'Delhi NCR',
+        state: 'Delhi',
+        service_radius: 25,
+        verification_status: 'unsubmitted',
+        is_available: true,
+      })
+      .select('id, verification_status, cover_image_url')
+      .single();
+    if (created) {
+      profile = created;
+    }
+  }
+  return profile!;
+}
+

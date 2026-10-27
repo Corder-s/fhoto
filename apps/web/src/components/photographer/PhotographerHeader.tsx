@@ -5,19 +5,18 @@ import Link from 'next/link';
 import {
   Menu,
   Bell,
-  CheckCircle2,
-  AlertCircle,
   ExternalLink,
   Settings,
   LogOut,
-  ChevronDown,
-  User,
-  Radio,
   Search,
-  MessageSquare,
+  User,
+  Share2,
+  Check,
+  ShieldCheck,
+  Radio
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { clearAuthSession, useAuth } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import { useCurrentUserProfile } from '../../context/UserProfileContext';
 import { useNotifications } from '../../lib/useNotifications';
 
@@ -33,8 +32,6 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
   onToggleOnline
 }) => {
   const {
-    authUser,
-    profile,
     creatorProfile,
     accountName,
     professionalName,
@@ -46,6 +43,7 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSignOut = async (e: React.MouseEvent) => {
@@ -55,33 +53,72 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
     router.push('/login');
   };
 
+  const publicUrl = creatorProfile?.id
+    ? `/photographers/${creatorProfile.id}`
+    : '/photographer/business';
+
+  const handleCopyProfileLink = () => {
+    if (typeof window !== 'undefined') {
+      const fullUrl = `${window.location.origin}${publicUrl}`;
+      navigator.clipboard?.writeText(fullUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-[#E7EAEE] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 shadow-2xs">
       {/* Left: Mobile Toggle + Search Bar */}
       <div className="flex items-center gap-3 flex-1 max-w-xl">
         <button
           onClick={onOpenMobileMenu}
-          className="p-2 text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary rounded-card-sm lg:hidden"
+          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl lg:hidden transition-colors"
           aria-label="Open mobile navigation"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Search input matching Reference Image A */}
+        {/* Global Search input */}
         <div className="relative w-full max-w-md hidden sm:block">
-          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search bookings, clients, messages..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F5F7F9] border border-[#E7EAEE] text-xs text-[#191C22] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#14B8A6] focus:bg-white transition-all"
+            placeholder="Search shoots, client names, services..."
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#14B8A6] focus:bg-white focus:ring-2 focus:ring-[#14B8A6]/20 transition-all font-medium"
           />
         </div>
       </div>
 
-      {/* Right Controls: Notifications, Message, Profile */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Right Controls: Live Profile, Notifications, Profile Dropdown */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Quick Public Profile Preview Button */}
+        <Link
+          href={publicUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-[#14B8A6] text-slate-700 hover:text-[#0D9488] bg-slate-50 hover:bg-[#14B8A6]/5 text-xs font-semibold transition-all shadow-2xs"
+          title="Open your public photographer profile in a new tab"
+        >
+          <span>Live Profile</span>
+          <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+        </Link>
+
+        {/* Share Profile Link Button */}
+        <button
+          onClick={handleCopyProfileLink}
+          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer relative"
+          title="Copy public profile link"
+        >
+          {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+          {copiedLink && (
+            <span className="absolute -bottom-8 right-0 text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded shadow-md whitespace-nowrap z-50">
+              Link copied!
+            </span>
+          )}
+        </button>
+
         {/* Notifications Popover */}
         <div className="relative">
           <button
@@ -89,21 +126,21 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
               setShowNotifications(!showNotifications);
               setShowProfileMenu(false);
             }}
-            className="relative p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors cursor-pointer"
+            className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5 stroke-[1.8]" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+              <span className="absolute top-1 right-1 w-4 h-4 bg-[#14B8A6] text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-[#E7EAEE] shadow-elevated py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 py-2 border-b border-[#F1F3F5] flex items-center justify-between">
-                <span className="text-xs font-black text-[#191C22]">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900">
                   Notifications
                 </span>
                 <div className="flex items-center gap-2">
@@ -115,16 +152,16 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                       Mark all as read
                     </button>
                   )}
-                  <span className="text-[10px] font-bold text-[#14B8A6] bg-[#EFFCF8] px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-[#0D9488] bg-[#14B8A6]/10 px-2 py-0.5 rounded-full">
                     {unreadCount} New
                   </span>
                 </div>
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-[#F1F3F5]">
+              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-[#94A3B8]">
-                    No notifications yet.
+                  <div className="p-6 text-center text-xs text-slate-400">
+                    No new notifications.
                   </div>
                 ) : (
                   notifications.map((item) => (
@@ -135,19 +172,19 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                         markAsRead(item.id);
                         setShowNotifications(false);
                       }}
-                      className={`block px-4 py-3 hover:bg-[#F5F7F9] transition-colors ${
-                        !item.readAt ? 'bg-[#FFF9F5]' : ''
+                      className={`block px-4 py-3 hover:bg-slate-50 transition-colors ${
+                        !item.readAt ? 'bg-teal-50/40' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-xs ${!item.readAt ? 'font-black text-[#191C22]' : 'font-medium text-[#64748B]'}`}>
+                        <p className={`text-xs ${!item.readAt ? 'font-bold text-slate-900' : 'font-medium text-slate-600'}`}>
                           {item.title}
                         </p>
-                        <span className="text-[10px] text-[#94A3B8] whitespace-nowrap">
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
                           {new Date(item.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <p className="text-xs text-[#64748B] mt-1 line-clamp-2">{item.body}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.body}</p>
                     </Link>
                   ))
                 )}
@@ -156,30 +193,21 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Message bubble icon */}
-        <Link
-          href="/photographer/dashboard"
-          className="p-2 text-[#64748B] hover:text-[#191C22] hover:bg-[#F5F7F9] rounded-xl transition-colors relative"
-          title="Messages"
-        >
-          <MessageSquare className="w-5 h-5 stroke-[1.8]" />
-        </Link>
-
-        {/* Profile Dropdown */}
+        {/* Profile Avatar & Menu */}
         <div className="relative">
           <button
             onClick={() => {
               setShowProfileMenu(!showProfileMenu);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#F5F7F9] transition-colors cursor-pointer"
+            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-[#14B8A6] text-white flex items-center justify-center text-xs font-black border border-[#E7EAEE] shadow-2xs shrink-0 relative">
-              <span className="select-none">{initials}</span>
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-tr from-[#0D9488] to-[#14B8A6] text-white flex items-center justify-center text-xs font-black shadow-xs relative">
+              <span>{initials}</span>
               {displayAvatar && (
                 <img
                   src={displayAvatar}
-                  alt={accountName}
+                  alt={professionalName || accountName}
                   className="absolute inset-0 w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -187,25 +215,24 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                 />
               )}
             </div>
-            <div className="text-left hidden md:block">
-              <p className="text-xs font-black text-[#191C22] leading-tight">
-                {accountName}
+            <div className="hidden lg:block text-left">
+              <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
+                {professionalName || accountName}
               </p>
-              <p className="text-[10px] text-[#94A3B8] font-medium leading-tight">
-                {creatorProfile?.city ? `${creatorProfile.city} • Creator` : 'Verified Creator'}
+              <p className="text-[10px] text-[#0D9488] font-semibold">
+                Creator Studio
               </p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
           </button>
 
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-card-md border border-contour-subtle shadow-elevated py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 py-2 border-b border-contour-subtle">
-                <p className="text-xs font-bold text-ink-primary truncate">
-                  {accountName}
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-2 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {professionalName || accountName}
                 </p>
-                <p className="text-[11px] text-ink-muted truncate">
-                  {profile?.email || authUser?.email || ''}
+                <p className="text-[11px] text-slate-400 truncate">
+                  {creatorProfile?.city || 'Delhi NCR'}
                 </p>
               </div>
 
@@ -213,47 +240,38 @@ export const PhotographerHeader: React.FC<HeaderProps> = ({
                 <Link
                   href="/photographer/business"
                   onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  <User className="w-3.5 h-3.5 text-ink-muted" />
-                  <span>My Studio Profile</span>
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Edit Studio Profile</span>
                 </Link>
                 <Link
                   href="/photographer/settings"
                   onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  <Settings className="w-3.5 h-3.5 text-ink-muted" />
-                  <span>Studio Settings</span>
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Account Settings</span>
                 </Link>
                 <Link
-                  href={creatorProfile?.id ? `/photographers/${creatorProfile.id}` : '/photographer/portfolio'}
+                  href={publicUrl}
                   target="_blank"
                   onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-ink-muted" />
-                  <span>Public Portfolio</span>
-                </Link>
-                <Link
-                  href="/photographer/onboarding"
-                  onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-secondary"
-                >
-                  <User className="w-3.5 h-3.5 text-ink-muted" />
-                  <span>Onboarding Checklist</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  <span>View Public Profile</span>
                 </Link>
               </div>
 
-              <div className="border-t border-contour-subtle pt-1 mt-1">
-                <Link
-                  href="/login"
+              <div className="pt-1 border-t border-slate-100">
+                <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
-                </Link>
+                </button>
               </div>
             </div>
           )}

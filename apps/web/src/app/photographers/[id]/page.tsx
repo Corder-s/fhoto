@@ -540,10 +540,15 @@ function PhotographerProfileInner({ params }: { params: { id: string } }) {
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
                   {creator.name}
                 </h1>
-                {creator.isVerified && (
+                {creator.isVerified ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14B8A6] text-[#0D0F12] shadow-sm">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Verified</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/80 text-white shadow-sm border border-amber-400/40 backdrop-blur-xs">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Verification Pending</span>
                   </span>
                 )}
               </div>
