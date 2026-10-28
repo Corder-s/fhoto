@@ -227,7 +227,7 @@ export const CustomerDashboardView: React.FC = () => {
         throw new Error(data.error || 'Could not initialize payment order.');
       }
 
-      if (data.isDevSandbox) {
+      if (data.isDevSandbox || data.isSandbox) {
         setSandboxCheckoutData({
           ...data,
           booking,

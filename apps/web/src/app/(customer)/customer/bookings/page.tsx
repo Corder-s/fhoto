@@ -253,7 +253,7 @@ export default function CustomerBookingsPage() {
         throw new Error(data.error || 'Failed to initialize payment checkout.');
       }
 
-      if (data.isSandbox) {
+      if (data.isSandbox || data.isDevSandbox) {
         // Open interactive developer sandbox checkout modal
         setSandboxCheckoutData({
           ...data,

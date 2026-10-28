@@ -141,7 +141,7 @@ export default function CustomerBookingDetailPage({ params }: { params: { id: st
         throw new Error(data.error || 'Failed to initialize payment gateway.');
       }
 
-      if (data.isDevSandbox) {
+      if (data.isDevSandbox || data.isSandbox) {
         setSandboxCheckoutData({
           ...data,
           booking,

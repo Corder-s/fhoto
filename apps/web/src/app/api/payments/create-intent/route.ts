@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
         },
         customer: customerPrefill,
         isSandbox: existingPayment.provider === 'dev_sandbox',
+        isDevSandbox: existingPayment.provider === 'dev_sandbox',
         provider: existingPayment.provider,
         message: 'Active payment order retrieved.',
       });
@@ -280,6 +281,7 @@ export async function POST(request: NextRequest) {
       },
       customer: customerPrefill,
       isSandbox: gatewayOrder.isSandbox,
+      isDevSandbox: gatewayOrder.isSandbox,
       provider: gatewayOrder.provider,
       message: 'New payment order created successfully.',
     });
